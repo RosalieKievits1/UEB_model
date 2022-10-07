@@ -143,3 +143,5 @@ def shadowfactor(coords, azimuth,elevation_angle):
     # now we want to delete all coords that have a different angle with the sun
     # next we want to check of point that are in the same azimuth of the sun are higher,
     # Set the shadowfactor to 0 or 1
+    S = 0
+    return S
