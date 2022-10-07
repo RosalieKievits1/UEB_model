@@ -122,26 +122,30 @@ def calc_SVF(coords, steps_phi , steps_theta,max_radius):
         SVF[i] = (dome_area - sum(thetas,0))/dome_area
     return SVF
 
-def shadowfactor(coords, azimuth,elevation_angle):
+def shadowfactor(coords, azimuth,elevation_angle,d_theta):
     """
     :param coords: all other points, x,y,z values
     :param azimuth: azimuth of the sun
     :param elevation_angle: elevation angle of the sun
+    :param d_theta: specify a range from the azimuth in which we think
+        it has the same angle (can be very small)
     :return: the shadowfactor of that point:
     """
+    Shadowfactor = np.ndarray([coords.shape[0],1])
     for i in range(coords.shape[0]):
         # the point we are currently evaluating
         point = coords[i,:]
-        angle = np.ndarray([coords.shape[0],1])
-        radius = np.ndarray([coords.shape[0],1])
         for i in range(coords.shape[0]):
-            radius[i],angle[i] = dist(point,coords[i])
-        coords = np.concatenate([coords,radius],axis=1)
-        coords = np.concatenate([coords,angle],axis=1)
-        # coords is now a 5 column array of points:
-        # the 5 columns: x,y,z,radius,angle theta with point p
-    # now we want to delete all coords that have a different angle with the sun
-    # next we want to check of point that are in the same azimuth of the sun are higher,
-    # Set the shadowfactor to 0 or 1
-    S = 0
-    return S
+            # for all other point we compute the radius and distance to that point
+            radius,angle = dist(point,coords[i])
+            # if the angle is within a very small range as the angle of the sun
+            if ((azimuth-d_theta)<angle and angle<(azimuth+d_theta)):
+                # if the elevation angle times the radius is smaller than the height of that point
+                # the shadowfactot is zero since that point blocks the sun
+                if ((np.tan(elevation_angle)*radius)<coords[i,2]):
+                    Shadowfactor[i]=0
+            # in all other cases there is no point in the same direction as the sun that is higher
+            # so the shadowfactor is 1: the point receives radiation
+            else:
+                Shadowfactor[i] = 1
+    return Shadowfactor
