@@ -2,13 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tifffile as tf
 import pandas as pd
-import SVF
+#import SVF
 import sys
 # grid size model
+
 xsize = 320
 ysize = 320
-itot = 160#64
-jtot = 160#64
+itot = 64
+jtot = 64
 # xsize = 100
 # ysize = 100
 # itot = 25
@@ -35,6 +36,7 @@ if cell_model_x == 5 and cell_model_y == 5:
 else:
     data = tf.imread('R_37FZ1.TIF')  # dsm (all info), charlois
     data_topo = tf.imread('M_37FZ1.TIF')  # dtm (topography), charlois
+    print(data.size)
     #plt.imshow(data_topo[650:650 + int(xsize*10), 280:280 + int(xsize*10)])  # mooie map voor M5_37HN1
     #plt.show()
     #remove extreme large numbers for water and set zero
@@ -72,7 +74,7 @@ else:
 
 
 [x_len, y_len] = np.shape(data)
-min_height = 0.5 # buildings below 1m are not looked at.
+min_height = 1 # buildings below 1m are not looked at.
 data_diff = data - data_topo
 """Wat doet de zin hieronder???"""
 #data_diff = data_diff - np.amin(data_diff)
@@ -110,7 +112,7 @@ data_diff = datadiffcopy
 # print(SVFs)
 
 data_diff = np.around(data_diff, 3)
-print(np.shape(data_diff))
+#print(np.shape(data_diff))
 '''make ibm.inp file'''
 # print('datadiff1', data_diff[670,280:600])
 # print('datadiff2',data_diff[670:990,280])
@@ -133,11 +135,30 @@ print(np.shape(data_diff))
 # print(str(zero_array) , ' points are zero of the total amount of ', str(itot*jtot))
 # print('This is a percentage of ', str(zero_array*100/(itot*jtot)) )
 
-coords = SVF.coordheight(data_diff*2)
-print(coords.shape[0])
-SVFs = SVF.calc_SVF(coords, SVF.steps_phi, SVF.steps_theta,SVF.max_radius)
-print("these are the SVF's")
-print(SVFs)
+# coords = SVF.coordheight(data_diff*2)
+# print(coords.shape[0])
+# SVFs = SVF.calc_SVF(coords, SVF.steps_phi, SVF.steps_theta,SVF.max_radius)
+# print("these are the SVF's")
+# print(SVFs)
+
+"""
+We now need a function that sets a fraction of the surfaces to rooftops, 
+a fraction to walls, and a fraction to roads
+"""
+def surfaceidentifier(data,maxroadheight):
+    """
+    :param data: data structure with heigths
+    :param maxroadheight: height we define that below is road, above is roof
+    :return: fractions of roof, wall and road of total surface
+    """
+    # we start with the roof and road fractions:
+    road_data = data[data<maxroadheight]
+    roof_data = data[data>maxroadheight]
+    # now we need to evaluate if elements with the same height belong to the same building
+    a_roof = 0
+    a_walls = 0
+    a_road = 0
+    return a_roof,a_walls,a_road
 
 #data_array = data_diff[670:734,280:344]
 # print(data_array[8,14])

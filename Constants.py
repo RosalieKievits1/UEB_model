@@ -26,7 +26,7 @@ d_fiber = 0.15
 d_road = 0.1
 
 #timestep
-timestep = 10*60 #[s]
+timestep = 2*60 #[s]
 nr_of_steps = 1000
 
 # albedos
