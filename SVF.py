@@ -8,8 +8,7 @@ data_excel = tf.imread('M5_37FZ1.TIF')  # dtm (topography)
 """Now we want to calculate the sky view factor"""
 steps_theta = 90 # so we range in steps of 4 degrees
 steps_phi = 90 # so we range in steps of 2 degrees
-max_radius = 30 # max radius is 15 m
-
+max_radius = 100 # max radius is 15 m
 # define the gridboxsize of the model
 gridboxsize = 5
 # objects below 1 m we do not look at
@@ -158,8 +157,8 @@ def dist(point, coord):
     :param coord: array of coordinates with heights
     :return: the distance from each coordinate to the point and the angle
     """
-    dx = (point[0] - coord[0])
-    dy = (point[1] - coord[1])
+    dx = (point[0] - coord[0])*gridboxsize
+    dy = (point[1] - coord[1])*gridboxsize
     dist = np.sqrt(abs(dx)**2 + abs(dy)**2)
     angle = np.arctan(dy/dx)
     return dist,angle
@@ -210,13 +209,13 @@ def calc_SVF(coords, steps_phi , steps_theta,max_radius,blocklength):
             # we want to know if when we evaluate one point
             for p in range(phi_lin.shape[0]):
                 # if the height of the point is higher than the height of the point
-                h_phi = np.tan(phi_lin[p])*dome_p[d,3] #*max_radius #dome_p[d,2]
-                if (dome_p[d,2]>=h_phi):
+                h_phi = np.tan(phi_lin[p])*(dome_p[d,3]) #
+                heightdif = dome_p[d,2]-point[2]
+                if (heightdif>=h_phi):
                     # if there already exist a blocking for that angle theta:
                     # calculate of the area of this blocking is more
-                    heightdif = dome_p[d,2]-point[2]
                     area = d_area(dome_p[d,3],d_theta,heightdif,max_radius)
-                    round_angle_index = int(np.floor((dome_p[d,4]*steps_theta)/(2*np.pi)))
+                    round_angle_index = int(np.rint((dome_p[d,4]*steps_theta)/(2*np.pi)))
                     if (thetas[round_angle_index]<area):
                         thetas[round_angle_index] = area
         #this is the analytical dome area but should make same assumption as for d_area
@@ -271,13 +270,13 @@ def height_width(data):
     delta = built_elements/(road_elements+built_elements)
     return ave_height, delta
 
-# data = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
-# print(data.shape)
-# coords = coordheight(data)
-# print(coords)
-# [ave_height, delta] = height_width(data)
-# print(ave_height,delta)
-# blocklength = (data.shape[0]/2*data.shape[1]/2)
-# svfs = calc_SVF(coords, steps_phi , steps_theta,max_radius,blocklength)
-# print(svfs)
+data = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
+print(data.shape)
+coords = coordheight(data)
+print(coords)
+[ave_height, delta] = height_width(data)
+print(ave_height,delta)
+blocklength = int((data.shape[0]/2*data.shape[1]/2))
+svfs = calc_SVF(coords, steps_phi , steps_theta,max_radius,blocklength)
+print(svfs)
 
