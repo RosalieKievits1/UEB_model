@@ -16,16 +16,17 @@ import Functions
 nr_steps = Functions.nr_steps
 T_air = Functions.T_air
 
+"""Intitialize all layers for all three surfacetypes"""
 [map_temperatures_roof,roof_d,roof_lambdas,roof_capacities] = Functions.initialize(Constants.layers_roof,nr_steps,T_air,Constants.T_building)
 [map_temperatures_road,road_d,road_lambdas,road_capacities] = Functions.initialize(Constants.layers_road,nr_steps,T_air,Constants.T_ground)
 [map_temperatures_wall,wall_d,wall_lambdas,wall_capacities] = Functions.initialize(Constants.layers_wall,nr_steps,T_air,Constants.T_building)
 
-# FOR THE ROOF
+"""FOR THE ROOF"""
 roof_d[0] = Constants.d_roof
 roof_d[1:Constants.layers_roof-1] = Constants.d_wall
 roof_d[Constants.layers_roof-1] = Constants.d_fiber
 
-# initialize different materials for different layers
+"""initialize different materials for different layers"""
 roof_lambdas[0] = Constants.lamb_bitumen
 roof_capacities[0] = Constants.C_bitumen
 
@@ -35,43 +36,40 @@ roof_capacities[1:Constants.layers_roof-1]=Constants.C_brick
 roof_lambdas[Constants.layers_roof-1]=Constants.lamb_fiber
 roof_capacities[Constants.layers_roof-1]=Constants.C_fiber
 
-# FOR THE ROAD
+"""FOR THE ROAD"""
 road_d[:] = Constants.d_road
 # initialize different materials for different layers
 road_lambdas[:] = Constants.lamb_asphalt
 road_capacities[:] = Constants.C_asphalt
 
-# FOR THE WALL
+"""FOR THE WALL"""
 wall_d[0:Constants.layers_wall-1] = Constants.d_wall
 wall_d[Constants.layers_wall-1] = Constants.d_fiber
 
-# initialize different materials for different layers
+"""initialize different materials for different layers"""
 wall_lambdas[0:Constants.layers_wall-1] = Constants.lamb_brick
 wall_capacities[0:Constants.layers_wall-1] = Constants.C_brick
 wall_lambdas[Constants.layers_wall-1]=Constants.lamb_fiber
 wall_capacities[Constants.layers_wall-1]=Constants.C_fiber
 
-#vector of emissivities of roof wall and road
+"""vector of emissivities of roof wall and road"""
 emissivities = [Constants.e_bitumen,Constants.e_brick,Constants.e_asphalt]
 albedos = [Constants.a_bitumen,Constants.a_brick,Constants.a_asphalt]
-# now we start with evolving over time
+"""now we start with evolving over time"""
 for t in range(1,nr_steps):
-    # Rooftop temperatures
+    """Surface temperatures"""
     [map_temperatures_roof[0,t],map_temperatures_wall[0,t],map_temperatures_road[0,t]] = Functions.surfacebalance(albedos,emissivities,map_temperatures_roof,map_temperatures_wall,map_temperatures_road,\
                                                           Constants.sigma,t,roof_lambdas,roof_capacities,roof_d,\
                                                           wall_lambdas,wall_capacities,wall_d,\
                                                           road_lambdas,road_capacities,road_d, \
                                                           Constants.timestep,Constants.Phi)
+    """Temperatures for each layer"""
     map_temperatures_roof[1:Constants.layers_roof,t] = Functions.layer_balance(map_temperatures_roof,Constants.layers_roof,roof_d,roof_lambdas,t,Constants.T_building,Constants.timestep,roof_capacities,type="roof")
     map_temperatures_wall[1:Constants.layers_wall,t] = Functions.layer_balance(map_temperatures_wall,Constants.layers_wall,wall_d,wall_lambdas,t,Constants.T_building,Constants.timestep,wall_capacities,type="wall")
     map_temperatures_road[1:Constants.layers_road,t] = Functions.layer_balance(map_temperatures_road,Constants.layers_road,wall_d,road_lambdas,t,Constants.T_ground,Constants.timestep,road_capacities,type="road")
 
-# Angle of incidence
-#AOI = np.arccos(np.cos(Zenith)+np.sin(Zenith)*np.cos(Azimuth))
 
-# zen_zero = np.arctan(1/Constants.H_W) # arctan(W/H)
-# theta_zero = np.arcsin(min(1,1/(Constants.H_W*np.tan(Zenith))))
-
+"""Plotting of the layers temperatures for each material"""
 Functions.plotTemp(map_temperatures_roof)
 #Functions.plotTemp(map_temperatures_road)
 #Functions.plotTemp(map_temperatures_wall)
