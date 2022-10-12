@@ -56,7 +56,7 @@ def initialize(layers,nr_steps,T_surf,T_inner_bc):
     return map_t,d,lambdas,capacities
 
 """ Function for surface balance"""
-def surfacebalance(albedos,emissivities,map_temperatures_roof,map_temperatures_wall,map_temperatures_road,\
+def surfacebalance_Masson(albedos,emissivities,map_temperatures_roof,map_temperatures_wall,map_temperatures_road,\
                    sigma,t,roof_lambdas,roof_capacities,roof_d,\
                    wall_lambdas,wall_capacities,wall_d,\
                    road_lambdas,road_capacities,road_d,\
@@ -167,9 +167,59 @@ def layer_balance(map_temperatures,layers,d,lambdas,t,T_inner_bc,delta_t,capacit
         map_temperatures[l,t] = map_temperatures[l,t-1] + dT
     return map_temperatures[1:layers,t]
 
+
+def surfacebalance(albedo_array,emissivity_array,capacities,sigma,\
+                   SVF,Shadowfactor,SW_diff,SW_dir,LW_down,d,lambdas,delta_t,map_temperatures_old,map_temperatures_old_subs):
+    """
+    :param albedo_array: array with albedos for roof road and wall
+    :param emissivity_array: array with emissivities for roof road and wall
+    :param capacities: array with capacities for roof road and wall, for each layer
+    :param sigma: stephan boltsman constant
+    :param SVF: size (data) matrix of SVF (0-1) for each point
+    :param Shadowfactor: size (data) matrix of SVF [0,1] for each point
+    :param SW_diff: diffuse solar radiation
+    :param SW_dir: direct solar radiation
+    :param LW_down: longwave downwelling radiation
+    :param d: array of thicknesses for each layer
+    :param lambdas: ndarrat of size data with lambda for each point and layer
+    :param delta_t: timestep
+    :param map_temperatures_old: old temperatures for the surface layer
+    :param map_temperatures_old_subs: old temperatures for the layer below the surface layer
+    :return: New temperatures for the surface layer
+    """
+
+    emissivities = np.ndarray(data.shape)
+    albedos = np.ndarray(data.shape)
+    """Where buildings are placed"""
+    emissivities[data[data>0]]=emissivity_array[0]
+    albedos[data[data>0]]=albedo_array[0]
+    """On ground areas"""
+    emissivity_array[data[data==0]]=emissivity_array[2]
+    albedos[data[data==0]]=albedo_array[2]
+
+    """Longwave radiation"""
+    LW_net = LW_down * SVF * emissivities - emissivities * map_temperatures_old**4 * sigma
+
+    """ Short wave radiation"""
+    SW_net = SW_dir * SVF * Shadowfactor * (1-albedos) + SW_diff * SVF * (1-albedos)
+
+    """conduction"""
+    lamb_ave_out_surf = (d[0]+d[1])/((d[0]/lambdas[0])+(d[1]/lambdas[1]))
+    G_out_surf = lamb_ave_out_surf*((map_temperatures_old-map_temperatures_old_subs)/(1/2*(d[0]+d[1])))
+
+    """ Net radiation"""
+    netRad = LW_net + SW_net - G_out_surf
+
+    """ Temperature change"""
+    dT = (netRad/(capacities[:,:,0]*d[0]))*delta_t
+    map_temperatures = map_temperatures_old + dT
+
+    return map_temperatures
+
+
 """Plotfunctions"""
 """PLOT TEMPERATURES"""
-def plotTemp(map_temp):
+def plotTemp_Masson(map_temp):
     """
     :param map_temp: array of temperatures for each layer and timestep
     :return: PLOT of temperatures

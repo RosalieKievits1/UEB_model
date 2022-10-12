@@ -318,20 +318,45 @@ def height_width(data,gridboxsize):
     """We want to determine the wall area from the height and delta
     Say each block is a separate building: then the wall area would be 4*sum(builtarea), 
     but since we have a certain density of houses we could make a relation 
-    between density and buildings next to eachother"""
+    between density and buildings next to each other"""
     Roof_area = built_elements*gridboxsize**2
     Road_area = road_elements*gridboxsize**2
     """As a first approximation we assume that if the building density is delta,
-    The wall area decreases with factor (1-delta); i.e. (1-delta)of the walls faces another wall"""
+    The wall area decreases with factor (1-delta); i.e. (1-delta) of the walls faces another wall"""
     Wall_area = 4*np.sum(data)*gridboxsize*(1-delta)
-    return ave_height, delta, Roof_area, Wall_area, Road_area
+
+    Total_area = Roof_area+Wall_area+Road_area
+    """Fractions of the area of the total surface"""
+    Roof_frac = np.around(Roof_area/Total_area,3)
+    Wall_frac = np.around(Wall_area/Total_area,3)
+    Road_frac = np.around(Road_area/Total_area,3)
+    return ave_height, delta, Roof_area, Wall_area, Road_area, Roof_frac, Wall_frac, Road_frac
+
+def wallArea(data):
+    """Matrix of ones where there are buildings"""
+    [x_len,y_len] = [data.shape[0],data.shape[1]]
+
+    wall_area = np.ndarray([x_len,y_len])
+    for i in range(int(x_len/2),int(x_len/2+x_len-1)):
+        for j in range(int(y_len/2),int(y_len/2+y_len-1)):
+            if (data[i,j]>0):
+                wall1 = max(data[i,j]-data[i+1,j],0)*gridboxsize
+                wall2 = max(data[i,j]-data[i-1,j],0)*gridboxsize
+                wall3 = max(data[i,j]-data[i,j+1],0)*gridboxsize
+                wall4 = max(data[i,j]-data[i,j-1],0)*gridboxsize
+                """The wall area corresponding to that building is"""
+                wall_area[i,j] = wall1+wall2+wall3+wall4
+            elif (data[i,j]==0):
+                wall_area[i,j] = 0
+    return wall_area
 
 data = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
-coords = coordheight(data)
-[ave_height, delta, Roof_area, Wall_area, Road_area] = height_width(data,gridboxsize)
+#coords = coordheight(data)
+[ave_height, delta, Roof_area, Wall_area, Road_area, Roof_frac, Wall_frac, Road_frac] = height_width(data,gridboxsize)
+print(ave_height, delta, Roof_area, Wall_area, Road_area, Roof_frac, Wall_frac, Road_frac)
 blocklength = int((data.shape[0]/2*data.shape[1]/2))
+wall_area = wallArea(data)
 
-
-#shadowfactor = shadowfactor(coords, Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,steps_theta,blocklength)
+print(wall_area)
 
 

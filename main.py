@@ -16,6 +16,7 @@ import Functions
 nr_steps = Functions.nr_steps
 T_air = Functions.T_air
 
+"""MASSON"""
 """Intitialize all layers for all three surfacetypes"""
 [map_temperatures_roof,roof_d,roof_lambdas,roof_capacities] = Functions.initialize(Constants.layers_roof,nr_steps,T_air,Constants.T_building)
 [map_temperatures_road,road_d,road_lambdas,road_capacities] = Functions.initialize(Constants.layers_road,nr_steps,T_air,Constants.T_ground)
@@ -58,7 +59,7 @@ albedos = [Constants.a_bitumen,Constants.a_brick,Constants.a_asphalt]
 """now we start with evolving over time"""
 for t in range(1,nr_steps):
     """Surface temperatures"""
-    [map_temperatures_roof[0,t],map_temperatures_wall[0,t],map_temperatures_road[0,t]] = Functions.surfacebalance(albedos,emissivities,map_temperatures_roof,map_temperatures_wall,map_temperatures_road,\
+    [map_temperatures_roof[0,t],map_temperatures_wall[0,t],map_temperatures_road[0,t]] = Functions.surfacebalance_Masson(albedos,emissivities,map_temperatures_roof,map_temperatures_wall,map_temperatures_road,\
                                                           Constants.sigma,t,roof_lambdas,roof_capacities,roof_d,\
                                                           wall_lambdas,wall_capacities,wall_d,\
                                                           road_lambdas,road_capacities,road_d, \
@@ -70,7 +71,9 @@ for t in range(1,nr_steps):
 
 
 """Plotting of the layers temperatures for each material"""
-Functions.plotTemp(map_temperatures_roof)
+Functions.plotTemp_Masson(map_temperatures_roof)
 #Functions.plotTemp(map_temperatures_road)
 #Functions.plotTemp(map_temperatures_wall)
 
+
+"""City using SVF and shadow casting"""
