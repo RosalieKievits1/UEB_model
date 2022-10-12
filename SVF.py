@@ -6,6 +6,9 @@ import time
 import sys
 
 #data_excel = tf.imread('M5_37FZ1.TIF')  # dtm (topography)
+import Constants
+import Sunpos
+
 """Now we want to calculate the sky view factor"""
 steps_theta = 180 # so we range in steps of 2 degrees
 steps_phi = 90 # so we range in steps of 2 degrees
@@ -86,37 +89,6 @@ def datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4):
     bigblock[x_len::,y_len::] = block4
     return bigblock
 
-def solarpos(julian_day,latitude,hour):
-    """
-    :param julian_day: day of the year (1 is jan1, 365 is dec31)
-    :param latitude: latitude of location
-    :param hour: hour of the day, can be fractional
-    :return: elevation angle and azimuth of the sun
-    """
-    """Correct the hour to GMT (summertime in Rotterdam)"""
-    hour = hour-2
-    latitude = latitude*np.pi/180
-    day_rel = (julian_day*np.pi/180)/365.25
-    delta = np.arcsin(0.3987*np.sin(day_rel-1.4+0.0355*np.sin(day_rel-0.0489)))
-
-    omega_sunset = np.arccos(-np.tan(latitude)*np.tan(delta))
-    omega_sunrise = -omega_sunset
-    """the sun change 15degrees or 0.26 radians per hour"""
-    hour_rad = (hour-12)*0.261799
-    """the declination angle"""
-    alpha = np.arcsin(np.sin(delta)*np.sin(latitude)+np.cos(delta)*np.cos(latitude)*np.cos(hour_rad))
-
-    if (hour_rad>omega_sunset or hour_rad<omega_sunrise):
-        alpha = 0
-    sin_azimuth = (np.sin(latitude)*np.sin(alpha)-np.sin(delta))/(np.cos(latitude)*np.cos(alpha))
-    cos_azimuth = np.cos(delta)*np.sin(hour_rad)/np.cos(alpha)
-    if sin_azimuth>0:
-        azimuth = np.arccos(cos_azimuth)
-    elif sin_azimuth<0:
-        azimuth = -np.arccos(cos_azimuth)
-    """The azimuth angle is defined as the 0 when the sun is south and positive for westwards"""
-    return azimuth,alpha
-
 """First we store the data in a more workable form"""
 def coordheight(data):
     """
@@ -151,8 +123,10 @@ def dist(point, coord):
     :param coord: array of coordinates with heights
     :return: the distance from each coordinate to the point and the angle
     """
-    dx = (point[0] - coord[0])*gridboxsize
-    dy = (point[1] - coord[1])*gridboxsize
+    # Columns is dx
+    dx = (point[1] - coord[1])*gridboxsize
+    # Rows is dy
+    dy = (point[0] - coord[0])*gridboxsize
     dist = np.sqrt(abs(dx)**2 + abs(dy)**2)
     """Define the angle the same way we define the azimuth: 0 for """
     angle = np.arctan(dy/dx)
@@ -164,13 +138,13 @@ def dist_round(point, coord,steps_theta):
     :param coord: array of coordinates with heights
     :return: the distance from each coordinate to the point and the angle
     """
-    dx = (point[1] - coord[1])*gridboxsize
-    dy = (point[0] - coord[0])*gridboxsize
+    dx = (coord[1] - point[1])*gridboxsize
+    dy = (coord[0] - point[0])*gridboxsize
     dist = np.sqrt(abs(dx)**2 + abs(dy)**2)
     angle = np.arctan(dy/dx)
-    thetas = np.linspace(0,2*np.pi,steps_theta+1)
-    angle_rounded = thetas[(abs(thetas-angle)).argmin()]
-    return dist,angle_rounded
+    #thetas = np.linspace(0,2*np.pi,steps_theta+1)
+    #angle_rounded = thetas[(abs(thetas-angle)).argmin()]
+    return dist,angle
 
 def dome(point, coords, maxR):
     """
@@ -285,23 +259,25 @@ def calc_SVF_try2(coords, steps_phi , steps_theta,max_radius,blocklength):
         SVF[i] = (dome_area - np.sum(thetas,0))/dome_area
     return SVF
 
-def shadowfactor(coords, azimuth,elevation_angle,steps_theta,blocklength):
+def shadowfactor(coords, julianday,latitude,longitude,LMT,steps_theta,blocklength):
     """
     :param coords: all other points, x,y,z values
-    :param azimuth: azimuth of the sun
-    :param elevation_angle: elevation angle of the sun
-    :param d_theta: specify a range from the azimuth in which we think
-        it has the same angle (can be very small)
+    :param julianday: julian day of the year
+    :param latitude: latitude of location
+    :param longitude: longitude of location
+    :param LMT: local mean time
+    :param steps_theta: amount of steps in horizontal dome angle
     :param blocklength: these are all the points in coords
         that are in the data we want to evaluate
     :return: the shadowfactor of that point:
     """
+    [azimuth,elevation_angle] = Sunpos.solarpos(julianday,latitude,longitude,LMT)
     Shadowfactor = np.ndarray([blocklength,1])
-    block_lin = np.arange(0,blocklength,1000)
+    #block_lin = np.arange(0,blocklength,1000)
     d_theta = 2*np.pi/steps_theta
     thetas = np.linspace(0,2*np.pi,steps_theta+1)
-    azi_round = thetas[(abs(thetas-azimuth)).argmin()]
-    for i in tqdm(range((len(block_lin)-1)),desc="loop over points in block for Shadowfactor"):
+    #azi_round = thetas[(abs(thetas-azimuth)).argmin()]
+    for i in tqdm(range(blocklength),desc="loop over points in block for Shadowfactor"):
         """the point we are currently evaluating"""
         Shadowfactor[i] = 1
         point = coords[i,:]
@@ -311,9 +287,9 @@ def shadowfactor(coords, azimuth,elevation_angle,steps_theta,blocklength):
             """The angle we measure is the measure from east, and positive if we turn upwards, 
             the azimuth is defined as 0 for when the sun is south, 
             and positive westwards, to compare with the azimuth angle we thus have to correct the angle with pi/2"""
-            angle = -(angle-np.pi/2)
+            angle = (angle+np.pi/2)
             """if the angle is within a very small range as the angle of the sun"""
-            if (angle == azi_round):
+            if (angle <= (azimuth+d_theta) and angle >= azimuth-d_theta):
                 """if the elevation angle times the radius is smaller than the height of that point
                 the shadowfactor is zero since that point blocks the sun"""
                 if ((np.tan(elevation_angle)*radius)<(coords[j,2]-point[2])):
@@ -324,7 +300,7 @@ def shadowfactor(coords, azimuth,elevation_angle,steps_theta,blocklength):
     return Shadowfactor
 
 
-def height_width(data):
+def height_width(data,gridboxsize):
     """
     Function that determines the average height over width of an area,
     the average height over width, and the built fraction of an area
@@ -339,25 +315,23 @@ def height_width(data):
     road_elements = np.count_nonzero(data==0)
     built_elements = np.count_nonzero(data>0)
     delta = built_elements/(road_elements+built_elements)
-    return ave_height, delta
+    """We want to determine the wall area from the height and delta
+    Say each block is a separate building: then the wall area would be 4*sum(builtarea), 
+    but since we have a certain density of houses we could make a relation 
+    between density and buildings next to eachother"""
+    Roof_area = built_elements*gridboxsize**2
+    Road_area = road_elements*gridboxsize**2
+    """As a first approximation we assume that if the building density is delta,
+    The wall area decreases with factor (1-delta); i.e. (1-delta)of the walls faces another wall"""
+    Wall_area = 4*np.sum(data)*gridboxsize*(1-delta)
+    return ave_height, delta, Roof_area, Wall_area, Road_area
 
 data = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
-print(data.shape)
 coords = coordheight(data)
-print(coords)
-[ave_height, delta] = height_width(data)
-print(ave_height,delta)
+[ave_height, delta, Roof_area, Wall_area, Road_area] = height_width(data,gridboxsize)
 blocklength = int((data.shape[0]/2*data.shape[1]/2))
-azi,alph = solarpos(22284,52,16.33)
-azi = azi*180/np.pi
-alp = alph*180/np.pi
-print(azi)
-print(alp)
 
-#shadowfactor = shadowfactor(coords, azi,alph,steps_theta,blocklength)
-# thetas = np.linspace(0,2*np.pi,steps_theta)
-# azi_round = thetas[(abs(thetas-azi)).argmin()]
-# print(azi_round)
-#svfs = calc_SVF(coords, steps_phi , steps_theta,max_radius,blocklength)
-#print(svfs)
+
+#shadowfactor = shadowfactor(coords, Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,steps_theta,blocklength)
+
 

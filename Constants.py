@@ -91,3 +91,9 @@ Phi_road = np.sqrt(H_W**2+1)-H_W
 # vector of sky view factors
 Phi = [Phi_roof,Phi_wall,Phi_road]
 
+"""For the solar position algorithm (based on Rotterdam)"""
+latitude = 51.9
+long_rd = 4.46
+"Julian day and hour of the day in local mean time"
+julianday = 285 #12 oct
+hour = 11.5 # 11:30 am
