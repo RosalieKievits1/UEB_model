@@ -41,10 +41,11 @@ def solarpos(julian_day,latitude,longitude,hour,radians=True):
     """The azimuth angle is 0 when the sun is south and positive westwards"""
     if (radians==False):
         azimuth = azimuth*180/np.pi
+        azimuth = azimuth+180
         zenith = zenith*180/np.pi
 
-    # """Correct to measure from north"""
-    # azimuth = azimuth+180
+    """Correct to measure from north"""
+    azimuth = azimuth+np.pi
 
     return azimuth,zenith
 

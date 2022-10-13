@@ -12,7 +12,7 @@ import Sunpos
 """Now we want to calculate the sky view factor"""
 steps_theta = 180 # so we range in steps of 2 degrees
 steps_phi = 90 # so we range in steps of 2 degrees
-max_radius = 100 # max radius is 100 m
+max_radius = 500 # max radius is 100 m
 """define the gridboxsize of the model"""
 gridboxsize = 5
 """objects below 1 m we do not look at"""
@@ -131,15 +131,15 @@ def dist(point, coord):
     :return: the distance from each coordinate to the point and the angle
     """
     # Columns is dx
-    dx = (point[1] - coord[1])*gridboxsize
+    dx = (coord[1]-point[1])*gridboxsize
     # Rows is dy
-    dy = (point[0] - coord[0])*gridboxsize
+    dy = (coord[0]-point[0])*gridboxsize
     dist = np.sqrt(abs(dx)**2 + abs(dy)**2)
-    """Define the angle the same way we define the azimuth: 0 for """
-    angle = np.arctan(dy/dx)
+    """angle is 0 north direction"""
+    angle = np.arctan2(dy,dx)+np.pi/2
     return dist,angle
 
-def dist_round(point, coord,steps_theta):
+def dist_round(point, coord,steps_beta):
     """
     :param point: evaluation point (x,y,z)
     :param coord: array of coordinates with heights
@@ -147,10 +147,10 @@ def dist_round(point, coord,steps_theta):
     """
     dx = (coord[1] - point[1])*gridboxsize
     dy = (coord[0] - point[0])*gridboxsize
-    dist = np.sqrt(abs(dx)**2 + abs(dy)**2)
-    angle = np.arctan(dy/dx)
-    #thetas = np.linspace(0,2*np.pi,steps_theta+1)
-    #angle_rounded = thetas[(abs(thetas-angle)).argmin()]
+    dist = np.around(np.sqrt(abs(dx)**2 + abs(dy)**2),3)
+    angle = np.around(np.arctan(dx/dy),5)
+    #betas = np.linspace(0,2*np.pi,steps_beta+1)
+    #angle_rounded = betas[(abs(betas-angle)).argmin()]
     return dist,angle
 
 def dome(point, coords, maxR):
@@ -163,7 +163,7 @@ def dome(point, coords, maxR):
     angle = np.ndarray([coords.shape[0],1])
     radius = np.ndarray([coords.shape[0],1])
     for i in range(coords.shape[0]):
-        radius[i],angle[i] = dist_round(point,coords[i],steps_theta)
+        radius[i],angle[i] = dist(point,coords[i,:])
     coords = np.concatenate([coords,radius],axis=1)
     coords = np.concatenate([coords,angle],axis=1)
     """the dome consist of points higher than the view height and within the radius we want"""
@@ -171,15 +171,15 @@ def dome(point, coords, maxR):
     dome = dome[(dome[:,2]>point[2]),:]
     return dome
 
-def d_area(radius, d_theta,height,maxR):
+def d_area(radius, d_beta,height,maxR):
     """we assume the dome is large, and d_theta and d_phi small enough,
      such that we can approximate the d_area as a flat surface"""
-    dx = radius*2*np.sin(d_theta/2)
+    dx = radius*2*np.sin(d_beta/2)
     """multiply by maxR over radius such that the small area gets projected on the dome"""
     d_area = (dx*height)*maxR/radius
     return d_area
 
-def calc_SVF(coords, steps_phi , steps_theta,max_radius,blocklength):
+def calc_SVF(coords, steps_psi , steps_beta,max_radius,blocklength):
     """
     Function to calculate the sky view factor.
     We create a dome around a point with a certain radius,
@@ -192,11 +192,11 @@ def calc_SVF(coords, steps_phi , steps_theta,max_radius,blocklength):
     :return: SVF for all points
     """
     """Vertical (phi) and horizontal (theta) angle on the dome"""
-    phi_lin = np.linspace(0,np.pi,steps_phi)
-    thetas = np.zeros(steps_theta)
-    d_theta = 2*np.pi/steps_theta
-    d_phi = np.pi/steps_phi
-    thetas_lin = np.linspace(0,2*np.pi,steps_theta+1)
+    psi_lin = np.linspace(0,np.pi,steps_psi)
+    betas = np.zeros(steps_beta)
+    d_beta = 2*np.pi/steps_beta
+    d_psi = np.pi/steps_psi
+    betas_lin = np.linspace(0,2*np.pi,steps_beta+1)
     SVF = np.ndarray([blocklength,1])
 
     for i in tqdm(range(blocklength),desc="loop over points"):
@@ -207,22 +207,22 @@ def calc_SVF(coords, steps_phi , steps_theta,max_radius,blocklength):
         dome_p = dome(point, coords, max_radius)
         """we loop over all points inside the dome"""
         for d in tqdm(range(dome_p.shape[0]),desc="dome loop"):
-            for p in range(phi_lin.shape[0]):
+            for p in range(psi_lin.shape[0]):
                 """evaluate if the height of the point is higher than the height of the point"""
-                h_phi = np.tan(phi_lin[p])*(dome_p[d,3]) #
+                h_psi = np.tan(psi_lin[p])*(dome_p[d,3]) #
                 heightdif = dome_p[d,2]-point[2]
-                if (heightdif>=h_phi):
+                if (heightdif>=h_psi):
                     """ if there already exist a blocking for that angle theta:
                     calculate of the area of this blocking is more"""
-                    area = d_area(dome_p[d,3],d_theta,heightdif,max_radius)
-                    angle_rounded = thetas[(abs(thetas-dome_p[d,4])).argmin()]
-                    if (thetas[angle_rounded]<area):
-                        thetas[angle_rounded] = area
+                    area = d_area(dome_p[d,3],d_beta,heightdif,max_radius)
+                    angle_rounded = betas[(abs(betas_lin-dome_p[d,4])).argmin()]
+                    if (betas[angle_rounded]<area):
+                        betas[angle_rounded] = area
         """this is the analytical dome area but should make same assumption as for d_area
         dome_area = max_radius**2*2*np.pi"""
-        dome_area = (max_radius*np.sin(d_phi/2)*2)*(max_radius*np.sin(d_theta/2)*2)*steps_theta*steps_phi
+        dome_area = (max_radius*np.sin(d_psi/2)*2)*(max_radius*np.sin(d_beta/2)*2)*steps_beta*steps_psi
         """The SVF is the fraction of area of the dome that is not blocked"""
-        SVF[i] = (dome_area - np.sum(thetas,0))/dome_area
+        SVF[i] = (dome_area - np.sum(betas,0))/dome_area
     return SVF
 
 def calc_SVF_try2(coords, steps_phi , steps_theta,max_radius,blocklength):
@@ -280,34 +280,30 @@ def shadowfactor(coords, julianday,latitude,longitude,LMT,steps_theta,blocklengt
     """
     [azimuth,elevation_angle] = Sunpos.solarpos(julianday,latitude,longitude,LMT)
     Shadowfactor = np.ndarray([blocklength,1])
-    #block_lin = np.arange(0,blocklength,1000)
     d_theta = 2*np.pi/steps_theta
-    thetas = np.linspace(0,2*np.pi,steps_theta+1)
-    #azi_round = thetas[(abs(thetas-azimuth)).argmin()]
+    # thetas = np.linspace(0,2*np.pi,steps_theta+1)
+    # azi_round = thetas[(abs(thetas-azimuth)).argmin()]
     for i in tqdm(range(blocklength),desc="loop over points in block for Shadowfactor"):
         """the point we are currently evaluating"""
-        Shadowfactor[i] = 1
         point = coords[i,:]
 
         for j in range(coords.shape[0]):
             radius, angle = dist(point,coords[j])
-            """The angle we measure is the measure from east, and positive if we turn upwards, 
-            the azimuth is defined as 0 for when the sun is south, 
-            and positive westwards, to compare with the azimuth angle we thus have to correct the angle with pi/2"""
-            angle = (angle+np.pi/2)
             """if the angle is within a very small range as the angle of the sun"""
             if (angle <= (azimuth+d_theta) and angle >= azimuth-d_theta):
                 """if the elevation angle times the radius is smaller than the height of that point
                 the shadowfactor is zero since that point blocks the sun"""
                 if ((np.tan(elevation_angle)*radius)<(coords[j,2]-point[2])):
                     Shadowfactor[i]=0
+            else:
+                Shadowfactor[i] = 1
         print(Shadowfactor[i])
     """in all other cases there is no point in the same direction as the sun that is higher
     so the shadowfactor is 1: the point receives radiation"""
     return Shadowfactor
 
 
-def height_width(data,gridboxsize):
+def geometricProperties(data,gridboxsize):
     """
     Function that determines the average height over width of an area,
     the average height over width, and the built fraction of an area
@@ -330,9 +326,6 @@ def height_width(data,gridboxsize):
     Roof_area = built_elements*gridboxsize**2
     Road_area = road_elements*gridboxsize**2
     Water_area = water_elements*gridboxsize**2
-    # """As a first approximation we assume that if the building density is delta,
-    # The wall area decreases with factor (1-delta); i.e. (1-delta) of the walls faces another wall"""
-    # #Wall_area = 4*np.sum(data)*gridboxsize*(1-delta)
     [Wall_area,wall_area_total] = wallArea(data)
 
     Total_area = Roof_area + wall_area_total + Road_area + Water_area
@@ -346,6 +339,8 @@ def height_width(data,gridboxsize):
 def wallArea(data):
     """Matrix of ones where there are buildings"""
     [x_len,y_len] = [data.shape[0],data.shape[1]]
+    """Set all the water elements to 0 height again"""
+    data[data<0] = 0
     """We only evaluate the area in the center block"""
     wall_area = np.ndarray([int(x_len/2),int(y_len/2)])
     for i in range(int(x_len/4),int(3*x_len/4)):
@@ -354,12 +349,10 @@ def wallArea(data):
                 """We check for all the points surrounding the building if they are also buildings, 
                 if the building next to it is higher the wall belongs to the building next to it,
                 if the current building is higher, the exterior wall is the difference in height * gridboxsize"""
-                """The first max is in there to only take into account exterior walls,
-                the second max is in there since we set all water elements to -1"""
-                wall1 = max(data[i,j]-max(data[i+1,j],0),0)*gridboxsize
-                wall2 = max(data[i,j]-max(data[i-1,j],0),0)*gridboxsize
-                wall3 = max(data[i,j]-max(data[i,j+1],0),0)*gridboxsize
-                wall4 = max(data[i,j]-max(data[i,j-1],0),0)*gridboxsize
+                wall1 = max(data[i,j]-data[i+1,j],0)*gridboxsize
+                wall2 = max(data[i,j]-data[i-1,j],0)*gridboxsize
+                wall3 = max(data[i,j]-data[i,j+1],0)*gridboxsize
+                wall4 = max(data[i,j]-data[i,j-1],0)*gridboxsize
                 """The wall area corresponding to that building is"""
                 wall_area[int(i-x_len/4),int(j-y_len/4)] = wall1+wall2+wall3+wall4
             elif (data[i,j]==0):
@@ -371,13 +364,11 @@ def wallArea(data):
     return wall_area, wall_area_total
 
 data = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
-#coords = coordheight(data)
-[ave_height, delta, Roof_area, Wall_area, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac] = height_width(data,gridboxsize)
-print(ave_height, delta, Roof_area, Wall_area, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac)
+coords = coordheight(data)
+print(coords[0,:])
+print(dome(coords[0,:],coords,max_radius))
+# [ave_height, delta, Roof_area, Wall_area, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac] = geometricProperties(data,gridboxsize)
+# print(ave_height, delta, Roof_area, Wall_area, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac)
 blocklength = int((data.shape[0]/2*data.shape[1]/2))
-# wall_area = wallArea(data)
-# print(Roof_area)
-# print(Wall_area)
-# print(wall_area)
-
+#shadowfactor(coords, 286,Constants.latitude,Constants.long_rd,10.5,steps_theta,blocklength)
 
