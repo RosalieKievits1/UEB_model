@@ -266,7 +266,7 @@ def calc_SVF_try2(coords, steps_phi , steps_theta,max_radius,blocklength):
         SVF[i] = (dome_area - np.sum(thetas,0))/dome_area
     return SVF
 
-def shadowfactor(coords, julianday,latitude,longitude,LMT,steps_theta,blocklength):
+def shadowfactor(coords, julianday,latitude,longitude,LMT,steps_beta,blocklength):
     """
     :param coords: all other points, x,y,z values
     :param julianday: julian day of the year
@@ -280,7 +280,7 @@ def shadowfactor(coords, julianday,latitude,longitude,LMT,steps_theta,blocklengt
     """
     [azimuth,elevation_angle] = Sunpos.solarpos(julianday,latitude,longitude,LMT)
     Shadowfactor = np.ndarray([blocklength,1])
-    d_theta = 2*np.pi/steps_theta
+    d_beta= 2*np.pi/steps_beta
     # thetas = np.linspace(0,2*np.pi,steps_theta+1)
     # azi_round = thetas[(abs(thetas-azimuth)).argmin()]
     for i in tqdm(range(blocklength),desc="loop over points in block for Shadowfactor"):
@@ -290,11 +290,11 @@ def shadowfactor(coords, julianday,latitude,longitude,LMT,steps_theta,blocklengt
         for j in range(coords.shape[0]):
             radius, angle = dist(point,coords[j])
             """if the angle is within a very small range as the angle of the sun"""
-            if (angle <= (azimuth+d_theta) and angle >= azimuth-d_theta):
+            if (angle <= (azimuth+d_beta) and angle >= azimuth-d_beta):
                 """if the elevation angle times the radius is smaller than the height of that point
                 the shadowfactor is zero since that point blocks the sun"""
                 if ((np.tan(elevation_angle)*radius)<(coords[j,2]-point[2])):
-                    Shadowfactor[i]=0
+                    Shadowfactor[i] = 0
             else:
                 Shadowfactor[i] = 1
         print(Shadowfactor[i])
@@ -370,5 +370,5 @@ print(dome(coords[0,:],coords,max_radius))
 # [ave_height, delta, Roof_area, Wall_area, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac] = geometricProperties(data,gridboxsize)
 # print(ave_height, delta, Roof_area, Wall_area, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac)
 blocklength = int((data.shape[0]/2*data.shape[1]/2))
-#shadowfactor(coords, 286,Constants.latitude,Constants.long_rd,10.5,steps_theta,blocklength)
+shadowfactor(coords, 286,Constants.latitude,Constants.long_rd,10.5,steps_theta,blocklength)
 
