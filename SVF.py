@@ -40,8 +40,11 @@ def readdata(minheight,dsm,dtm):
     """dtm (topography)"""
     data_topo = tf.imread(dtm)
     """remove extreme large numbers for water and set to zero."""
+    data_water = np.zeros(data.shape)
+    data_water[data > 10 ** 38] = 1
     data[data > 10 ** 38] = 0  # remove extreme large numbers for water and set to zero.
     data_topo[data_topo > 10 ** 38] = 0
+
     data_diff = data - data_topo
     """round to 2 decimals"""
     data_diff = np.around(data_diff, 3)
@@ -64,8 +67,10 @@ def readdata(minheight,dsm,dtm):
 
     """filter all heights below the min height out"""
     datadiffcopy = data_diff
-    datadiffcopy[data_diff < minheight] = 0
+    datadiffcopy[data_diff<minheight] = 0
     data_final = datadiffcopy
+    """All water elements are set to zero"""
+    data_final = data_final - data_water
     return data_final
 
 def datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4):
@@ -96,6 +101,8 @@ def coordheight(data):
     :param data: the data array with the height for each tile
     :return: 3 columns for x, y, and z
     """
+    """From here on we set the height of the water elements back to 0"""
+    data[data<0] = 0
     [x_len,y_len] = np.shape(data)
     coords = np.ndarray([x_len*y_len,3])
     """ so we start with the list of coordinates with all the points we want to evaluate
@@ -314,49 +321,63 @@ def height_width(data,gridboxsize):
     """The road elements are actually also water elements"""
     road_elements = np.count_nonzero(data==0)
     built_elements = np.count_nonzero(data>0)
-    delta = built_elements/(road_elements+built_elements)
+    water_elements = np.count_nonzero(data==-1)
+    delta = built_elements/(road_elements+built_elements+water_elements)
     """We want to determine the wall area from the height and delta
     Say each block is a separate building: then the wall area would be 4*sum(builtarea), 
     but since we have a certain density of houses we could make a relation 
     between density and buildings next to each other"""
     Roof_area = built_elements*gridboxsize**2
     Road_area = road_elements*gridboxsize**2
-    """As a first approximation we assume that if the building density is delta,
-    The wall area decreases with factor (1-delta); i.e. (1-delta) of the walls faces another wall"""
-    Wall_area = 4*np.sum(data)*gridboxsize*(1-delta)
+    Water_area = water_elements*gridboxsize**2
+    # """As a first approximation we assume that if the building density is delta,
+    # The wall area decreases with factor (1-delta); i.e. (1-delta) of the walls faces another wall"""
+    # #Wall_area = 4*np.sum(data)*gridboxsize*(1-delta)
+    [Wall_area,wall_area_total] = wallArea(data)
 
-    Total_area = Roof_area+Wall_area+Road_area
+    Total_area = Roof_area + wall_area_total + Road_area + Water_area
     """Fractions of the area of the total surface"""
     Roof_frac = np.around(Roof_area/Total_area,3)
-    Wall_frac = np.around(Wall_area/Total_area,3)
+    Wall_frac = np.around(wall_area_total/Total_area,3)
     Road_frac = np.around(Road_area/Total_area,3)
-    return ave_height, delta, Roof_area, Wall_area, Road_area, Roof_frac, Wall_frac, Road_frac
+    Water_frac = np.around(Water_area/Total_area,3)
+    return ave_height, delta, Roof_area, wall_area_total, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac
 
 def wallArea(data):
     """Matrix of ones where there are buildings"""
     [x_len,y_len] = [data.shape[0],data.shape[1]]
-
-    wall_area = np.ndarray([x_len,y_len])
-    for i in range(int(x_len/2),int(x_len/2+x_len-1)):
-        for j in range(int(y_len/2),int(y_len/2+y_len-1)):
+    """We only evaluate the area in the center block"""
+    wall_area = np.ndarray([int(x_len/2),int(y_len/2)])
+    for i in range(int(x_len/4),int(3*x_len/4)):
+        for j in range(int(y_len/4),int(3*y_len/4)):
             if (data[i,j]>0):
-                wall1 = max(data[i,j]-data[i+1,j],0)*gridboxsize
-                wall2 = max(data[i,j]-data[i-1,j],0)*gridboxsize
-                wall3 = max(data[i,j]-data[i,j+1],0)*gridboxsize
-                wall4 = max(data[i,j]-data[i,j-1],0)*gridboxsize
+                """We check for all the points surrounding the building if they are also buildings, 
+                if the building next to it is higher the wall belongs to the building next to it,
+                if the current building is higher, the exterior wall is the difference in height * gridboxsize"""
+                """The first max is in there to only take into account exterior walls,
+                the second max is in there since we set all water elements to -1"""
+                wall1 = max(data[i,j]-max(data[i+1,j],0),0)*gridboxsize
+                wall2 = max(data[i,j]-max(data[i-1,j],0),0)*gridboxsize
+                wall3 = max(data[i,j]-max(data[i,j+1],0),0)*gridboxsize
+                wall4 = max(data[i,j]-max(data[i,j-1],0),0)*gridboxsize
                 """The wall area corresponding to that building is"""
-                wall_area[i,j] = wall1+wall2+wall3+wall4
+                wall_area[int(i-x_len/4),int(j-y_len/4)] = wall1+wall2+wall3+wall4
             elif (data[i,j]==0):
-                wall_area[i,j] = 0
-    return wall_area
+                wall_area[int(i-x_len/4),int(j-y_len/4)] = 0
+    """wall_area is a matrix of the size of center block of data, 
+    with each point storing the the exterior wall for that building,
+    wall_area_total is the total exterior wall area of the dataset"""
+    wall_area_total = np.sum(wall_area)
+    return wall_area, wall_area_total
 
 data = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
 #coords = coordheight(data)
-[ave_height, delta, Roof_area, Wall_area, Road_area, Roof_frac, Wall_frac, Road_frac] = height_width(data,gridboxsize)
-print(ave_height, delta, Roof_area, Wall_area, Road_area, Roof_frac, Wall_frac, Road_frac)
+[ave_height, delta, Roof_area, Wall_area, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac] = height_width(data,gridboxsize)
+print(ave_height, delta, Roof_area, Wall_area, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac)
 blocklength = int((data.shape[0]/2*data.shape[1]/2))
-wall_area = wallArea(data)
-
-print(wall_area)
+# wall_area = wallArea(data)
+# print(Roof_area)
+# print(Wall_area)
+# print(wall_area)
 
 
