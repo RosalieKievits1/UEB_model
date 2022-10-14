@@ -4,6 +4,8 @@ import pandas as pd
 import Constants
 import matplotlib.pyplot as plt
 
+import SVF
+
 """Read in data"""
 data = pd.read_csv("cabauw_2018.csv", sep = ';')
 data.head()
@@ -27,7 +29,7 @@ T_2m = data.iloc[: ,24]
 """Surface pressure"""
 p_surf = data.iloc[: ,5]
 """nr of steps"""
-nr_steps = np.size(LW_up,0)
+nr_steps = 100 #np.size(LW_up,0)
 
 
 T_air = T_2m[0]
@@ -136,7 +138,7 @@ def surfacebalance_Masson(albedos,emissivities,map_temperatures_roof,map_tempera
     return map_temperatures_roof[0,t],map_temperatures_wall[0,t],map_temperatures_road[0,t]
 
 """function for temperature of each layer"""
-def layer_balance(map_temperatures,layers,d,lambdas,t,T_inner_bc,delta_t,capacities,type):
+def layer_balance_Masson(map_temperatures,layers,d,lambdas,t,T_inner_bc,delta_t,capacities,type):
     """
     :param map_temperatures: ndarray of amount of layers and timesteps
     :param layers: amount of layers for this surface type
@@ -168,7 +170,67 @@ def layer_balance(map_temperatures,layers,d,lambdas,t,T_inner_bc,delta_t,capacit
     return map_temperatures[1:layers,t]
 
 
-def surfacebalance(albedo_array,emissivity_array,capacities,sigma,\
+"""Equations for map model"""
+def initialize_map(layers,T_surf,T_inner_bc,data,emissivity_array,albedo_array):
+    """
+    :param layers: number of layers for that surface
+    :param nr_steps: nr of time steps we want to simulate
+    :param T_surf: initial surface temperature
+    :param T_inner_bc: initial temperature for most inner boundery layers
+    :return: map_t: array of temperatures and layers
+    :return: d: empty array of thicknesses of each layer
+    :return: lambdas: empty array of lambdas for each layer
+    :return: capacities: empty array for capacities of each layer
+    """
+    [x_len,y_len] = data.shape
+    capacities = np.zeros([x_len,y_len,layers])
+    lambdas = np.zeros([x_len,y_len,layers])
+    d = np.zeros([x_len,y_len,layers])
+    map_t = np.zeros([x_len,y_len,layers])
+    T_inner_bc_mat = np.zeros([x_len,y_len])
+
+    """Roofs"""
+    lambdas[data>0,:] = Constants.lamb_bitumen
+    d[data>0,:] = Constants.d_roof
+    capacities[data>0,:] = Constants.C_bitumen
+    lin_temp_roof = np.linspace(T_surf,T_inner_bc[0],layers)
+    map_t[data>0,:] = lin_temp_roof
+    T_inner_bc_mat[data>0] = T_inner_bc[0]
+
+    """Roads"""
+    lambdas[data==0,:] = Constants.lamb_asphalt
+    d[data==0,:] = Constants.d_road
+    capacities[data==0,:] = Constants.C_asphalt
+    lin_temp_road = np.linspace(T_surf,T_inner_bc[2],layers)
+    map_t[data==0,:] = lin_temp_road
+    T_inner_bc_mat[data==0] = T_inner_bc[2]
+
+    """Water"""
+    lambdas[data==-1,:] = Constants.lamb_water
+    d[data==-1,:] = Constants.d_water
+    capacities[data==-1,:] = Constants.C_water
+    lin_temp_water = np.linspace(T_surf,T_inner_bc[3],layers)
+    map_t[data==-1,:] = lin_temp_water
+    T_inner_bc_mat[data==-1] = T_inner_bc[3]
+
+    """Albedos and emissivities"""
+    emissivities = np.ndarray(data.shape)
+    albedos = np.ndarray(data.shape)
+
+    """Where buildings are placed"""
+    emissivities[data>0]=emissivity_array[0]
+    albedos[data>0]=albedo_array[0]
+    """On ground areas"""
+    emissivities[data==0]=emissivity_array[2]
+    albedos[data==0]=albedo_array[2]
+    """Water"""
+    emissivities[data<0]=emissivity_array[3]
+    albedos[data<0]=albedo_array[3]
+
+    print(T_inner_bc_mat)
+    return map_t,d,lambdas,capacities,T_inner_bc_mat,emissivities,albedos
+
+def surfacebalance(albedos,emissivities,capacities,sigma,\
                    SVF,Shadowfactor,SW_diff,SW_dir,LW_down,d,lambdas,delta_t,map_temperatures_old,map_temperatures_old_subs):
     """
     :param albedo_array: array with albedos for roof road and wall
@@ -188,15 +250,6 @@ def surfacebalance(albedo_array,emissivity_array,capacities,sigma,\
     :return: New temperatures for the surface layer
     """
 
-    emissivities = np.ndarray(data.shape)
-    albedos = np.ndarray(data.shape)
-    """Where buildings are placed"""
-    emissivities[data[data>0]]=emissivity_array[0]
-    albedos[data[data>0]]=albedo_array[0]
-    """On ground areas"""
-    emissivity_array[data[data==0]]=emissivity_array[2]
-    albedos[data[data==0]]=albedo_array[2]
-
     """Longwave radiation"""
     LW_net = LW_down * SVF * emissivities - emissivities * map_temperatures_old**4 * sigma
 
@@ -204,18 +257,66 @@ def surfacebalance(albedo_array,emissivity_array,capacities,sigma,\
     SW_net = SW_dir * SVF * Shadowfactor * (1-albedos) + SW_diff * SVF * (1-albedos)
 
     """conduction"""
-    lamb_ave_out_surf = (d[0]+d[1])/((d[0]/lambdas[0])+(d[1]/lambdas[1]))
-    G_out_surf = lamb_ave_out_surf*((map_temperatures_old-map_temperatures_old_subs)/(1/2*(d[0]+d[1])))
+    lamb_ave_out_surf = (d[:,:,0]+d[:,:,1])/((d[:,:,0]/lambdas[:,:,0])+(d[:,:,1]/lambdas[:,:,1]))
+    G_out_surf = lamb_ave_out_surf*((map_temperatures_old-map_temperatures_old_subs)/(1/2*(d[:,:,0]+d[:,:,1])))
 
     """ Net radiation"""
     netRad = LW_net + SW_net - G_out_surf
 
+    #print("netrad = " + str(netRad))
     """ Temperature change"""
-    dT = (netRad/(capacities[:,:,0]*d[0]))*delta_t
+    dT = (netRad/(capacities[:,:,0]*d[:,:,0]))*delta_t
     map_temperatures = map_temperatures_old + dT
 
     return map_temperatures
 
+def layer_balance(data, d, layers,lambdas,map_temperatures,map_temp_old,T_inner_bc_mat,capacities,delta_t):
+    G_out = np.ndarray(data.shape)
+
+    for l in range(1,layers):
+        lamb_ave_in = (d[:,:,l-1]+d[:,:,l])/((d[:,:,l-1]/lambdas[:,:,l-1])+(d[:,:,l]/lambdas[:,:,l]))
+        G_in = lamb_ave_in*((map_temp_old[:,:,l-1]-map_temp_old[:,:,l])/(1/2*(d[:,:,l-1]+d[:,:,l])))
+        """for all layers before the last layer and after the first (surface) layer"""
+
+        if (l < Constants.layers-1):
+            lamb_ave_out = (d[:,:,l]+d[:,:,l+1])/((d[:,:,l]/lambdas[:,:,l])+(d[:,:,l+1]/lambdas[:,:,l+1]))
+            # compute the convective fluxes in and out the layer
+            G_out = lamb_ave_out*((map_temp_old[:,:,l]-map_temp_old[:,:,l+1])/(1/2*(d[:,:,l]+d[:,:,l+1])))
+        if (l == layers-1):
+            G_out = lambdas[:,:,l]*(map_temp_old[:,:,l]-T_inner_bc_mat)/(1/2*d[:,:,l])
+            G_out[data<=0] = 0
+        # Change in temperature
+        dT = ((G_in-G_out)*delta_t)/(capacities[:,:,l]*d[:,:,l])
+        map_temperatures[:,:,l] = map_temp_old[:,:,l] + dT
+    return map_temperatures[:,:,1:layers]
+
+def HeatEvolution(data,time_steps,delta_t):
+    """There is no shadow and there are no obstructions, for now"""
+    t_roof_ave = np.zeros(time_steps)
+    t_ave = np.zeros(time_steps)
+    [wallArea_matrix, wallArea_total] = SVF.wallArea(data)
+    wall_layers = np.ndarray([wallArea_matrix.shape[0],wallArea_matrix.shape[1],Constants.layers])
+
+    """We evaluate the middle block only, but after the SVF and Shadowfactor are calculated"""
+    [x_len,y_len] = data.shape
+    data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+    Shadowfactor = np.zeros(data.shape)
+    svf = np.ones(data.shape)
+    map_t,d,lambdas,capacities,T_inner_bc_mat,albedos,emissivities = initialize_map(Constants.layers,T_2m[0],Constants.T_inner_bc,data,Constants.emissivities,Constants.albedos)
+
+    map_t_old = map_t
+    for t in range(time_steps):
+        SW_dir = SW_down[t]/2
+        SW_dif = SW_down[t]/2
+        LW_d = LW_down[t]
+        map_t[:,:,0] = surfacebalance(albedos, emissivities, capacities, Constants.sigma, \
+                                      svf, Shadowfactor,SW_dir, SW_dif, LW_d, d, lambdas, delta_t, map_t_old[:, :, 0], map_t_old[:, :, 1])
+        map_t[:,:,1:] = layer_balance(data, d, Constants.layers,lambdas,map_t,map_t_old,T_inner_bc_mat,capacities,delta_t)
+        map_t_old = map_t
+        t_ave[t] = np.mean(map_t[:,:,0])
+        t_roof_ave[t] = np.mean(map_t[data>0,0])
+
+    return t_roof_ave
 
 """Plotfunctions"""
 """PLOT TEMPERATURES"""

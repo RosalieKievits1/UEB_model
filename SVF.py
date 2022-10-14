@@ -363,12 +363,12 @@ def wallArea(data):
     wall_area_total = np.sum(wall_area)
     return wall_area, wall_area_total
 
-data = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
-coords = coordheight(data)
-print(coords[0,:])
-print(dome(coords[0,:],coords,max_radius))
+# data = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
+# coords = coordheight(data)
+# print(coords[0,:])
+#print(dome(coords[0,:],coords,max_radius))
 # [ave_height, delta, Roof_area, Wall_area, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac] = geometricProperties(data,gridboxsize)
 # print(ave_height, delta, Roof_area, Wall_area, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac)
-blocklength = int((data.shape[0]/2*data.shape[1]/2))
-shadowfactor(coords, 286,Constants.latitude,Constants.long_rd,10.5,steps_theta,blocklength)
+#blocklength = int((data.shape[0]/2*data.shape[1]/2))
+#shadowfactor(coords, 286,Constants.latitude,Constants.long_rd,10.5,steps_theta,blocklength)
 
