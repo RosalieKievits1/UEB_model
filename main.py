@@ -77,4 +77,16 @@ T_air = Functions.T_air
 
 """City using SVF and shadow casting"""
 data = SVF.datasquare(SVF.dtm1,SVF.dsm1,SVF.dtm2,SVF.dsm2,SVF.dtm3,SVF.dsm3,SVF.dtm4,SVF.dsm4)
-print(Functions.HeatEvolution(data,nr_steps,Constants.timestep))
+coords = SVF.coordheight(data)
+SVFs = SVF.calc_SVF(coords, SVF.steps_psi , SVF.steps_beta,SVF.max_radius,SVF.blocklength)
+SFs = SVF.shadowfactor(coords, 286,Constants.latitude,Constants.long_rd,10.5,SVF.steps_beta,SVF.blocklength)
+
+"""Reshape the shadowfactors and SVF back to nd array"""
+SVF_matrix = np.ndarray([data.shape[0]/2,data.shape[1]/2])
+SF_matrix = np.ndarray([data.shape[0]/2,data.shape[1]/2])
+for i in range(SVF.blocklength):
+    SVF_matrix[coords[i,0],coords[i,1]] = SVFs[i]
+    SF_matrix[coords[i,0],coords[i,1]] = SFs[i]
+
+print(Functions.HeatEvolution(data,nr_steps,Constants.timestep,SVF_matrix,SF_matrix))
+

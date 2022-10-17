@@ -34,8 +34,39 @@ nr_steps = 100 #np.size(LW_up,0)
 
 T_air = T_2m[0]
 
-def exner(pressure,t):
-    return (pressure/p_surf[t])**(Constants.R_d/Constants.C_pd)
+def exner(pressure):
+    p_zero = 10e5
+    return (pressure/p_zero)**(Constants.R_d/Constants.C_pd)
+
+def q_sat(T,p):
+
+
+def lat_sens_fluxes(p_surf,p_atm,T_atm,T_can, T_road,T_wall,q_atm,U_atm,ave_height,C_drag,delta_z):
+    T_a_corr = T_atm*exner(p_surf)/exner(p_atm)
+    q_atm_corr = q_atm*q_sat(T_a_corr,p_surf)/q_sat(T_atm,p_atm)
+
+    H_roof = Constants.C_pd*Constants.rho_air*(T_a_corr-T_can)/RES_roof
+    LE_roof = Constants.L_v*Constants.rho_air*(q_atm_corr-q_atm)/RES_roof
+
+    """Computing wind speeds"""
+    W_can = np.sqrt(C_drag)*abs(U_atm)
+    U_top = 2/np.pi * (np.log(ave_height/3/Constants.z_0)/np.log((delta_z + ave_height/3)/Constants.z_0)) * abs(U_atm)
+    N = 0.5*Constants.H_W
+    U_can = U_top*np.exp(-N/2)
+
+    H_top = Constants.C_pd*Constants.rho_air*(T_a_corr-T_can)/RES_top
+    LE_top = Constants.L_v*Constants.rho_air*(q_atm_corr-q_atm)/RES_top
+
+    RES_road = 1/(11.8+4.2*np.sqrt(W_can**2+U_can**2))
+    RES_wall = RES_road
+
+    H_road = Constants.C_pd*Constants.rho_air*(T_road-T_can)/RES_road
+    LE_road = Constants.L_v*Constants.rho_air*(q_sat(T_road,p_surf)-q_atm)/RES_road
+
+    H_wall = Constants.C_pd*Constants.rho_air*(T_wall-T_can)/RES_wall
+    LE_wall = 0
+
+    return LE_roof,H_roof,LE_wall,H_wall,LE_road,H_road
 
 def initialize(layers,nr_steps,T_surf,T_inner_bc):
     """
@@ -120,10 +151,13 @@ def surfacebalance_Masson(albedos,emissivities,map_temperatures_roof,map_tempera
     lamb_ave_out_surf_road = (road_d[0]+road_d[1])/((road_d[0]/road_lambdas[0])+(road_d[1]/road_lambdas[1]))
     G_out_surf_road = lamb_ave_out_surf_road*((map_temperatures_road[0,t-1]-map_temperatures_road[1,t-1])/(1/2*(road_d[0]+road_d[1])))
 
+    #[LE_roof, LE_wall, LE_road, H_roof, H_wall, H_road] = lat_sens_fluxes(p_surf,Constants.p_atm,T_atm,T_can, map_temperatures_road[0,t-1],T_wall,q_atm,U_atm,ave_height,C_drag,delta_z):
+
+
     """ Net radiation"""
-    netRad_roof = LW_net_roof + SW_net_roof - G_out_surf_roof
-    netRad_wall = LW_net_wall + SW_net_wall - G_out_surf_wall
-    netRad_road = LW_net_road + SW_net_road - G_out_surf_road
+    netRad_roof = LW_net_roof + SW_net_roof - G_out_surf_roof #- LE_roof - H_roof
+    netRad_wall = LW_net_wall + SW_net_wall - G_out_surf_wall #- LE_wall - H_wall
+    netRad_road = LW_net_road + SW_net_road - G_out_surf_road #- LE_road - H_road
 
     """ Temperature change"""
     dT_roof = (netRad_roof/(roof_capacities[0]*roof_d[0]))*delta_t
@@ -290,7 +324,7 @@ def layer_balance(data, d, layers,lambdas,map_temperatures,map_temp_old,T_inner_
         map_temperatures[:,:,l] = map_temp_old[:,:,l] + dT
     return map_temperatures[:,:,1:layers]
 
-def HeatEvolution(data,time_steps,delta_t):
+def HeatEvolution(data,time_steps,delta_t, svf,Shadowfactor):
     """There is no shadow and there are no obstructions, for now"""
     t_roof_ave = np.zeros(time_steps)
     t_ave = np.zeros(time_steps)
@@ -300,8 +334,11 @@ def HeatEvolution(data,time_steps,delta_t):
     """We evaluate the middle block only, but after the SVF and Shadowfactor are calculated"""
     [x_len,y_len] = data.shape
     data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-    Shadowfactor = np.zeros(data.shape)
-    svf = np.ones(data.shape)
+
+    """Calculate and append the SVF"""
+    #Shadowfactor = np.zeros(data.shape)
+    #svf = np.ones(data.shape)
+
     map_t,d,lambdas,capacities,T_inner_bc_mat,albedos,emissivities = initialize_map(Constants.layers,T_2m[0],Constants.T_inner_bc,data,Constants.emissivities,Constants.albedos)
 
     map_t_old = map_t
