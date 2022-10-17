@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tifffile as tf
 from tqdm import tqdm
+import os
 import time
 import sys
 
@@ -18,20 +19,24 @@ gridboxsize = 5
 """objects below 1 m we do not look at"""
 minheight = 1
 
+# in try and catch zetten
+#input_dir = os.environ.get('UEB_model_input_dir')
+
+input_dir = '/Users/rosaliekievits/Desktop/Tiff bestanden MEP'
 """DSM's and DTM's"""
 """we need 4 databoxes to account for the SVF's on the side"""
 # linksboven
-dtm1 = '/Users/rosaliekievits/Desktop/Tiff bestanden MEP/M5_37EZ2.TIF'
-dsm1 = '/Users/rosaliekievits/Desktop/Tiff bestanden MEP/R5_37EZ2.TIF'
+dtm1 = input_dir + '/M5_37EZ2.TIF'
+dsm1 = input_dir + '/R5_37EZ2.TIF'
 # rechtsboven
-dtm2 = '/Users/rosaliekievits/Desktop/Tiff bestanden MEP/M5_37FZ1.TIF'
-dsm2 = '/Users/rosaliekievits/Desktop/Tiff bestanden MEP/R5_37FZ1.TIF'
+dtm2 = input_dir + '/M5_37FZ1.TIF'
+dsm2 = input_dir + '/R5_37FZ1.TIF'
 # linksonder
-dtm3 = '/Users/rosaliekievits/Desktop/Tiff bestanden MEP/M5_37GN2.TIF'
-dsm3 = '/Users/rosaliekievits/Desktop/Tiff bestanden MEP/R5_37GN2.TIF'
+dtm3 = input_dir + '/M5_37GN2.TIF'
+dsm3 = input_dir + '/R5_37GN2.TIF'
 # rechtsonder
-dtm4 = '/Users/rosaliekievits/Desktop/Tiff bestanden MEP/M5_37HN1.TIF'
-dsm4 = '/Users/rosaliekievits/Desktop/Tiff bestanden MEP/R5_37HN1.TIF'
+dtm4 = input_dir + '/M5_37HN1.TIF'
+dsm4 = input_dir + '/R5_37HN1.TIF'
 
 
 def readdata(minheight,dsm,dtm):
