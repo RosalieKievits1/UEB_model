@@ -13,17 +13,16 @@ import Sunpos
 """Now we want to calculate the sky view factor"""
 steps_beta = 180 # so we range in steps of 2 degrees
 steps_psi = 90 # so we range in steps of 2 degrees
-max_radius = 500 # max radius is 500 m
+max_radius = 300 # max radius is 500 m
 """define the gridboxsize of the model"""
 gridboxsize = 5
 """objects below 1 m we do not look at"""
 minheight = 1
 
-
 input_dir = '/Users/rosaliekievits/Desktop/Tiff bestanden MEP'
 
 try:
-    envir = os.environ.get[input_dir]
+    envir = os.environ[input_dir]
 except:
   print("Could not find input directory")
 
@@ -146,7 +145,7 @@ def dist(point, coord):
     dy = (coord[0]-point[0])*gridboxsize
     dist = np.sqrt(abs(dx)**2 + abs(dy)**2)
     """angle is 0 north direction"""
-    angle = np.arctan2(dy,dx)+np.pi/2
+    angle = np.arctan(dy/dx)#+np.pi/2
     return dist,angle
 
 def dist_round(point, coord,steps_beta):
@@ -253,7 +252,9 @@ def calc_SVF(coords, steps_psi , steps_beta,max_radius,blocklength):
     d_psi = np.pi/steps_psi
     betas_lin = np.linspace(0,2*np.pi,steps_beta)
     SVF = np.ndarray([blocklength,1])
-
+    """this is the analytical dome area but should make same assumption as for d_area
+    dome_area = max_radius**2*2*np.pi"""
+    dome_area = (max_radius*np.sin(d_psi/2)*2)*(max_radius*np.sin(d_beta/2)*2)*steps_beta*steps_psi
     for i in tqdm(range(blocklength),desc="loop over points"):
         point = coords[i,:]
         """ we throw away all point outside the dome
@@ -261,6 +262,7 @@ def calc_SVF(coords, steps_psi , steps_beta,max_radius,blocklength):
         # the 5 columns: x,y,z,radius,angle theta"""
         dome_p = dome(point, coords, max_radius)
         betas = np.zeros(steps_beta)
+
         """we loop over theta"""
         print(dome_p.shape)
         for d in tqdm(range(dome_p.shape[0]),desc="dome loop"):
@@ -272,12 +274,11 @@ def calc_SVF(coords, steps_psi , steps_beta,max_radius,blocklength):
             beta_max = np.arcsin(gridboxsize/2/dome_p[d,3]) + dome_p[d,4]
 
             """Where the index of betas fall within the min and max beta, and there is not already a larger blocking"""
-            betas[np.nonzero(betas[np.logical_and((beta_min<=betas_lin), (betas_lin<beta_max))]<area)] = area
+            #T_F = np.logical_and(a_three,np.logical_and(a_one,a_two))
+            #print(T_F.shape)
+            betas[np.nonzero(np.logical_and((betas<area),np.logical_and((beta_min<=betas_lin),(betas_lin<beta_max))))] = area
+            #betas[np.nonzero(betas[np.nonzero(np.logical_and((beta_min<=betas_lin), (betas_lin<beta_max)))]<area)] = area
 
-
-        """this is the analytical dome area but should make same assumption as for d_area
-        dome_area = max_radius**2*2*np.pi"""
-        dome_area = (max_radius*np.sin(d_psi/2)*2)*(max_radius*np.sin(d_beta/2)*2)*steps_beta*steps_psi
         """The SVF is the fraction of area of the dome that is not blocked"""
         print(betas)
         SVF[i] = (dome_area - np.sum(betas))/dome_area
@@ -306,6 +307,7 @@ def shadowfactor(coords, julianday,latitude,longitude,LMT,steps_beta,blocklength
 
         for j in range(coords.shape[0]):
             radius, angle = dist(point,coords[j])
+            print(angle)
             """if the angle is within a very small range as the angle of the sun"""
             """The angles of the min and max angle of the building"""
             beta_min = - np.arcsin(gridboxsize/2/radius) + angle
@@ -334,7 +336,7 @@ def reshape_SVF(data,coords):
     for i in range(blocklength):
         SVF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SVFs[i]
         SF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SFs[i]
-    return SVF_matrix,SF_matrix
+    return SVF_matrix,SF_matrix,blocklength
 
 def geometricProperties(data,gridboxsize):
     """
@@ -399,6 +401,12 @@ def wallArea(data):
     wall_area_total = np.sum(wall_area)
     return wall_area, wall_area_total
 
-
+datasq = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
+geometricProperties(datasq,gridboxsize)
+coords = coordheight(datasq)
+print(coords[0,:])
+print(dome(coords[0,:],coords,100))
+blocklength = int(datasq.shape[0]/2*datasq.shape[1]/2)
+svf = calc_SVF(coords,steps_psi,steps_beta,max_radius,blocklength)
 
 

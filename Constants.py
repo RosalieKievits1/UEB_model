@@ -84,7 +84,7 @@ lamb_water = 0.598
 
 """Geometric properties:"""
 # Hight over width ratio
-H_W = 1
+# H_W = 1
 # roughness length [m], should be determined from AHN
 z_0 = 1.2
 # average building height
@@ -97,13 +97,6 @@ rho_air = 1.2985 # [kg/m3] air density at first atmospheric level
 # surface and first atmospheric level pressures (should these be inputs from DALES??)
 p_surf = 1.01325e5 # [Pa] surface pressure
 p_trop = 1.089e5 # [Pa] pressure at first atmospheric level (troposphere), according to literature ranges between 100 and 200mBar
-
-"""define the sky view factor"""
-Phi_roof = 1
-Phi_wall = 1/2*(H_W+1-np.sqrt(H_W**2+1))/H_W
-Phi_road = np.sqrt(H_W**2+1)-H_W
-"""vector of sky view factors"""
-Phi = [Phi_roof,Phi_wall,Phi_road]
 
 """For the solar position algorithm (based on Rotterdam)"""
 latitude = 51.9

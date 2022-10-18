@@ -1,5 +1,4 @@
 import numpy as np
-import PyAstronomy as PA
 """Longitud and latitude of rotterdam in degrees"""
 
 
@@ -49,5 +48,3 @@ def solarpos(julian_day,latitude,longitude,hour,radians=True):
 
     return azimuth,zenith
 
-
-#print(solarpos(julianday,latitude,long_rd,hour))

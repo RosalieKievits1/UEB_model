@@ -19,7 +19,7 @@ T_air = Functions.T_air
 
 """MASSON"""
 """Plotting of the layers temperatures for each material"""
-#[map_temperatures_roof,map_temperatures_wall,map_temperatures_road] = Functions.Masson_model()
+#[map_temperatures_roof,map_temperatures_wall,map_temperatures_road] = Functions.Masson_model(Constants.T_building,Constants.T_ground,Constants.T_air,nr_steps,Constants.H_W)
 #Functions.plotTemp_Masson(map_temperatures_roof)
 #Functions.plotTemp_Masson(map_temperatures_road)
 #Functions.plotTemp_Masson(map_temperatures_wall)
@@ -30,7 +30,7 @@ data = SVF.datasquare(SVF.dtm1,SVF.dsm1,SVF.dtm2,SVF.dsm2,SVF.dtm3,SVF.dsm3,SVF.
 print(SVF.geometricProperties(data,SVF.gridboxsize))
 coords = SVF.coordheight(data)
 
-# [SVF_matrix,SF_matrix] = SVF.reshape_SVF(data,coords)
+# [SVF_matrix,SF_matrix,blocklength] = SVF.reshape_SVF(data,coords)
 
 # print("These are the Sky View Factors")
 # print(SVF_matrix)

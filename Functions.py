@@ -101,7 +101,7 @@ def surfacebalance_Masson(albedos,emissivities,map_temperatures_roof,map_tempera
                    sigma,t,roof_lambdas,roof_capacities,roof_d,\
                    wall_lambdas,wall_capacities,wall_d,\
                    road_lambdas,road_capacities,road_d,\
-                   delta_t,SVF,H_W):
+                   delta_t,H_W):
     """
     :param albedo: albedo of surface material
     :param emissivity: emissivity of surface material
@@ -114,6 +114,13 @@ def surfacebalance_Masson(albedos,emissivities,map_temperatures_roof,map_tempera
     :param delta_t: timestep size
     :return: surface temperature for timestep t
     """
+    """define the sky view factor"""
+    Phi_roof = 1
+    Phi_wall = 1/2*(H_W+1-np.sqrt(H_W**2+1))/H_W
+    Phi_road = np.sqrt(H_W**2+1)-H_W
+    """vector of sky view factors"""
+    SVF = [Phi_roof,Phi_wall,Phi_road]
+
     """Longwave radiation including longwave trapping"""
     LW_net_roof = emissivities[0] * SVF[0] * LW_down[t] - emissivities[0] * map_temperatures_roof[0,t-1]**4 * sigma
     LW_net_wall = emissivities[1] * SVF[1] * LW_down[t] \
@@ -256,7 +263,7 @@ def Masson_model(T_building,T_ground,T_air,nr_steps,H_W):
                                                           Constants.sigma,t,roof_lambdas,roof_capacities,roof_d,\
                                                           wall_lambdas,wall_capacities,wall_d,\
                                                           road_lambdas,road_capacities,road_d, \
-                                                          Constants.timestep,Constants.Phi,H_W)
+                                                          Constants.timestep,H_W)
         """Temperatures for each layer"""
         map_temperatures_roof[1:Constants.layers_roof,t] = layer_balance_Masson(map_temperatures_roof,Constants.layers_roof,roof_d,roof_lambdas,t,T_building,Constants.timestep,roof_capacities,type="roof")
         map_temperatures_wall[1:Constants.layers_wall,t] = layer_balance_Masson(map_temperatures_wall,Constants.layers_wall,wall_d,wall_lambdas,t,T_building,Constants.timestep,wall_capacities,type="wall")
@@ -265,8 +272,8 @@ def Masson_model(T_building,T_ground,T_air,nr_steps,H_W):
 
 def Masson_Rotterdam(data, gridboxsize):
     [ave_height, delta, Roof_area, wall_area_total, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac,H_W] = SVF.geometricProperties(data,gridboxsize)
-
     [map_temperatures_roof, map_temperatures_wall, map_temperatures_road] = Masson_model(Constants.T_building,Constants.T_ground,T_air,nr_steps,H_W)
+
 
 """Equations for map model"""
 def initialize_map(layers,T_surf,T_inner_bc,data,emissivity_array,albedo_array):
@@ -388,13 +395,15 @@ def layer_balance(data, d, layers,lambdas,map_temperatures,map_temp_old,T_inner_
         map_temperatures[:,:,l] = map_temp_old[:,:,l] + dT
     return map_temperatures[:,:,1:layers]
 
-def HeatEvolution(data,time_steps,delta_t, svf,Shadowfactor):
+def HeatEvolution(data,time_steps,delta_t):
     """There is no shadow and there are no obstructions, for now"""
     t_roof_ave = np.zeros(time_steps)
     t_ave = np.zeros(time_steps)
     [wallArea_matrix, wallArea_total] = SVF.wallArea(data)
     wall_layers = np.ndarray([wallArea_matrix.shape[0],wallArea_matrix.shape[1],Constants.layers])
 
+    coords = SVF.coordheight(data)
+    [svf,Shadowfactor,blocklength] = SVF.reshape_SVF(data,coords)
     """We evaluate the middle block only, but after the SVF and Shadowfactor are calculated"""
     [x_len,y_len] = data.shape
     data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
