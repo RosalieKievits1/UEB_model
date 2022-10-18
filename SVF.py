@@ -323,6 +323,18 @@ def shadowfactor(coords, julianday,latitude,longitude,LMT,steps_beta,blocklength
     so the shadowfactor is 1: the point receives radiation"""
     return Shadowfactor
 
+def reshape_SVF(data,coords):
+    """Compute SVF and SF and Reshape the shadowfactors and SVF back to nd array"""
+    [x_len, y_len] = [int(data.shape[0]/2),int(data.shape[1]/2)]
+    blocklength = int(x_len*y_len)
+    SVFs = calc_SVF(coords, steps_psi , steps_beta,max_radius,blocklength)
+    SFs = shadowfactor(coords, Constants.Julianday,Constants.latitude,Constants.long_rd,Constants.hour,steps_beta,blocklength)
+    SVF_matrix = np.ndarray([x_len,y_len])
+    SF_matrix = np.ndarray([x_len,y_len])
+    for i in range(blocklength):
+        SVF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SVFs[i]
+        SF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SFs[i]
+    return SVF_matrix,SF_matrix
 
 def geometricProperties(data,gridboxsize):
     """
@@ -355,7 +367,10 @@ def geometricProperties(data,gridboxsize):
     Wall_frac = np.around(wall_area_total/Total_area,3)
     Road_frac = np.around(Road_area/Total_area,3)
     Water_frac = np.around(Water_area/Total_area,3)
-    return ave_height, delta, Roof_area, wall_area_total, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac
+
+    H_W = ave_height*delta
+    return ave_height, delta, Roof_area, wall_area_total, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac, H_W
+
 
 def wallArea(data):
     """Matrix of ones where there are buildings"""

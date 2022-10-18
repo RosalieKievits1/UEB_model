@@ -101,7 +101,7 @@ def surfacebalance_Masson(albedos,emissivities,map_temperatures_roof,map_tempera
                    sigma,t,roof_lambdas,roof_capacities,roof_d,\
                    wall_lambdas,wall_capacities,wall_d,\
                    road_lambdas,road_capacities,road_d,\
-                   delta_t,SVF):
+                   delta_t,SVF,H_W):
     """
     :param albedo: albedo of surface material
     :param emissivity: emissivity of surface material
@@ -134,10 +134,10 @@ def surfacebalance_Masson(albedos,emissivities,map_temperatures_roof,map_tempera
 
     """ Short wave radiation"""
     """compute the radiation based on solar zenith angle"""
-    theta_zero = np.arcsin(min(1,(1/(Constants.H_W*np.tan(Zenith[t])))))
+    theta_zero = np.arcsin(min(1,(1/(H_W*np.tan(Zenith[t])))))
     SW_roof = SW_down[t]
-    SW_wall = SW_down[t]*(1/Constants.H_W*(1/2-theta_zero/np.pi)+1/np.pi*np.tan(Zenith[t])*(1-np.cos(theta_zero)))
-    SW_road = SW_down[t]*(2*theta_zero/np.pi-2/np.pi*Constants.H_W*np.tan(Zenith[t])*(1-np.cos(theta_zero)))
+    SW_wall = SW_down[t]*(1/H_W*(1/2-theta_zero/np.pi)+1/np.pi*np.tan(Zenith[t])*(1-np.cos(theta_zero)))
+    SW_road = SW_down[t]*(2*theta_zero/np.pi-2/np.pi*H_W*np.tan(Zenith[t])*(1-np.cos(theta_zero)))
 
     SW_net_roof = SW_roof*(1-albedos[0])
 
@@ -211,11 +211,11 @@ def layer_balance_Masson(map_temperatures,layers,d,lambdas,t,T_inner_bc,delta_t,
         map_temperatures[l,t] = map_temperatures[l,t-1] + dT
     return map_temperatures[1:layers,t]
 
-def Masson_model():
+def Masson_model(T_building,T_ground,T_air,nr_steps,H_W):
     """Intitialize all layers for all three surfacetypes"""
-    [map_temperatures_roof,roof_d,roof_lambdas,roof_capacities] = initialize(Constants.layers_roof,nr_steps,T_air,Constants.T_building)
-    [map_temperatures_wall,wall_d,wall_lambdas,wall_capacities] = initialize(Constants.layers_wall,nr_steps,T_air,Constants.T_building)
-    [map_temperatures_road,road_d,road_lambdas,road_capacities] = initialize(Constants.layers_road,nr_steps,T_air,Constants.T_ground)
+    [map_temperatures_roof,roof_d,roof_lambdas,roof_capacities] = initialize(Constants.layers_roof,nr_steps,T_air,T_building)
+    [map_temperatures_wall,wall_d,wall_lambdas,wall_capacities] = initialize(Constants.layers_wall,nr_steps,T_air,T_building)
+    [map_temperatures_road,road_d,road_lambdas,road_capacities] = initialize(Constants.layers_road,nr_steps,T_air,T_ground)
 
     """FOR THE ROOF"""
     roof_d[0] = Constants.d_roof
@@ -256,12 +256,17 @@ def Masson_model():
                                                           Constants.sigma,t,roof_lambdas,roof_capacities,roof_d,\
                                                           wall_lambdas,wall_capacities,wall_d,\
                                                           road_lambdas,road_capacities,road_d, \
-                                                          Constants.timestep,Constants.Phi)
+                                                          Constants.timestep,Constants.Phi,H_W)
         """Temperatures for each layer"""
-        map_temperatures_roof[1:Constants.layers_roof,t] = layer_balance_Masson(map_temperatures_roof,Constants.layers_roof,roof_d,roof_lambdas,t,Constants.T_building,Constants.timestep,roof_capacities,type="roof")
-        map_temperatures_wall[1:Constants.layers_wall,t] = layer_balance_Masson(map_temperatures_wall,Constants.layers_wall,wall_d,wall_lambdas,t,Constants.T_building,Constants.timestep,wall_capacities,type="wall")
-        map_temperatures_road[1:Constants.layers_road,t] = layer_balance_Masson(map_temperatures_road,Constants.layers_road,wall_d,road_lambdas,t,Constants.T_ground,Constants.timestep,road_capacities,type="road")
+        map_temperatures_roof[1:Constants.layers_roof,t] = layer_balance_Masson(map_temperatures_roof,Constants.layers_roof,roof_d,roof_lambdas,t,T_building,Constants.timestep,roof_capacities,type="roof")
+        map_temperatures_wall[1:Constants.layers_wall,t] = layer_balance_Masson(map_temperatures_wall,Constants.layers_wall,wall_d,wall_lambdas,t,T_building,Constants.timestep,wall_capacities,type="wall")
+        map_temperatures_road[1:Constants.layers_road,t] = layer_balance_Masson(map_temperatures_road,Constants.layers_road,wall_d,road_lambdas,t,T_ground,Constants.timestep,road_capacities,type="road")
     return map_temperatures_roof, map_temperatures_wall, map_temperatures_road
+
+def Masson_Rotterdam(data, gridboxsize):
+    [ave_height, delta, Roof_area, wall_area_total, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac,H_W] = SVF.geometricProperties(data,gridboxsize)
+
+    [map_temperatures_roof, map_temperatures_wall, map_temperatures_road] = Masson_model(Constants.T_building,Constants.T_ground,T_air,nr_steps,H_W)
 
 """Equations for map model"""
 def initialize_map(layers,T_surf,T_inner_bc,data,emissivity_array,albedo_array):
@@ -414,7 +419,7 @@ def HeatEvolution(data,time_steps,delta_t, svf,Shadowfactor):
 
     return t_roof_ave
 
-"""Plotfunctions"""
+"""PLOTFUNCTIONS"""
 """PLOT TEMPERATURES"""
 def plotTemp_Masson(map_temp):
     """
@@ -435,7 +440,8 @@ def plotTemp_Masson(map_temp):
 def plotTempComparison_Masson(map_temp_roof,map_temp_wall,map_temp_road,l):
     """
     :param map_temp: array of temperatures for each layer and timestep
-    :return: PLOT of temperatures
+    :param l: layer we want to compare
+    :return: PLOT of temperatures for a specific layer for the three different surfaces
     """
     plt.figure()
     plt.xlabel("time")
