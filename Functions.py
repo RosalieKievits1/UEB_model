@@ -31,7 +31,6 @@ p_surf = data.iloc[: ,5]
 """nr of steps"""
 nr_steps = 100 #np.size(LW_up,0)
 
-
 T_air = T_2m[0]
 
 def exner(pressure):
@@ -39,9 +38,18 @@ def exner(pressure):
     return (pressure/p_zero)**(Constants.R_d/Constants.C_pd)
 
 def q_sat(T,p):
+    R_w = 461.52 # J/kgK gas constant of water
+    L = 2.5e6 #J/kg latent vaporization heat of water
+    T_0 = 273.16 # K ref temp
+    e_s_T0 = 6.11e2 #Pa e_s at reference temperature
+    eps = 0.622 # ratio of molar masses of vapor and dry air
 
+    e_sat = e_s_T0 * np.log(L/R_w*(1/T_0-1/T))
+    q_sat = (eps*e_sat)/(p - (1-eps)*e_sat)
+    return q_sat
 
 def lat_sens_fluxes(p_surf,p_atm,T_atm,T_can, T_road,T_wall,q_atm,U_atm,ave_height,C_drag,delta_z):
+
     T_a_corr = T_atm*exner(p_surf)/exner(p_atm)
     q_atm_corr = q_atm*q_sat(T_a_corr,p_surf)/q_sat(T_atm,p_atm)
 
@@ -151,8 +159,8 @@ def surfacebalance_Masson(albedos,emissivities,map_temperatures_roof,map_tempera
     lamb_ave_out_surf_road = (road_d[0]+road_d[1])/((road_d[0]/road_lambdas[0])+(road_d[1]/road_lambdas[1]))
     G_out_surf_road = lamb_ave_out_surf_road*((map_temperatures_road[0,t-1]-map_temperatures_road[1,t-1])/(1/2*(road_d[0]+road_d[1])))
 
+    """Latent and sensible heat fluxes"""
     #[LE_roof, LE_wall, LE_road, H_roof, H_wall, H_road] = lat_sens_fluxes(p_surf,Constants.p_atm,T_atm,T_can, map_temperatures_road[0,t-1],T_wall,q_atm,U_atm,ave_height,C_drag,delta_z):
-
 
     """ Net radiation"""
     netRad_roof = LW_net_roof + SW_net_roof - G_out_surf_roof #- LE_roof - H_roof
@@ -203,6 +211,57 @@ def layer_balance_Masson(map_temperatures,layers,d,lambdas,t,T_inner_bc,delta_t,
         map_temperatures[l,t] = map_temperatures[l,t-1] + dT
     return map_temperatures[1:layers,t]
 
+def Masson_model():
+    """Intitialize all layers for all three surfacetypes"""
+    [map_temperatures_roof,roof_d,roof_lambdas,roof_capacities] = initialize(Constants.layers_roof,nr_steps,T_air,Constants.T_building)
+    [map_temperatures_road,road_d,road_lambdas,road_capacities] = initialize(Constants.layers_wall,nr_steps,T_air,Constants.T_ground)
+    [map_temperatures_wall,wall_d,wall_lambdas,wall_capacities] = initialize(Constants.layers_road,nr_steps,T_air,Constants.T_building)
+
+    """FOR THE ROOF"""
+    roof_d[0] = Constants.d_roof
+    roof_d[1:Constants.layers_roof-1] = Constants.d_wall
+    roof_d[Constants.layers_roof-1] = Constants.d_fiber
+
+    """initialize different materials for different layers"""
+    roof_lambdas[0] = Constants.lamb_bitumen
+    roof_capacities[0] = Constants.C_bitumen
+
+    roof_lambdas[1:Constants.layers_roof-1]=Constants.lamb_brick
+    roof_capacities[1:Constants.layers_roof-1]=Constants.C_brick
+
+    roof_lambdas[Constants.layers_roof-1]=Constants.lamb_fiber
+    roof_capacities[Constants.layers_roof-1]=Constants.C_fiber
+
+    """FOR THE ROAD"""
+    road_d[:] = Constants.d_road
+    # initialize different materials for different layers
+    road_lambdas[:] = Constants.lamb_asphalt
+    road_capacities[:] = Constants.C_asphalt
+
+    """FOR THE WALL"""
+    wall_d[0:Constants.layers_wall-1] = Constants.d_wall
+    wall_d[Constants.layers_wall-1] = Constants.d_fiber
+
+    """initialize different materials for different layers"""
+    wall_lambdas[0:Constants.layers_wall-1] = Constants.lamb_brick
+    wall_capacities[0:Constants.layers_wall-1] = Constants.C_brick
+    wall_lambdas[Constants.layers_wall-1]=Constants.lamb_fiber
+    wall_capacities[Constants.layers_wall-1]=Constants.C_fiber
+
+
+    """now we start with evolving over time"""
+    for t in range(1,nr_steps):
+        """Surface temperatures"""
+        [map_temperatures_roof[0,t],map_temperatures_wall[0,t],map_temperatures_road[0,t]] = surfacebalance_Masson(Constants.albedos,Constants.emissivities,map_temperatures_roof,map_temperatures_wall,map_temperatures_road,\
+                                                          Constants.sigma,t,roof_lambdas,roof_capacities,roof_d,\
+                                                          wall_lambdas,wall_capacities,wall_d,\
+                                                          road_lambdas,road_capacities,road_d, \
+                                                          Constants.timestep,Constants.Phi)
+        """Temperatures for each layer"""
+        map_temperatures_roof[1:Constants.layers_roof,t] = layer_balance_Masson(map_temperatures_roof,Constants.layers_roof,roof_d,roof_lambdas,t,Constants.T_building,Constants.timestep,roof_capacities,type="roof")
+        map_temperatures_wall[1:Constants.layers_wall,t] = layer_balance_Masson(map_temperatures_wall,Constants.layers_wall,wall_d,wall_lambdas,t,Constants.T_building,Constants.timestep,wall_capacities,type="wall")
+        map_temperatures_road[1:Constants.layers_road,t] = layer_balance_Masson(map_temperatures_road,Constants.layers_road,wall_d,road_lambdas,t,Constants.T_ground,Constants.timestep,road_capacities,type="road")
+    return map_temperatures_roof, map_temperatures_wall, map_temperatures_road
 
 """Equations for map model"""
 def initialize_map(layers,T_surf,T_inner_bc,data,emissivity_array,albedo_array):
@@ -314,12 +373,12 @@ def layer_balance(data, d, layers,lambdas,map_temperatures,map_temp_old,T_inner_
 
         if (l < Constants.layers-1):
             lamb_ave_out = (d[:,:,l]+d[:,:,l+1])/((d[:,:,l]/lambdas[:,:,l])+(d[:,:,l+1]/lambdas[:,:,l+1]))
-            # compute the convective fluxes in and out the layer
+            """compute the convective fluxes in and out the layer"""
             G_out = lamb_ave_out*((map_temp_old[:,:,l]-map_temp_old[:,:,l+1])/(1/2*(d[:,:,l]+d[:,:,l+1])))
         if (l == layers-1):
             G_out = lambdas[:,:,l]*(map_temp_old[:,:,l]-T_inner_bc_mat)/(1/2*d[:,:,l])
             G_out[data<=0] = 0
-        # Change in temperature
+        """Change in temperature"""
         dT = ((G_in-G_out)*delta_t)/(capacities[:,:,l]*d[:,:,l])
         map_temperatures[:,:,l] = map_temp_old[:,:,l] + dT
     return map_temperatures[:,:,1:layers]

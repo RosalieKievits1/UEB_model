@@ -19,10 +19,15 @@ gridboxsize = 5
 """objects below 1 m we do not look at"""
 minheight = 1
 
-# in try and catch zetten
-#input_dir = os.environ.get('UEB_model_input_dir')
 
 input_dir = '/Users/rosaliekievits/Desktop/Tiff bestanden MEP'
+
+try:
+    input_dir = os.environ.get[input_dir]
+except:
+  print("Could not find input directory")
+
+
 """DSM's and DTM's"""
 """we need 4 databoxes to account for the SVF's on the side"""
 # linksboven
@@ -379,18 +384,6 @@ def wallArea(data):
     wall_area_total = np.sum(wall_area)
     return wall_area, wall_area_total
 
-data = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
-coords = coordheight(data)
-blocklength = int((data.shape[0]/2*data.shape[1]/2))
-#calc_SVF(coords, steps_psi , steps_beta,max_radius,blocklength)
-# [ave_height, delta, Roof_area, Wall_area, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac] = geometricProperties(data,gridboxsize)
-# print(ave_height, delta, Roof_area, Wall_area, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac)
-#
 
-# plt.figure()
-# datasq = readdata(minheight,dsm1,dtm1)
-# datasq[datasq<0] = 0
-# plt.imshow(datasq, cmap=plt.get_cmap('gray'))
-# plt.show()
-shadowfactor(coords, 286,Constants.latitude,Constants.long_rd,10.5,steps_beta,blocklength)
+
 
