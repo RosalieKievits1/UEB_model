@@ -9,7 +9,7 @@ layers_roof = 5
 layers_road = 3
 layers_wall = 5
 
-layers = 3
+#layers = 3
 
 """fractions of built environment in town:"""
 # has to add up to one

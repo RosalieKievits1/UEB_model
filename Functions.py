@@ -214,8 +214,8 @@ def layer_balance_Masson(map_temperatures,layers,d,lambdas,t,T_inner_bc,delta_t,
 def Masson_model():
     """Intitialize all layers for all three surfacetypes"""
     [map_temperatures_roof,roof_d,roof_lambdas,roof_capacities] = initialize(Constants.layers_roof,nr_steps,T_air,Constants.T_building)
-    [map_temperatures_road,road_d,road_lambdas,road_capacities] = initialize(Constants.layers_wall,nr_steps,T_air,Constants.T_ground)
-    [map_temperatures_wall,wall_d,wall_lambdas,wall_capacities] = initialize(Constants.layers_road,nr_steps,T_air,Constants.T_building)
+    [map_temperatures_wall,wall_d,wall_lambdas,wall_capacities] = initialize(Constants.layers_wall,nr_steps,T_air,Constants.T_building)
+    [map_temperatures_road,road_d,road_lambdas,road_capacities] = initialize(Constants.layers_road,nr_steps,T_air,Constants.T_ground)
 
     """FOR THE ROOF"""
     roof_d[0] = Constants.d_roof
@@ -427,6 +427,23 @@ def plotTemp_Masson(map_temp):
     plt.title("Temperature for different layers")
     for l in range(np.size(map_temp,0)):
         plt.plot(map_temp[l,:],label= "Temperature for layer " + str(l))
+    plt.legend()
+    plt.xlabel("time " + str(Constants.timestep) + "s")
+    plt.ylabel("Temperature [K]")
+    plt.show()
+
+def plotTempComparison_Masson(map_temp_roof,map_temp_wall,map_temp_road,l):
+    """
+    :param map_temp: array of temperatures for each layer and timestep
+    :return: PLOT of temperatures
+    """
+    plt.figure()
+    plt.xlabel("time")
+    plt.ylabel("temperature [K]")
+    plt.title("Temperature for layer " + str(l) + " of different surfaces")
+    plt.plot(map_temp_roof[l,:],label= "Temperature for roof layer " + str(l) + " over time")
+    plt.plot(map_temp_wall[l,:],label= "Temperature for wall layer " + str(l) + " over time")
+    plt.plot(map_temp_road[l,:],label= "Temperature for road layer " + str(l) + " over time")
     plt.legend()
     plt.xlabel("time " + str(Constants.timestep) + "s")
     plt.ylabel("Temperature [K]")

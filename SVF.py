@@ -23,7 +23,7 @@ minheight = 1
 input_dir = '/Users/rosaliekievits/Desktop/Tiff bestanden MEP'
 
 try:
-    input_dir = os.environ.get[input_dir]
+    envir = os.environ.get[input_dir]
 except:
   print("Could not find input directory")
 
