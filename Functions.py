@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 import Constants
 import matplotlib.pyplot as plt
-
 import SVF
 
 """Read in data"""
@@ -49,6 +48,9 @@ def q_sat(T,p):
     return q_sat
 
 def lat_sens_fluxes(p_surf,p_atm,T_atm,T_can, T_road,T_wall,q_atm,U_atm,ave_height,C_drag,delta_z):
+
+    RES_roof = 1
+    RES_top = 1
 
     T_a_corr = T_atm*exner(p_surf)/exner(p_atm)
     q_atm_corr = q_atm*q_sat(T_a_corr,p_surf)/q_sat(T_atm,p_atm)
@@ -462,4 +464,13 @@ def plotTempComparison_Masson(map_temp_roof,map_temp_wall,map_temp_road,l):
     plt.legend()
     plt.xlabel("time " + str(Constants.timestep) + "s")
     plt.ylabel("Temperature [K]")
+    plt.show()
+
+def PlotGreyMap(data,middle,v_max):
+    plt.figure()
+    if middle == True:
+        [x_len,y_len] = data.shape
+        plt.imshow(data[x_len/4:3*x_len/4,y_len/4:3*y_len/4],vmax=v_max)
+    elif middle == False:
+        plt.imshow(data,vmax=v_max)
     plt.show()

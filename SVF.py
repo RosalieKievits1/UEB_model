@@ -8,12 +8,13 @@ import sys
 
 #data_excel = tf.imread('M5_37FZ1.TIF')  # dtm (topography)
 import Constants
+import Functions
 import Sunpos
 
 """Now we want to calculate the sky view factor"""
-steps_beta = 180 # so we range in steps of 2 degrees
+steps_beta = 360 # so we range in steps of 2 degrees
 steps_psi = 90 # so we range in steps of 2 degrees
-max_radius = 300 # max radius is 500 m
+max_radius = 500 # max radius is 500 m
 """define the gridboxsize of the model"""
 gridboxsize = 5
 """objects below 1 m we do not look at"""
@@ -145,21 +146,7 @@ def dist(point, coord):
     dy = (coord[0]-point[0])*gridboxsize
     dist = np.sqrt(abs(dx)**2 + abs(dy)**2)
     """angle is 0 north direction"""
-    angle = np.arctan(dy/dx)#+np.pi/2
-    return dist,angle
-
-def dist_round(point, coord,steps_beta):
-    """
-    :param point: evaluation point (x,y,z)
-    :param coord: array of coordinates with heights
-    :return: the distance from each coordinate to the point and the angle
-    """
-    dx = (coord[1] - point[1])*gridboxsize
-    dy = (coord[0] - point[0])*gridboxsize
-    dist = np.around(np.sqrt(abs(dx)**2 + abs(dy)**2),3)
-    angle = np.around(np.arctan(dx/dy),5)
-    #betas = np.linspace(0,2*np.pi,steps_beta+1)
-    #angle_rounded = betas[(abs(betas-angle)).argmin()]
+    angle = np.arctan2(dy,dx)+np.pi/2
     return dist,angle
 
 def dome(point, coords, maxR):
@@ -180,13 +167,13 @@ def dome(point, coords, maxR):
     dome = dome[(dome[:,2]>point[2]),:]
     return dome
 
-def d_area(radius, d_beta,height,maxR):
-    """we assume the dome is large, and d_theta and d_phi small enough,
-     such that we can approximate the d_area as a flat surface"""
-    dx = radius*2*np.sin(d_beta/2)
-    #dx = gridboxsize
-    """multiply by maxR over radius such that the small area gets projected on the dome"""
-    d_area = (dx*height)*maxR/radius
+def d_area(psi,steps_beta,maxR):
+
+    """Radius at ground surface and at the height of the projection of the building"""
+    dx_0 = maxR
+    dx_up = np.cos(psi)*maxR
+
+    d_area = np.pi/steps_beta*(dx_0**2-dx_up**2)
     return d_area
 
 # def calc_SVF(coords, steps_psi , steps_beta,max_radius,blocklength):
@@ -250,11 +237,11 @@ def calc_SVF(coords, steps_psi , steps_beta,max_radius,blocklength):
     """Vertical (phi) and horizontal (theta) angle on the dome"""
     d_beta = 2*np.pi/steps_beta
     d_psi = np.pi/steps_psi
-    betas_lin = np.linspace(0,2*np.pi,steps_beta)
+    betas_lin = np.linspace(-np.pi,np.pi,steps_beta)
     SVF = np.ndarray([blocklength,1])
-    """this is the analytical dome area but should make same assumption as for d_area
-    dome_area = max_radius**2*2*np.pi"""
-    dome_area = (max_radius*np.sin(d_psi/2)*2)*(max_radius*np.sin(d_beta/2)*2)*steps_beta*steps_psi
+    """this is the analytical dome area but should make same assumption as for d_area"""
+    dome_area = max_radius**2*2*np.pi
+
     for i in tqdm(range(blocklength),desc="loop over points"):
         point = coords[i,:]
         """ we throw away all point outside the dome
@@ -266,22 +253,18 @@ def calc_SVF(coords, steps_psi , steps_beta,max_radius,blocklength):
         """we loop over theta"""
         print(dome_p.shape)
         for d in tqdm(range(dome_p.shape[0]),desc="dome loop"):
-            heightdif = dome_p[d,2]-point[2]
-            area = d_area(dome_p[d,3],d_beta,heightdif,max_radius)
 
+            psi = np.arctan((dome_p[d,2]-point[2])/dome_p[d,3])
             """The angles of the min and max angle of the building"""
-            beta_min = - np.arcsin(gridboxsize/2/dome_p[d,3]) + dome_p[d,4]
-            beta_max = np.arcsin(gridboxsize/2/dome_p[d,3]) + dome_p[d,4]
+            beta_min = - np.arcsin(np.sqrt(2*gridboxsize**2)/2/dome_p[d,3]) + dome_p[d,4]
+            beta_max = np.arcsin(np.sqrt(2*gridboxsize**2)/2/dome_p[d,3]) + dome_p[d,4]
 
-            """Where the index of betas fall within the min and max beta, and there is not already a larger blocking"""
-            #T_F = np.logical_and(a_three,np.logical_and(a_one,a_two))
-            #print(T_F.shape)
-            betas[np.nonzero(np.logical_and((betas<area),np.logical_and((beta_min<=betas_lin),(betas_lin<beta_max))))] = area
-            #betas[np.nonzero(betas[np.nonzero(np.logical_and((beta_min<=betas_lin), (betas_lin<beta_max)))]<area)] = area
-
+            """Where the index of betas fall within the min and max beta, and there is not already a larger psi blocking"""
+            betas[np.nonzero(np.logical_and((betas<psi),np.logical_and((beta_min<=betas_lin),(betas_lin<beta_max))))] = psi
+        areas = d_area(betas,steps_beta,max_radius)
         """The SVF is the fraction of area of the dome that is not blocked"""
-        print(betas)
-        SVF[i] = (dome_area - np.sum(betas))/dome_area
+        print(areas)
+        SVF[i] = np.around((dome_area - np.sum(areas))/dome_area,3)
         print(SVF[i])
     return SVF
 
@@ -310,8 +293,8 @@ def shadowfactor(coords, julianday,latitude,longitude,LMT,steps_beta,blocklength
             print(angle)
             """if the angle is within a very small range as the angle of the sun"""
             """The angles of the min and max angle of the building"""
-            beta_min = - np.arcsin(gridboxsize/2/radius) + angle
-            beta_max = np.arcsin(gridboxsize/2/radius) + angle
+            beta_min = - np.arcsin(np.sqrt(2*gridboxsize**2)/2/radius) + angle
+            beta_max = np.arcsin(np.sqrt(2*gridboxsize**2)/2/radius) + angle
 
             if (beta_min <= azimuth and azimuth <= beta_max):
                 """if the elevation angle times the radius is smaller than the height of that point
@@ -336,7 +319,7 @@ def reshape_SVF(data,coords):
     for i in range(blocklength):
         SVF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SVFs[i]
         SF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SFs[i]
-    return SVF_matrix,SF_matrix,blocklength
+    return SVF_matrix,SF_matrix
 
 def geometricProperties(data,gridboxsize):
     """
@@ -402,11 +385,12 @@ def wallArea(data):
     return wall_area, wall_area_total
 
 datasq = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
-geometricProperties(datasq,gridboxsize)
+#geometricProperties(datasq,gridboxsize)
 coords = coordheight(datasq)
-print(coords[0,:])
-print(dome(coords[0,:],coords,100))
+
+print(coords[1250000,:])
+#print(dome(coords[1250000,:],coords,500))
 blocklength = int(datasq.shape[0]/2*datasq.shape[1]/2)
 svf = calc_SVF(coords,steps_psi,steps_beta,max_radius,blocklength)
-
+#Functions.PlotGreyMap(datasq)
 

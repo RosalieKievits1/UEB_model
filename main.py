@@ -27,10 +27,11 @@ T_air = Functions.T_air
 
 """City using SVF and shadow casting"""
 data = SVF.datasquare(SVF.dtm1,SVF.dsm1,SVF.dtm2,SVF.dsm2,SVF.dtm3,SVF.dsm3,SVF.dtm4,SVF.dsm4)
-print(SVF.geometricProperties(data,SVF.gridboxsize))
-coords = SVF.coordheight(data)
-
-# [SVF_matrix,SF_matrix,blocklength] = SVF.reshape_SVF(data,coords)
+#print(SVF.geometricProperties(data,SVF.gridboxsize))
+#coords = SVF.coordheight(data)
+print(np.amax(data))
+Functions.PlotGreyMap(data,middle=True,v_max=50)
+#[SVF_matrix,SF_matrix] = SVF.reshape_SVF(data,coords)
 
 # print("These are the Sky View Factors")
 # print(SVF_matrix)

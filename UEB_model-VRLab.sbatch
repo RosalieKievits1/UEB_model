@@ -8,6 +8,7 @@
 
 # Load Python 3.9.7
 module load Python/3.9.7
+# source venv_UEB_model/bin/activate
 
 # Run Python script
 srun python3 main.py
