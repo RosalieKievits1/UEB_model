@@ -405,7 +405,7 @@ def HeatEvolution(data,time_steps,delta_t):
     wall_layers = np.ndarray([wallArea_matrix.shape[0],wallArea_matrix.shape[1],Constants.layers])
 
     coords = SVF.coordheight(data)
-    [svf,Shadowfactor,blocklength] = SVF.reshape_SVF(data,coords)
+    [svf,Shadowfactor] = SVF.reshape_SVF(data,coords)
     """We evaluate the middle block only, but after the SVF and Shadowfactor are calculated"""
     [x_len,y_len] = data.shape
     data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
@@ -470,7 +470,7 @@ def PlotGreyMap(data,middle,v_max):
     plt.figure()
     if middle == True:
         [x_len,y_len] = data.shape
-        plt.imshow(data[x_len/4:3*x_len/4,y_len/4:3*y_len/4],vmax=v_max)
+        plt.imshow(data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)],vmax=v_max)
     elif middle == False:
         plt.imshow(data,vmax=v_max)
     plt.show()

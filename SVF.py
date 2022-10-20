@@ -17,6 +17,7 @@ steps_psi = 90 # so we range in steps of 2 degrees
 max_radius = 500 # max radius is 500 m
 """define the gridboxsize of the model"""
 gridboxsize = 5
+gridboxsize_knmi = 0.5
 """objects below 1 m we do not look at"""
 minheight = 1
 
@@ -30,18 +31,31 @@ except:
 
 """DSM's and DTM's"""
 """we need 4 databoxes to account for the SVF's on the side"""
+# # linksboven
+# dtm1 = input_dir + '/M5_37EZ2.TIF'
+# dsm1 = input_dir + '/R5_37EZ2.TIF'
+# # rechtsboven
+# dtm2 = input_dir + '/M5_37FZ1.TIF'
+# dsm2 = input_dir + '/R5_37FZ1.TIF'
+# # linksonder
+# dtm3 = input_dir + '/M5_37GN2.TIF'
+# dsm3 = input_dir + '/R5_37GN2.TIF'
+# # rechtsonder
+# dtm4 = input_dir + '/M5_37HN1.TIF'
+# dsm4 = input_dir + '/R5_37HN1.TIF'
+
 # linksboven
-dtm1 = input_dir + '/M5_37EZ2.TIF'
-dsm1 = input_dir + '/R5_37EZ2.TIF'
+dtm1 = input_dir + '/M5_37HN1.TIF'
+dsm1 = input_dir + '/R5_37HN1.TIF'
 # rechtsboven
-dtm2 = input_dir + '/M5_37FZ1.TIF'
-dsm2 = input_dir + '/R5_37FZ1.TIF'
+dtm2 = input_dir + '/M5_37HN2.TIF'
+dsm2 = input_dir + '/R5_37HN2.TIF'
 # linksonder
-dtm3 = input_dir + '/M5_37GN2.TIF'
-dsm3 = input_dir + '/R5_37GN2.TIF'
+dtm3 = input_dir + '/M5_37HZ1.TIF'
+dsm3 = input_dir + '/R5_37HZ1.TIF'
 # rechtsonder
-dtm4 = input_dir + '/M5_37HN1.TIF'
-dsm4 = input_dir + '/R5_37HN1.TIF'
+dtm4 = input_dir + '/M5_37HZ2.TIF'
+dsm4 = input_dir + '/R5_37HZ2.TIF'
 
 
 def readdata(minheight,dsm,dtm):
@@ -176,52 +190,6 @@ def d_area(psi,steps_beta,maxR):
     d_area = np.pi/steps_beta*(dx_0**2-dx_up**2)
     return d_area
 
-# def calc_SVF(coords, steps_psi , steps_beta,max_radius,blocklength):
-#     """
-#     Function to calculate the sky view factor.
-#     We create a dome around a point with a certain radius,
-#     and for eacht point in the dome we evaluate of the height of this point blocks the view
-#     :param coords: all coordinates of our dataset
-#     :param steps_phi: the steps in phi (between 0 and 2pi)
-#     :param steps_theta: the steps in theta (between 0 and 2pi)
-#     :param max_radius: maximum radius we think influences the svf
-#     :param blocklength: the first amount of points in our data set we want to evaluate
-#     :return: SVF for all points
-#     """
-#     """Vertical (phi) and horizontal (theta) angle on the dome"""
-#     psi_lin = np.linspace(0,np.pi,steps_psi)
-#     betas = np.zeros(steps_beta)
-#     d_beta = 2*np.pi/steps_beta
-#     d_psi = np.pi/steps_psi
-#     betas_lin = np.linspace(0,2*np.pi,steps_beta+1)
-#     SVF = np.ndarray([blocklength,1])
-#
-#     for i in tqdm(range(blocklength),desc="loop over points"):
-#         point = coords[i,:]
-#         """ we throw away all point outside the dome
-#         # dome is now a 5 column array of points:
-#         # the 5 columns: x,y,z,radius,angle beta"""
-#         dome_p = dome(point, coords, max_radius)
-#         """we loop over all points inside the dome"""
-#         for d in tqdm(range(dome_p.shape[0]),desc="dome loop"):
-#             for p in range(psi_lin.shape[0]):
-#                 """evaluate if the height of the point is higher than the height of the point"""
-#                 h_psi = np.tan(psi_lin[p])*(dome_p[d,3]) #
-#                 heightdif = dome_p[d,2]-point[2]
-#                 if (heightdif>=h_psi):
-#                     """ if there already exist a blocking for that angle beta:
-#                     calculate of the area of this blocking is more"""
-#                     area = d_area(dome_p[d,3],d_beta,heightdif,max_radius)
-#                     angle_rounded = betas[(abs(betas_lin-dome_p[d,4])).argmin()]
-#                     if (betas[angle_rounded]<area):
-#                         betas[angle_rounded] = area
-#         """this is the analytical dome area but should make same assumption as for d_area
-#         dome_area = max_radius**2*2*np.pi"""
-#         dome_area = (max_radius*np.sin(d_psi/2)*2)*(max_radius*np.sin(d_beta/2)*2)*steps_beta*steps_psi
-#         """The SVF is the fraction of area of the dome that is not blocked"""
-#         SVF[i] = (dome_area - np.sum(betas,0))/dome_area
-#     return SVF
-
 def calc_SVF(coords, steps_psi , steps_beta,max_radius,blocklength):
     """
     Function to calculate the sky view factor.
@@ -237,7 +205,7 @@ def calc_SVF(coords, steps_psi , steps_beta,max_radius,blocklength):
     """Vertical (phi) and horizontal (theta) angle on the dome"""
     d_beta = 2*np.pi/steps_beta
     d_psi = np.pi/steps_psi
-    betas_lin = np.linspace(-np.pi,np.pi,steps_beta)
+    betas_lin = np.linspace(0,2*np.pi,steps_beta)
     SVF = np.ndarray([blocklength,1])
     """this is the analytical dome area but should make same assumption as for d_area"""
     dome_area = max_radius**2*2*np.pi
@@ -248,6 +216,7 @@ def calc_SVF(coords, steps_psi , steps_beta,max_radius,blocklength):
         # dome is now a 5 column array of points:
         # the 5 columns: x,y,z,radius,angle theta"""
         dome_p = dome(point, coords, max_radius)
+        print(dome_p)
         betas = np.zeros(steps_beta)
 
         """we loop over theta"""
@@ -388,9 +357,10 @@ datasq = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
 #geometricProperties(datasq,gridboxsize)
 coords = coordheight(datasq)
 
-print(coords[1250000,:])
+#print(coords[1250000,:])
 #print(dome(coords[1250000,:],coords,500))
 blocklength = int(datasq.shape[0]/2*datasq.shape[1]/2)
 svf = calc_SVF(coords,steps_psi,steps_beta,max_radius,blocklength)
 #Functions.PlotGreyMap(datasq)
+
 
