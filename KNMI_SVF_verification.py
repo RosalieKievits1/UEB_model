@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 logger.setLevel(os.environ.get("LOG_LEVEL", logging.INFO))
 
 input_dir_knmi_SVF = '/Users/rosaliekievits/Desktop/SVF bestanden MEP'
-SVF_knmi1 = "SVF_r37hn1"
-SVF_knmi2 = "SVF_r37hn2"
-SVF_knmi3 = "SVF_r37hz1"
-SVF_knmi4 = "SVF_r37hz2"
+# SVF_knmi1 = "SVF_r37hn1"
+# SVF_knmi2 = "SVF_r37hn2"
+# SVF_knmi3 = "SVF_r37hz1"
+# SVF_knmi4 = "SVF_r37hz2"
 
 def download_dataset_file(
     session: Session,

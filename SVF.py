@@ -2,15 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tifffile as tf
 from tqdm import tqdm
-import os
-import time
-import sys
+import config
 
 #data_excel = tf.imread('M5_37FZ1.TIF')  # dtm (topography)
 import Constants
 import Functions
 import Sunpos
 
+input_dir = config.input_dir
 """Now we want to calculate the sky view factor"""
 steps_beta = 360 # so we range in steps of 2 degrees
 steps_psi = 90 # so we range in steps of 2 degrees
@@ -20,11 +19,6 @@ gridboxsize = 5
 gridboxsize_knmi = 0.5
 """objects below 1 m we do not look at"""
 minheight = 1
-
-input_dir = './' #/Users/rosaliekievits/Desktop/Tiff bestanden MEP'
-
-
-input_dir = os.environ.get('UEB_MODEL_INPUT_DIR', input_dir)
 
 
 
@@ -215,11 +209,11 @@ def calc_SVF(coords, steps_psi , steps_beta,max_radius,blocklength):
         # dome is now a 5 column array of points:
         # the 5 columns: x,y,z,radius,angle theta"""
         dome_p = dome(point, coords, max_radius)
-        print(dome_p)
+        #print(dome_p)
         betas = np.zeros(steps_beta)
 
         """we loop over theta"""
-        print(dome_p.shape)
+        #print(dome_p.shape)
         for d in tqdm(range(dome_p.shape[0]),desc="dome loop"):
 
             psi = np.arctan((dome_p[d,2]-point[2])/dome_p[d,3])
