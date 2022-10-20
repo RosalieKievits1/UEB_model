@@ -21,12 +21,11 @@ gridboxsize_knmi = 0.5
 """objects below 1 m we do not look at"""
 minheight = 1
 
-input_dir = '/Users/rosaliekievits/Desktop/Tiff bestanden MEP'
+input_dir = './' #/Users/rosaliekievits/Desktop/Tiff bestanden MEP'
 
-try:
-    envir = os.environ.get(input_dir)
-except:
-  print("Could not find input directory")
+
+input_dir = os.environ.get('UEB_MODEL_INPUT_DIR', input_dir)
+
 
 
 """DSM's and DTM's"""
