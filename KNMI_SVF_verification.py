@@ -12,11 +12,13 @@ from typing import Tuple
 import requests
 from requests import Session
 
+import config
+
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(os.environ.get("LOG_LEVEL", logging.INFO))
 
-input_dir_knmi_SVF = '/Users/rosaliekievits/Desktop/SVF bestanden MEP'
+
 # SVF_knmi1 = "SVF_r37hn1"
 # SVF_knmi2 = "SVF_r37hn2"
 # SVF_knmi3 = "SVF_r37hz1"
@@ -210,6 +212,13 @@ async def main():
 # if __name__ == "__main__":
 #     asyncio.run(main())
 """"""
+
+download_directory = config.input_dir_knmi
+SVF_knmi1 = str(download_directory) + '/SVF_r37hn1.TIF'
+SVF_knmi2 = str(download_directory) + '/SVF_r37hn2.TIF'
+SVF_knmi3 = str(download_directory) + '/SVF_r37hz1.TIF'
+SVF_knmi4 = str(download_directory) + '/SVF_r37hz2.TIF'
+
 def Verification(SVF_matrix,SVF_knmi1,SVF_knmi2,SVF_knmi3,SVF_knmi4,gridboxsize, gridboxsize_knmi):
     """The knmi matrix is based on a different resolution gridboxsize"""
     ratio_resolution = gridboxsize/gridboxsize_knmi
