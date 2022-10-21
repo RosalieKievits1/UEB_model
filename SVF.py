@@ -233,6 +233,8 @@ def d_area(psi,steps_beta,maxR):
 #         print(SVF[i])
 #     return SVF
 
+
+
 # def calc_SVF(coords, max_radius,blocklength):
 #     """
 #     Function to calculate the sky view factor.
@@ -253,8 +255,8 @@ def d_area(psi,steps_beta,maxR):
 #             result_list = pool.map(SVF_par, points)
 #         print(result_list)
 
-    if __name__ == '__main__':
-        parallel_runs(points)
+    # if __name__ == '__main__':
+    #     parallel_runs(points)
 
 
 def svf_calc(point,coords, max_radius):
@@ -331,9 +333,13 @@ def reshape_SVF(data,coords,julianday,lat,long,LMT,reshape):
     def parallel_runs_SVF(points):
         with Pool() as pool:
             SVF_par = partial(svf_calc, coords=coords,max_radius=max_radius) # prod_x has only one argument x (y is fixed to 10)
-            SVF = pool.map(SVF_par, points)
-            SVFs.append(SVF)
+            SVF_list = pool.map(SVF_par, points)
+            SVFs.append(SVF_list)
         return SVFs
+            # for SVF in pool.map(SVF_par, points):
+            #     print(SVF)
+                #SVFs.append(SVF)
+        #return SVF_list
 
     # def parallel_runs_SF(points):
     #     with Pool() as pool2:
@@ -355,11 +361,11 @@ def reshape_SVF(data,coords,julianday,lat,long,LMT,reshape):
         SVF_matrix = np.ndarray([x_len,y_len])
         #SF_matrix = np.ndarray([x_len,y_len])
 
-        for i in range(blocklength):
-            SVF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SVFs[i]
-            #SF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SFs[i]
-        np.savetxt("foo.csv", SVF_matrix, delimiter=",")
-        return SVF_matrix#,SF_matrix
+        # for i in range(blocklength):
+        #     SVF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SVFs[i]
+        #     #SF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SFs[i]
+        # np.savetxt("foo.csv", SVF_matrix, delimiter=",")
+        # return SVF_matrix#,SF_matrix
 
     elif reshape==False:
         return SVFs#,SFs
@@ -428,16 +434,10 @@ def wallArea(data):
     return wall_area, wall_area_total
 
 datasq = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
-#geometricProperties(datasq,gridboxsize)
 coords = coordheight(datasq)
-
-#print(coords[1250000,:])
-#print(dome(coords[1250000,:],coords,500))
 blocklength = int(datasq.shape[0]/2*datasq.shape[1]/2)
-# prepare arguments
-reshape_SVF(datasq,coords,294,48,52,10,reshape=False)
 
-#svf = calc_SVF(coords,steps_psi,steps_beta,max_radius,blocklength)
-#Functions.PlotGreyMap(datasq)
+#
+print(reshape_SVF(datasq,coords,294,48,52,10,reshape=False))
 
 

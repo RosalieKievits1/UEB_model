@@ -14,4 +14,3 @@ export UEB_MODEL_INPUT_DIR= /net/labdata/rosalie/UEB_model
 export UEB_MODEL_INPUT_DIR_knmi = /net/labdata/rosalie/UEB_model
 # Run Python script
 srun python3 main.py
-
