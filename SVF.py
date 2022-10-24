@@ -56,7 +56,7 @@ def readdata(minheight,dsm,dtm):
     """dtm (topography)"""
     data_topo = tf.imread(dtm)
     """remove extreme large numbers for water and set to zero."""
-    data_water = np.eros(data.shape)
+    data_water = np.zeros(data.shape)
     data_water[data > 10 ** 38] = 1
     data[data > 10 ** 38] = 0
     data_topo[data_topo > 10 ** 38] = 0
