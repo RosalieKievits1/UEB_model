@@ -38,21 +38,32 @@ minheight = 1
 # # rechtsonder
 # dtm4 = input_dir + '/M5_37HN1.TIF'
 # dsm4 = input_dir + '/R5_37HN1.TIF'
+#
+# # linksboven
+# dtm1 = input_dir + '/M5_37HN1.TIF'
+# dsm1 = input_dir + '/R5_37HN1.TIF'
+# # rechtsboven
+# dtm2 = input_dir + '/M5_37HN2.TIF'
+# dsm2 = input_dir + '/R5_37HN2.TIF'
+# # linksonder
+# dtm3 = input_dir + '/M5_37HZ1.TIF'
+# dsm3 = input_dir + '/R5_37HZ1.TIF'
+# # rechtsonder
+# dtm4 = input_dir + '/M5_37HZ2.TIF'
+# dsm4 = input_dir + '/R5_37HZ2.TIF'
 
 # linksboven
-dtm1 = input_dir + '/M5_37HN1.TIF'
-dsm1 = input_dir + '/R5_37HN1.TIF'
+dtm1 = '/net/labdata/rosalie/UEB_model/M5_37HN1.TIF'
+dsm1 = '/net/labdata/rosalie/UEB_model/R5_37HN1.TIF'
 # rechtsboven
-dtm2 = input_dir + '/M5_37HN2.TIF'
-dsm2 = input_dir + '/R5_37HN2.TIF'
+dtm2 = '/net/labdata/rosalie/UEB_model/M5_37HN2.TIF'
+dsm2 = '/net/labdata/rosalie/UEB_model/R5_37HN2.TIF'
 # linksonder
-dtm3 = input_dir + '/M5_37HZ1.TIF'
-dsm3 = input_dir + '/R5_37HZ1.TIF'
+dtm3 = '/net/labdata/rosalie/UEB_model/M5_37HZ1.TIF'
+dsm3 = '/net/labdata/rosalie/UEB_model/R5_37HZ1.TIF'
 # rechtsonder
-dtm4 = input_dir + '/M5_37HZ2.TIF'
-dsm4 = input_dir + '/R5_37HZ2.TIF'
-
-
+dtm4 = '/net/labdata/rosalie/UEB_model/M5_37HZ2.TIF'
+dsm4 = '/net/labdata/rosalie/UEB_model/R5_37HZ2.TIF'
 def readdata(minheight,dsm,dtm):
     """dsm (all info, with building)"""
     data = tf.imread(dsm)
@@ -417,21 +428,21 @@ def reshape_SVF(data,coords,julianday,lat,long,LMT,reshape):
 
     "Compute SVF and SF and Reshape the shadowfactors and SVF back to nd array"
     SVFs = calc_SVF(coords,max_radius,blocklength)
-    SFs = calc_SF(coords,julianday,lat,long,LMT,blocklength)
+    #SFs = calc_SF(coords,julianday,lat,long,LMT,blocklength)
     "If reshape is true we reshape the arrays to the original data matrix"
     if reshape == True:
         SVF_matrix = np.ndarray([x_len,y_len])
-        SF_matrix = np.ndarray([x_len,y_len])
+        #SF_matrix = np.ndarray([x_len,y_len])
 
         for i in range(blocklength):
             SVF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SVFs[i]
-            SF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SFs[i]
+            #SF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SFs[i]
         np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
-        np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
-        return SVF_matrix,SF_matrix
+        #np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
+        return SVF_matrix#,SF_matrix
 
     elif reshape == False:
-        return SVFs, SFs
+        return SVFs#, SFs
 
 
 def geometricProperties(data,gridboxsize):
@@ -497,11 +508,11 @@ def wallArea(data):
     wall_area_total = np.sum(wall_area)
     return wall_area, wall_area_total
 
-datasq = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
-coords = coordheight(datasq)
-blocklength = int(datasq.shape[0]/2*datasq.shape[1]/2)
+# datasq = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
+# coords = coordheight(datasq)
+# blocklength = int(datasq.shape[0]/2*datasq.shape[1]/2)
 
 #
-print(reshape_SVF(datasq,coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,reshape=False))
+#print(reshape_SVF(datasq,coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,reshape=False))
 
 
