@@ -494,11 +494,11 @@ def wallArea(data):
     wall_area_total = np.sum(wall_area)
     return wall_area, wall_area_total
 
-# datasq = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
-# coords = coordheight(datasq)
-# blocklength = int(datasq.shape[0]/2*datasq.shape[1]/2)
+datasq = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
+coords = coordheight(datasq)
+blocklength = int(datasq.shape[0]/2*datasq.shape[1]/2)
 
 #
-#print(reshape_SVF(datasq,coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,reshape=False))
+print(reshape_SVF(datasq,coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,reshape=False))
 
 
