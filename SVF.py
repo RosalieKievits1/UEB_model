@@ -22,8 +22,6 @@ gridboxsize_knmi = 0.5
 """objects below 1 m we do not look at"""
 minheight = 1
 
-
-
 """DSM's and DTM's"""
 """we need 4 databoxes to account for the SVF's on the side"""
 # # linksboven
@@ -39,38 +37,26 @@ minheight = 1
 # dtm4 = input_dir + '/M5_37HN1.TIF'
 # dsm4 = input_dir + '/R5_37HN1.TIF'
 #
-# # linksboven
-# dtm1 = input_dir + '/M5_37HN1.TIF'
-# dsm1 = input_dir + '/R5_37HN1.TIF'
-# # rechtsboven
-# dtm2 = input_dir + '/M5_37HN2.TIF'
-# dsm2 = input_dir + '/R5_37HN2.TIF'
-# # linksonder
-# dtm3 = input_dir + '/M5_37HZ1.TIF'
-# dsm3 = input_dir + '/R5_37HZ1.TIF'
-# # rechtsonder
-# dtm4 = input_dir + '/M5_37HZ2.TIF'
-# dsm4 = input_dir + '/R5_37HZ2.TIF'
-
 # linksboven
-dtm1 = '/net/labdata/rosalie/UEB_model/M5_37HN1.TIF'
-dsm1 = '/net/labdata/rosalie/UEB_model/R5_37HN1.TIF'
+dtm1 = input_dir + '/M5_37HN1.TIF'
+dsm1 = input_dir + '/R5_37HN1.TIF'
 # rechtsboven
-dtm2 = '/net/labdata/rosalie/UEB_model/M5_37HN2.TIF'
-dsm2 = '/net/labdata/rosalie/UEB_model/R5_37HN2.TIF'
+dtm2 = input_dir + '/M5_37HN2.TIF'
+dsm2 = input_dir + '/R5_37HN2.TIF'
 # linksonder
-dtm3 = '/net/labdata/rosalie/UEB_model/M5_37HZ1.TIF'
-dsm3 = '/net/labdata/rosalie/UEB_model/R5_37HZ1.TIF'
+dtm3 = input_dir + '/M5_37HZ1.TIF'
+dsm3 = input_dir + '/R5_37HZ1.TIF'
 # rechtsonder
-dtm4 = '/net/labdata/rosalie/UEB_model/M5_37HZ2.TIF'
-dsm4 = '/net/labdata/rosalie/UEB_model/R5_37HZ2.TIF'
+dtm4 = input_dir + '/M5_37HZ2.TIF'
+dsm4 = input_dir + '/R5_37HZ2.TIF'
+
 def readdata(minheight,dsm,dtm):
     """dsm (all info, with building)"""
     data = tf.imread(dsm)
     """dtm (topography)"""
     data_topo = tf.imread(dtm)
     """remove extreme large numbers for water and set to zero."""
-    data_water = np.zeros(data.shape)
+    data_water = np.eros(data.shape)
     data_water[data > 10 ** 38] = 1
     data[data > 10 ** 38] = 0
     data_topo[data_topo > 10 ** 38] = 0
@@ -276,10 +262,10 @@ def d_area(psi,steps_beta,maxR):
 
 def SkyViewFactor(point, coords, max_radius):
     #for i in tqdm(range(blocklength),desc="loop over points"):
-    d_beta = 2*np.pi/steps_beta
-    d_psi = np.pi/steps_psi
+    #d_beta = 2*np.pi/steps_beta
+    #d_psi = np.pi/steps_psi
     betas_lin = np.linspace(0,2*np.pi,steps_beta)
-    SVF = np.ndarray([blocklength,1])
+    #SVF = np.ndarray([blocklength,1])
     """this is the analytical dome area but should make same assumption as for d_area"""
     dome_area = max_radius**2*2*np.pi
     #point = coords[i,:]
@@ -300,15 +286,15 @@ def SkyViewFactor(point, coords, max_radius):
         beta_max = np.arcsin(np.sqrt(2*gridboxsize**2)/2/dome_p[d,3]) + dome_p[d,4]
 
         """Where the index of betas fall within the min and max beta, and there is not already a larger psi blocking"""
-        betas[np.nonzero(np.logical_and((betas<psi),np.logical_and((beta_min<=betas_lin),(betas_lin<beta_max))))] = psi
-    areas = d_area(betas,steps_beta,max_radius)
+        betas[np.nonzero(np.logical_and((betas < psi), np.logical_and((beta_min <= betas_lin), (betas_lin < beta_max))))] = psi
+    areas = d_area(betas, steps_beta, max_radius)
     """The SVF is the fraction of area of the dome that is not blocked"""
     #print(areas)
-    SVF = np.around((dome_area - np.sum(areas))/dome_area,3)
+    SVF = np.around((dome_area - np.sum(areas))/dome_area, 3)
     print(SVF)
     return SVF
 
-def calc_SVF(coords, max_radius,blocklength):
+def calc_SVF(coords, max_radius, blocklength):
     """
     Function to calculate the sky view factor.
     We create a dome around a point with a certain radius,
@@ -428,21 +414,21 @@ def reshape_SVF(data,coords,julianday,lat,long,LMT,reshape):
 
     "Compute SVF and SF and Reshape the shadowfactors and SVF back to nd array"
     SVFs = calc_SVF(coords,max_radius,blocklength)
-    #SFs = calc_SF(coords,julianday,lat,long,LMT,blocklength)
+    SFs = calc_SF(coords,julianday,lat,long,LMT,blocklength)
     "If reshape is true we reshape the arrays to the original data matrix"
     if reshape == True:
         SVF_matrix = np.ndarray([x_len,y_len])
-        #SF_matrix = np.ndarray([x_len,y_len])
+        SF_matrix = np.ndarray([x_len,y_len])
 
         for i in range(blocklength):
             SVF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SVFs[i]
-            #SF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SFs[i]
+            SF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SFs[i]
         np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
-        #np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
-        return SVF_matrix#,SF_matrix
+        np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
+        return SVF_matrix,SF_matrix
 
     elif reshape == False:
-        return SVFs#, SFs
+        return SVFs, SFs
 
 
 def geometricProperties(data,gridboxsize):
@@ -468,7 +454,7 @@ def geometricProperties(data,gridboxsize):
     Roof_area = built_elements*gridboxsize**2
     Road_area = road_elements*gridboxsize**2
     Water_area = water_elements*gridboxsize**2
-    [Wall_area,wall_area_total] = wallArea(data)
+    [Wall_area, wall_area_total] = wallArea(data)
 
     Total_area = Roof_area + wall_area_total + Road_area + Water_area
     """Fractions of the area of the total surface"""
@@ -483,7 +469,7 @@ def geometricProperties(data,gridboxsize):
 
 def wallArea(data):
     """Matrix of ones where there are buildings"""
-    [x_len,y_len] = [data.shape[0],data.shape[1]]
+    [x_len,y_len] = [data.shape[0], data.shape[1]]
     """Set all the water elements to 0 height again"""
     data[data<0] = 0
     """We only evaluate the area in the center block"""

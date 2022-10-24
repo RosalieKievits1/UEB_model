@@ -18,7 +18,6 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(os.environ.get("LOG_LEVEL", logging.INFO))
 
-
 # SVF_knmi1 = "SVF_r37hn1"
 # SVF_knmi2 = "SVF_r37hn2"
 # SVF_knmi3 = "SVF_r37hz1"
