@@ -169,15 +169,8 @@ def dome(point, coords, maxR):
     """
 
     radii, angles = dist(point,coords)
-    coords = np.column_stack([coords, radii]) #,axis=1)
-    coords = np.column_stack([coords, angles]) #,axis=1)
-
-    # angle = np.ndarray([coords.shape[0],1])
-    # radius = np.ndarray([coords.shape[0],1])
-    # for i in range(coords.shape[0]):
-    #     radius[i],angle[i] = dist(point,coords[i,:])
-    # coords = np.concatenate([coords, radius],axis=1)
-    # coords = np.concatenate([coords, angle],axis=1)
+    coords = np.column_stack([coords, radii])
+    coords = np.column_stack([coords, angles])
     """the dome consist of points higher than the view height and within the radius we want"""
     dome = coords[(np.logical_and(coords[:,3]<maxR,coords[:,3]>0.1)),:]
     dome = dome[(dome[:,2]>point[2]),:]
@@ -191,54 +184,6 @@ def d_area(psi,steps_beta,maxR):
 
     d_area = np.pi/steps_beta*(dx_0**2-dx_up**2)
     return d_area
-
-# def calc_SVF(coords, steps_psi , steps_beta,max_radius,blocklength):
-#     """
-#     Function to calculate the sky view factor.
-#     We create a dome around a point with a certain radius,
-#     and for eacht point in the dome we evaluate of the height of this point blocks the view
-#     :param coords: all coordinates of our dataset
-#     :param steps_phi: the steps in phi (between 0 and 2pi)
-#     :param steps_theta: the steps in theta (between 0 and 2pi)
-#     :param max_radius: maximum radius we think influences the svf
-#     :param blocklength: the first amount of points in our data set we want to evaluate
-#     :return: SVF for all points
-#     """
-#     """Vertical (phi) and horizontal (theta) angle on the dome"""
-#     d_beta = 2*np.pi/steps_beta
-#     d_psi = np.pi/steps_psi
-#     betas_lin = np.linspace(0,2*np.pi,steps_beta)
-#     SVF = np.ndarray([blocklength,1])
-#     """this is the analytical dome area but should make same assumption as for d_area"""
-#     dome_area = max_radius**2*2*np.pi
-#
-#     for i in tqdm(range(blocklength),desc="loop over points"):
-#
-#         point = coords[i,:]
-#         """ we throw away all point outside the dome
-#         # dome is now a 5 column array of points:
-#         # the 5 columns: x,y,z,radius,angle theta"""
-#         dome_p = dome(point, coords, max_radius)
-#         #print(dome_p)
-#         betas = np.zeros(steps_beta)
-#
-#         """we loop over theta"""
-#         #print(dome_p.shape)
-#         for d in tqdm(range(dome_p.shape[0]),desc="dome loop"):
-#
-#             psi = np.arctan((dome_p[d,2]-point[2])/dome_p[d,3])
-#             """The angles of the min and max angle of the building"""
-#             beta_min = - np.arcsin(np.sqrt(2*gridboxsize**2)/2/dome_p[d,3]) + dome_p[d,4]
-#             beta_max = np.arcsin(np.sqrt(2*gridboxsize**2)/2/dome_p[d,3]) + dome_p[d,4]
-#
-#             """Where the index of betas fall within the min and max beta, and there is not already a larger psi blocking"""
-#             betas[np.nonzero(np.logical_and((betas<psi),np.logical_and((beta_min<=betas_lin),(betas_lin<beta_max))))] = psi
-#         areas = d_area(betas,steps_beta,max_radius)
-#         """The SVF is the fraction of area of the dome that is not blocked"""
-#         print(areas)
-#         SVF[i] = np.around((dome_area - np.sum(areas))/dome_area,3)
-#         print(SVF[i])
-#     return SVF
 
 
 def SkyViewFactor(point, coords, max_radius):
@@ -354,11 +299,9 @@ def reshape_SVF(data,coords,julianday,lat,long,LMT,reshape):
     if reshape == True:
         SVF_matrix = np.ndarray([x_len,y_len])
         #SF_matrix = np.ndarray([x_len,y_len])
-        i = 0
-        while i < blocklength:
-            SVF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SVFs[i]
+        for i in range(blocklength):
+            SVF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]]  = SVFs[i]
             #SF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SFs[i]
-            i += 1
         #np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
         #np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
         return SVF_matrix#,SF_matrix
@@ -441,9 +384,8 @@ point = coords[5,:]
 #print(dome(point,coords,max_radius))
 blocklength = int(datasq.shape[0]/2*datasq.shape[1]/2)
 #
-# #
 # print(reshape_SVF(datasq,coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,reshape=False))
-#
+
 endtime = time.time()
 
 calc_SF(coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,blocklength)
