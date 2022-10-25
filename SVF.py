@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from multiprocessing.pool import Pool
+from multiprocessing import Process
 import tifffile as tf
 from tqdm import tqdm
 import config
@@ -181,7 +182,6 @@ def d_area(psi,steps_beta,maxR):
     d_area = 2*np.pi/steps_beta*maxR**2*np.sin(psi)
     return d_area
 
-
 def SkyViewFactor(point, coords, max_radius):
     betas_lin = np.linspace(0,2*np.pi,steps_beta)
     """this is the analytical dome area but should make same assumption as for d_area"""
@@ -220,17 +220,17 @@ def calc_SVF(coords, max_radius, blocklength):
     :param blocklength: the first amount of points in our data set we want to evaluate
     :return: SVF for all points
     """
-    points = [coords[i,:] for i in range(blocklength)]
 
-    def parallel_runs(points):
+
+    def parallel_runs():
+        points = [coords[i,:] for i in range(blocklength)]
         with Pool() as pool:
             SVF_par = partial(SkyViewFactor, coords=coords,max_radius=max_radius) # prod_x has only one argument x (y is fixed to 10)
             SVF = pool.map(SVF_par, points)
-            print(SVF)
-            return SVF
+        return SVF
 
     if __name__ == '__main__':
-        return parallel_runs(points)
+        parallel_runs()
 
 
 def calc_SF(coords,Julianday,latitude,longitude,LMT,blocklength):
@@ -248,9 +248,11 @@ def calc_SF(coords,Julianday,latitude,longitude,LMT,blocklength):
     points = [coords[i,:] for i in range(blocklength)]
 
     def parallel_runs(points):
-        with Pool() as pool:
-            SF_par = partial(shadowfactor, coords=coords, julianday=Julianday,latitude=latitude,longitude=longitude,LMT=LMT,blocklength=blocklength) # prod_x has only one argument x (y is fixed to 10)
-            SF = pool.map(SF_par, points)
+        pool = Pool()
+        SF_par = partial(shadowfactor, coords=coords, julianday=Julianday,latitude=latitude,longitude=longitude,LMT=LMT,blocklength=blocklength) # prod_x has only one argument x (y is fixed to 10)
+        SF = pool.map(SF_par, points)
+        pool.close()
+        pool.join()
         print(SF)
         return SF
 
@@ -300,9 +302,11 @@ def reshape_SVF(data,coords,julianday,lat,long,LMT,reshape):
             SF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SFs[i]
         np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
         np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
-        return SVF_matrix,SF_matrix
+        return SF_matrix,SF_matrix
 
     elif reshape == False:
+        #np.savetxt("SVFmatrix.csv", SVFs, delimiter=",")
+        #np.savetxt("SFmatrix.csv", SFs, delimiter=",")
         return SVFs, SFs
 
 
@@ -377,7 +381,7 @@ datasq = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
 coords = coordheight(datasq)
 blocklength = int(datasq.shape[0]/2*datasq.shape[1]/2)
 
-print(reshape_SVF(datasq,coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,reshape=True))
+print(reshape_SVF(datasq,coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,reshape=False))
 endtime = time.time()
 
 elapsed_time = endtime-sttime
