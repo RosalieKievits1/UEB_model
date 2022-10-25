@@ -5,11 +5,14 @@ import tifffile as tf
 from tqdm import tqdm
 import config
 from functools import partial
+import time
 
 #data_excel = tf.imread('M5_37FZ1.TIF')  # dtm (topography)
 import Constants
 import Functions
 import Sunpos
+
+sttime = time.time()
 
 input_dir = config.input_dir
 """Now we want to calculate the sky view factor"""
@@ -25,17 +28,18 @@ minheight = 1
 """DSM's and DTM's"""
 """we need 4 databoxes to account for the SVF's on the side"""
 # # linksboven
-# dtm1 = input_dir + '/M5_37EZ2.TIF'
-# dsm1 = input_dir + '/R5_37EZ2.TIF'
+# dtm1 = "".join([input_dir, '/M5_37EZ2.TIF'])
+# dsm1 = "".join([input_dir, '/R5_37EZ2.TIF'])
 # # rechtsboven
-# dtm2 = input_dir + '/M5_37FZ1.TIF'
-# dsm2 = input_dir + '/R5_37FZ1.TIF'
+# dtm2 = "".join([input_dir, '/M5_37FZ1.TIF'])
+# dsm2 = "".join([input_dir, '/R5_37FZ1.TIF'])
 # # linksonder
-# dtm3 = input_dir + '/M5_37GN2.TIF'
-# dsm3 = input_dir + '/R5_37GN2.TIF'
+# dtm3 = "".join([input_dir, '/M5_37GN2.TIF'])
+# dsm3 = "".join([input_dir, '/R5_37GN2.TIF'])
 # # rechtsonder
-# dtm4 = input_dir + '/M5_37HN1.TIF'
-# dsm4 = input_dir + '/R5_37HN1.TIF'
+# dtm4 = "".join([input_dir, '/M5_37HN1.TIF'])
+# dsm4 = "".join([input_dir, '/R5_37HN1.TIF'])
+
 # linksboven
 dtm1 = "".join([input_dir, '/M5_37HN1.TIF'])
 dsm1 = "".join([input_dir, '/R5_37HN1.TIF'])
@@ -49,19 +53,6 @@ dsm3 = "".join([input_dir, '/R5_37HZ1.TIF'])
 dtm4 = "".join([input_dir, '/M5_37HZ2.TIF'])
 dsm4 = "".join([input_dir, '/R5_37HZ2.TIF'])
 
-
-# # linksboven
-# dtm1 = input_dir + '/M5_37HN1.TIF'
-# dsm1 = input_dir + '/R5_37HN1.TIF'
-# # rechtsboven
-# dtm2 = input_dir + '/M5_37HN2.TIF'
-# dsm2 = input_dir + '/R5_37HN2.TIF'
-# # linksonder
-# dtm3 = input_dir + '/M5_37HZ1.TIF'
-# dsm3 = input_dir + '/R5_37HZ1.TIF'
-# # rechtsonder
-# dtm4 = input_dir + '/M5_37HZ2.TIF'
-# dsm4 = input_dir + '/R5_37HZ2.TIF'
 
 def readdata(minheight,dsm,dtm):
     """dsm (all info, with building)"""
@@ -139,8 +130,8 @@ def coordheight(data):
     rowcount_block = int((x_len/2)*(y_len/2))
     rowcount_center = 0
     """we need to make a list of coordinates where the center block is first"""
-    for i in range(data.shape[0]):
-        for j in range(data.shape[1]):
+    for i in range(x_len):
+        for j in range(y_len):
             if ((x_len/4)<=i and i<(3*x_len/4) and (y_len/4)<=j and j<(3*y_len/4)):
                 coords[rowcount_center,0] = i
                 coords[rowcount_center,1] = j
@@ -151,6 +142,7 @@ def coordheight(data):
                 coords[rowcount_block,1] = j
                 coords[rowcount_block,2] = data[i,j]
                 rowcount_block += 1
+
     return coords
 
 def dist(point, coord):
@@ -160,9 +152,9 @@ def dist(point, coord):
     :return: the distance from each coordinate to the point and the angle
     """
     # Columns is dx
-    dx = (coord[1]-point[1])*gridboxsize
+    dx = (coord[:,1]-point[1])*gridboxsize
     # Rows is dy
-    dy = (coord[0]-point[0])*gridboxsize
+    dy = (coord[:,0]-point[0])*gridboxsize
     dist = np.sqrt(abs(dx)**2 + abs(dy)**2)
     """angle is 0 north direction"""
     angle = np.arctan2(dy,dx)+np.pi/2
@@ -175,12 +167,17 @@ def dome(point, coords, maxR):
     :param maxR: maximum radius in which we think the coordinates can influence the SVF
     :return: a dome of points that we take into account to evaluate the SVF
     """
-    angle = np.ndarray([coords.shape[0],1])
-    radius = np.ndarray([coords.shape[0],1])
-    for i in range(coords.shape[0]):
-        radius[i],angle[i] = dist(point,coords[i,:])
-    coords = np.concatenate([coords,radius],axis=1)
-    coords = np.concatenate([coords,angle],axis=1)
+
+    radii, angles = dist(point,coords)
+    coords = np.column_stack([coords, radii]) #,axis=1)
+    coords = np.column_stack([coords, angles]) #,axis=1)
+
+    # angle = np.ndarray([coords.shape[0],1])
+    # radius = np.ndarray([coords.shape[0],1])
+    # for i in range(coords.shape[0]):
+    #     radius[i],angle[i] = dist(point,coords[i,:])
+    # coords = np.concatenate([coords, radius],axis=1)
+    # coords = np.concatenate([coords, angle],axis=1)
     """the dome consist of points higher than the view height and within the radius we want"""
     dome = coords[(np.logical_and(coords[:,3]<maxR,coords[:,3]>0.1)),:]
     dome = dome[(dome[:,2]>point[2]),:]
@@ -243,35 +240,6 @@ def d_area(psi,steps_beta,maxR):
 #         print(SVF[i])
 #     return SVF
 
-# def calc_SVF(coords,max_radius,blocklength):
-#     """
-#     Function to calculate the sky view factor.
-#     We create a dome around a point with a certain radius,
-#     and for eacht point in the dome we evaluate of the height of this point blocks the view
-#     :param coords: all coordinates of our dataset
-#     :param steps_phi: the steps in phi (between 0 and 2pi)
-#     :param steps_theta: the steps in theta (between 0 and 2pi)
-#     :param max_radius: maximum radius we think influences the svf
-#     :param blocklength: the first amount of points in our data set we want to evaluate
-#     :return: SVF for all points
-#     """
-#     """Vertical (phi) and horizontal (theta) angle on the dome"""
-#
-#
-#
-#
-#     points = [coords[i,:] for i in range(blocklength)]
-#
-#     def parallel_runs(points):
-#         with Pool() as pool:
-#             SVF_par = partial(SkyViewFactor, coords=coords,max_radius=max_radius) # prod_x has only one argument x (y is fixed to 10)
-#             SVFs = pool.map(SVF_par, points)
-#         print(SVFs)
-#
-#     if __name__ == '__main__':
-#         parallel_runs(points)
-#
-#     return
 
 def SkyViewFactor(point, coords, max_radius):
     betas_lin = np.linspace(0,2*np.pi,steps_beta)
@@ -284,7 +252,8 @@ def SkyViewFactor(point, coords, max_radius):
     betas = np.zeros(steps_beta)
 
     """we loop over all points in the dome"""
-    for d in tqdm(range(dome_p.shape[0]),desc="dome loop"):
+    d = 0
+    while (d < dome_p.shape[0]):
 
         psi = np.arctan((dome_p[d,2]-point[2])/dome_p[d,3])
         """The angles of the min and max angle of the building"""
@@ -293,6 +262,7 @@ def SkyViewFactor(point, coords, max_radius):
 
         """Where the index of betas fall within the min and max beta, and there is not already a larger psi blocking"""
         betas[np.nonzero(np.logical_and((betas < psi), np.logical_and((beta_min <= betas_lin), (betas_lin < beta_max))))] = psi
+        d +=1
     areas = d_area(betas, steps_beta, max_radius)
     """The SVF is the fraction of area of the dome that is not blocked"""
     SVF = np.around((dome_area - np.sum(areas))/dome_area, 3)
@@ -303,10 +273,8 @@ def calc_SVF(coords, max_radius, blocklength):
     """
     Function to calculate the sky view factor.
     We create a dome around a point with a certain radius,
-    and for eacht point in the dome we evaluate of the height of this point blocks the view
+    and for each point in the dome we evaluate of the height of this point blocks the view
     :param coords: all coordinates of our dataset
-    :param steps_phi: the steps in phi (between 0 and 2pi)
-    :param steps_theta: the steps in theta (between 0 and 2pi)
     :param max_radius: maximum radius we think influences the svf
     :param blocklength: the first amount of points in our data set we want to evaluate
     :return: SVF for all points
@@ -360,25 +328,15 @@ def shadowfactor(point, coords, julianday,latitude,longitude,LMT,blocklength):
         that are in the data we want to evaluate
     :return: the shadowfactor of that point:
     """
+    radii, angles = dist(point,coords)
     [azimuth,elevation_angle] = Sunpos.solarpos(julianday,latitude,longitude,LMT)
+    beta_min = np.asarray(- np.arcsin(np.sqrt(2*gridboxsize**2)/2/radii) + azimuth)
+    beta_max = np.asarray(np.arcsin(np.sqrt(2*gridboxsize**2)/2/radii) + azimuth)
+    if np.count_nonzero(coords[np.logical_and((np.logical_and((angles > beta_min), (angles < beta_max))), ((np.tan(elevation_angle)*radii)<(coords[:,2]-point[2]))),:])>0:
+        Shadowfactor = 0
+    else:
+        Shadowfactor = 1
 
-    # for i in tqdm(range(blocklength),desc="loop over points in block for Shadowfactor"):
-    #     """the point we are currently evaluating"""
-    #     #point = coords[i,:]
-
-    for j in range(coords.shape[0]):
-        radius, angle = dist(point,coords[j])
-        """if the angle is within a very small range as the angle of the sun"""
-        """The angles of the min and max angle of the building"""
-        beta_min = - np.arcsin(np.sqrt(2*gridboxsize**2)/2/radius) + angle
-        beta_max = np.arcsin(np.sqrt(2*gridboxsize**2)/2/radius) + angle
-
-        if (beta_min <= azimuth and azimuth <= beta_max) and ((np.tan(elevation_angle)*radius)<(coords[j,2]-point[2])):
-            """if the elevation angle times the radius is smaller than the height of that point
-            the shadowfactor is zero since that point blocks the sun"""
-            Shadowfactor = 0
-        else:
-            Shadowfactor = 1
     print(Shadowfactor)
     """in all other cases there is no point in the same direction as the sun that is higher
     so the shadowfactor is 1: the point receives radiation"""
@@ -396,10 +354,11 @@ def reshape_SVF(data,coords,julianday,lat,long,LMT,reshape):
     if reshape == True:
         SVF_matrix = np.ndarray([x_len,y_len])
         #SF_matrix = np.ndarray([x_len,y_len])
-
-        for i in range(blocklength):
+        i = 0
+        while i < blocklength:
             SVF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SVFs[i]
             #SF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SFs[i]
+            i += 1
         #np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
         #np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
         return SVF_matrix#,SF_matrix
@@ -451,8 +410,10 @@ def wallArea(data):
     data[data<0] = 0
     """We only evaluate the area in the center block"""
     wall_area = np.ndarray([int(x_len/2),int(y_len/2)])
-    for i in range(int(x_len/4),int(3*x_len/4)):
-        for j in range(int(y_len/4),int(3*y_len/4)):
+    i = int(x_len/4)
+    j = int(y_len/4)
+    while i < int(3*x_len/4):
+        while j < int(3*y_len/4):
             if (data[i,j]>0):
                 """We check for all the points surrounding the building if they are also buildings, 
                 if the building next to it is higher the wall belongs to the building next to it,
@@ -465,6 +426,8 @@ def wallArea(data):
                 wall_area[int(i-x_len/4),int(j-y_len/4)] = wall1+wall2+wall3+wall4
             elif (data[i,j]==0):
                 wall_area[int(i-x_len/4),int(j-y_len/4)] = 0
+            i+=1
+            j+=1
     """wall_area is a matrix of the size of center block of data, 
     with each point storing the the exterior wall for that building,
     wall_area_total is the total exterior wall area of the dataset"""
@@ -473,9 +436,17 @@ def wallArea(data):
 
 datasq = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
 coords = coordheight(datasq)
+point = coords[5,:]
+#radii,angles = dist(point,coords)
+#print(dome(point,coords,max_radius))
 blocklength = int(datasq.shape[0]/2*datasq.shape[1]/2)
-
 #
-print(reshape_SVF(datasq,coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,reshape=False))
+# #
+# print(reshape_SVF(datasq,coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,reshape=False))
+#
+endtime = time.time()
 
-
+calc_SF(coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,blocklength)
+#shadowfactor(point, coords, Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,blocklength)
+elapsed_time = endtime-sttime
+print('Execution time:', elapsed_time, 'seconds')
