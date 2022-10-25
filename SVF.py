@@ -289,20 +289,21 @@ def reshape_SVF(data,coords,julianday,lat,long,LMT,reshape):
 
     "Compute SVF and SF and Reshape the shadowfactors and SVF back to nd array"
     SVFs = calc_SVF(coords,max_radius,blocklength)
-    #SFs = calc_SF(coords,julianday,lat,long,LMT,blocklength)
+    SFs = calc_SF(coords,julianday,lat,long,LMT,blocklength)
+
     "If reshape is true we reshape the arrays to the original data matrix"
     if reshape == True:
         SVF_matrix = np.ndarray([x_len,y_len])
         SF_matrix = np.ndarray([x_len,y_len])
         for i in range(blocklength):
             SVF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]]  = SVFs[i]
-            #SF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SFs[i]
-        #np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
-        #np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
-        return SVF_matrix#,SF_matrix
+            SF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SFs[i]
+        np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
+        np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
+        return SVF_matrix,SF_matrix
 
     elif reshape == False:
-        return SVFs#, SFs
+        return SVFs, SFs
 
 
 def geometricProperties(data,gridboxsize):
@@ -374,11 +375,9 @@ def wallArea(data):
 
 datasq = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
 coords = coordheight(datasq)
-#point = coords[5,:]
 blocklength = int(datasq.shape[0]/2*datasq.shape[1]/2)
 
-print(reshape_SVF(datasq,coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,reshape=False))
-#print(calc_SVF(coords,max_radius,blocklength))
+print(reshape_SVF(datasq,coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,reshape=True))
 endtime = time.time()
 
 elapsed_time = endtime-sttime
