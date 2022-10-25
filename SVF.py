@@ -7,7 +7,6 @@ import config
 from functools import partial
 import time
 
-#data_excel = tf.imread('M5_37FZ1.TIF')  # dtm (topography)
 import Constants
 import Functions
 import Sunpos
@@ -281,7 +280,6 @@ def shadowfactor(point, coords, julianday,latitude,longitude,LMT,blocklength):
         Shadowfactor = 0
     else:
         Shadowfactor = 1
-
     print(Shadowfactor)
     """in all other cases there is no point in the same direction as the sun that is higher
     so the shadowfactor is 1: the point receives radiation"""
@@ -294,14 +292,14 @@ def reshape_SVF(data,coords,julianday,lat,long,LMT,reshape):
 
     "Compute SVF and SF and Reshape the shadowfactors and SVF back to nd array"
     SVFs = calc_SVF(coords,max_radius,blocklength)
-    #SFs = calc_SF(coords,julianday,lat,long,LMT,blocklength)
+    SFs = calc_SF(coords,julianday,lat,long,LMT,blocklength)
     "If reshape is true we reshape the arrays to the original data matrix"
     if reshape == True:
         SVF_matrix = np.ndarray([x_len,y_len])
-        #SF_matrix = np.ndarray([x_len,y_len])
+        SF_matrix = np.ndarray([x_len,y_len])
         for i in range(blocklength):
             SVF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]]  = SVFs[i]
-            #SF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SFs[i]
+            SF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SFs[i]
         #np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
         #np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
         return SVF_matrix#,SF_matrix
@@ -380,15 +378,11 @@ def wallArea(data):
 datasq = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
 coords = coordheight(datasq)
 point = coords[5,:]
-#radii,angles = dist(point,coords)
-#print(dome(point,coords,max_radius))
 blocklength = int(datasq.shape[0]/2*datasq.shape[1]/2)
-#
-# print(reshape_SVF(datasq,coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,reshape=False))
+
+print(reshape_SVF(datasq,coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,reshape=False))
 
 endtime = time.time()
 
-calc_SF(coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,blocklength)
-#shadowfactor(point, coords, Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,blocklength)
 elapsed_time = endtime-sttime
 print('Execution time:', elapsed_time, 'seconds')
