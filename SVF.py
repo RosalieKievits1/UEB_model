@@ -1,15 +1,17 @@
+import multiprocessing
+
 import numpy as np
 import matplotlib.pyplot as plt
 from multiprocessing.pool import Pool
-from multiprocessing import Process
+import multiprocessing
 import tifffile as tf
 from tqdm import tqdm
 import config
 from functools import partial
 import time
 
+import KNMI_SVF_verification
 import Constants
-import Functions
 import Sunpos
 
 sttime = time.time()
@@ -124,20 +126,24 @@ def coordheight(data):
     """From here on we set the height of the water elements back to 0"""
     data[data<0] = 0
     [x_len,y_len] = np.shape(data)
+    # x_len = x_len-2*max_radius
+    # y_len = y_len-2*max_radius
     coords = np.ndarray([x_len*y_len,3])
     """ so we start with the list of coordinates with all the points we want to evaluate
     all other points are after that, for this we use 2 different counters."""
-    rowcount_block = int((x_len/2)*(y_len/2))
+    rowcount_block = (x_len-2*max_radius)*(y_len-2*max_radius) #int((x_len/2)*(y_len/2))
     rowcount_center = 0
     """we need to make a list of coordinates where the center block is first"""
     for i in range(x_len):
         for j in range(y_len):
-            if ((x_len/4)<=i and i<(3*x_len/4) and (y_len/4)<=j and j<(3*y_len/4)):
+            #if ((x_len/4)<=i and i<(3*x_len/4) and (y_len/4)<=j and j<(3*y_len/4)):
+            if ((max_radius)<=i and i<(x_len-max_radius) and (max_radius)<=j and j<(y_len-max_radius)):
                 coords[rowcount_center,0] = i
                 coords[rowcount_center,1] = j
                 coords[rowcount_center,2] = data[i,j]
                 rowcount_center += 1
-            elif (i<(x_len/4) or i>=(3*x_len/4) or j<(y_len/4) or j>=(3*y_len/4)):
+            #elif (i<(x_len/4) or i>=(3*x_len/4) or j<(y_len/4) or j>=(3*y_len/4)):
+            elif (i<(max_radius) or i>=(x_len-max_radius) or j<(max_radius) or j>=(y_len-max_radius)):
                 coords[rowcount_block,0] = i
                 coords[rowcount_block,1] = j
                 coords[rowcount_block,2] = data[i,j]
@@ -203,7 +209,7 @@ def SkyViewFactor(point, coords, max_radius):
 
         """Where the index of betas fall within the min and max beta, and there is not already a larger psi blocking"""
         betas[np.nonzero(np.logical_and((betas < psi), np.logical_and((beta_min <= betas_lin), (betas_lin < beta_max))))] = psi
-        d +=1
+        d += 1
     areas = d_area(betas, steps_beta, max_radius)
     """The SVF is the fraction of area of the dome that is not blocked"""
     SVF = np.around((dome_area - np.sum(areas))/dome_area, 3)
@@ -222,16 +228,20 @@ def calc_SVF(coords, max_radius, blocklength):
     """
 
 
-    def parallel_runs():
+    def parallel_runs_SVF():
         points = [coords[i,:] for i in range(blocklength)]
-        with Pool() as pool:
-            SVF_par = partial(SkyViewFactor, coords=coords,max_radius=max_radius) # prod_x has only one argument x (y is fixed to 10)
-            SVF = pool.map(SVF_par, points)
-        return SVF
+        pool = Pool()
+        SVF_list = []
+        SVF_par = partial(SkyViewFactor, coords=coords,max_radius=max_radius) # prod_x has only one argument x (y is fixed to 10)
+        SVF = pool.map(SVF_par, points)
+        pool.close()
+        pool.join()
+        if SVF is not None:
+            SVF_list.append(SVF)
+        return SVF_list
 
     if __name__ == '__main__':
-        parallel_runs()
-
+        return parallel_runs_SVF()
 
 def calc_SF(coords,Julianday,latitude,longitude,LMT,blocklength):
     """
@@ -245,19 +255,21 @@ def calc_SF(coords,Julianday,latitude,longitude,LMT,blocklength):
     :param blocklength: the first amount of points in our data set we want to evaluate
     :return: SVF for all points
     """
-    points = [coords[i,:] for i in range(blocklength)]
-
-    def parallel_runs(points):
+    def parallel_runs_SF():
+        points = [coords[i,:] for i in range(blocklength)]
+        SF_list = []
         pool = Pool()
         SF_par = partial(shadowfactor, coords=coords, julianday=Julianday,latitude=latitude,longitude=longitude,LMT=LMT,blocklength=blocklength) # prod_x has only one argument x (y is fixed to 10)
         SF = pool.map(SF_par, points)
         pool.close()
         pool.join()
-        print(SF)
-        return SF
+        if SF is not None:
+            SF_list.append(SF)
+        return SF_list
 
     if __name__ == '__main__':
-        return parallel_runs(points)
+        return parallel_runs_SF()
+
 
 def shadowfactor(point, coords, julianday,latitude,longitude,LMT,blocklength):
     """
@@ -279,35 +291,38 @@ def shadowfactor(point, coords, julianday,latitude,longitude,LMT,blocklength):
         Shadowfactor = 0
     else:
         Shadowfactor = 1
-    print(Shadowfactor)
     """in all other cases there is no point in the same direction as the sun that is higher
     so the shadowfactor is 1: the point receives radiation"""
     return Shadowfactor
 
-def reshape_SVF(data,coords,julianday,lat,long,LMT,reshape):
-
+def reshape_SVF(data,coords,julianday,lat,long,LMT,reshape,save_CSV,save_Im):
+    #
     [x_len, y_len] = [int(data.shape[0]/2),int(data.shape[1]/2)]
     blocklength = int(x_len*y_len)
-
-    "Compute SVF and SF and Reshape the shadowfactors and SVF back to nd array"
+    "Compute SVF and SF and Reshape the shadow factors and SVF back to nd array"
     SVFs = calc_SVF(coords,max_radius,blocklength)
     SFs = calc_SF(coords,julianday,lat,long,LMT,blocklength)
-
     "If reshape is true we reshape the arrays to the original data matrix"
     if reshape == True:
         SVF_matrix = np.ndarray([x_len,y_len])
         SF_matrix = np.ndarray([x_len,y_len])
         for i in range(blocklength):
-            SVF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]]  = SVFs[i]
-            SF_matrix[coords[int(i-x_len/2),0],coords[int(i-y_len/2),1]] = SFs[i]
-        np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
-        np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
+            SVF_matrix[coords[i,0],coords[i,1]]  = SVFs[i]
+            SF_matrix[coords[i,0],coords[i,1]] = SFs[i]
+        if save_CSV == True:
+            np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
+            np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
+        if save_Im == True:
+            tf.imwrite('SVF_matrix.tif', SVF_matrix, photometric='minisblack')
+            tf.imwrite('SF_matrix.tif', SF_matrix, photometric='minisblack')
         return SF_matrix,SF_matrix
 
     elif reshape == False:
-        #np.savetxt("SVFmatrix.csv", SVFs, delimiter=",")
-        #np.savetxt("SFmatrix.csv", SFs, delimiter=",")
+        if save_CSV == True:
+            np.savetxt("SVFs.csv", SVFs, delimiter=",")
+            np.savetxt("SFs.csv", SFs, delimiter=",")
         return SVFs, SFs
+
 
 
 def geometricProperties(data,gridboxsize):
@@ -377,12 +392,24 @@ def wallArea(data):
     wall_area_total = np.sum(wall_area)
     return wall_area, wall_area_total
 
-datasq = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
-coords = coordheight(datasq)
-blocklength = int(datasq.shape[0]/2*datasq.shape[1]/2)
+# datasq = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
+# coords = coordheight(datasq)
+#blocklength = int(datasq.shape[0]/2*datasq.shape[1]/2)
 
-print(reshape_SVF(datasq,coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,reshape=False))
+# [SVF_matrix, SF_matrix] = reshape_SVF(datasq,coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,reshape=False,save_CSV=False,save_Im=False)
+# print(SVF_matrix)
+# endtime = time.time()
+
+
+"""What if we iterate over the middle block of 1 block instead?"""
+data = readdata(minheight,dsm1,dtm1)
+coords = coordheight(data)
+blocklength = int(data.shape[0]-2*max_radius)*(data.shape[1]-2*max_radius) #int((x_len/2)*(y_len/2))
+[SVF_matrix,SF_matrix] = reshape_SVF(data,coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,reshape=False,save_CSV=False,save_Im=False)
+print(SVF_matrix)
+print(SF_matrix)
+# print(multiprocessing.cpu_count())
+#print(KNMI_SVF_verification.Verification(SVF_matrix,KNMI_SVF_verification.SVF_knmi1,gridboxsize,gridboxsize_knmi))
 endtime = time.time()
-
 elapsed_time = endtime-sttime
 print('Execution time:', elapsed_time, 'seconds')
