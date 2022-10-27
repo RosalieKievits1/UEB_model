@@ -26,11 +26,11 @@ T_air = Functions.T_air
 #Functions.plotTempComparison_Masson(map_temperatures_roof,map_temperatures_wall,map_temperatures_road,1)
 
 """City using SVF and shadow casting"""
-data = SVF.datasquare(SVF.dtm1,SVF.dsm1,SVF.dtm2,SVF.dsm2,SVF.dtm3,SVF.dsm3,SVF.dtm4,SVF.dsm4)
-#print(SVF.geometricProperties(data,SVF.gridboxsize))
-blocklength = int(data.shape[0]/2*data.shape[1]/2)
-coords = SVF.coordheight(data)
-print(SVF.reshape_SVF(data,coords,294,48,52,10,reshape=False))
+# data = SVF.datasquare(SVF.dtm1,SVF.dsm1,SVF.dtm2,SVF.dsm2,SVF.dtm3,SVF.dsm3,SVF.dtm4,SVF.dsm4)
+# #print(SVF.geometricProperties(data,SVF.gridboxsize))
+# blocklength = int(data.shape[0]/2*data.shape[1]/2)
+# coords = SVF.coordheight(data)
+# print(SVF.reshape_SVF(data,coords,294,48,52,10,reshape=False))
 
 # print("These are the Sky View Factors")
 # print(SVF_matrix)
@@ -39,3 +39,4 @@ print(SVF.reshape_SVF(data,coords,294,48,52,10,reshape=False))
 # print("These are the average temperatures")
 # print(Functions.HeatEvolution(data,nr_steps,Constants.timestep,SVF_matrix,SF_matrix))
 #
+

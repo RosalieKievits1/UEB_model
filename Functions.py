@@ -358,7 +358,8 @@ def surfacebalance(albedos,emissivities,capacities,sigma,\
     """
 
     """Longwave radiation"""
-    LW_net = LW_down * SVF * emissivities - emissivities * map_temperatures_old**4 * sigma
+    # LW_net = LW_down * SVF * emissivities - emissivities * map_temperatures_old**4 * sigma
+    LW_net = LW_down* emissivities - emissivities * map_temperatures_old**4 * sigma
 
     """ Short wave radiation"""
     SW_net = SW_dir * SVF * Shadowfactor * (1-albedos) + SW_diff * SVF * (1-albedos)

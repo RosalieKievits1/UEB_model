@@ -8,11 +8,13 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Tuple
+import tifffile as tf
 
 import requests
 from requests import Session
 
 import config
+#import SVF
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -212,41 +214,28 @@ async def main():
 #     asyncio.run(main())
 """"""
 
-download_directory = config.input_dir_knmi
+download_directory =  '/Users/rosaliekievits/Desktop/SVFbestandenMEP/' #config.input_dir_knmi
 SVF_knmi1 = str(download_directory) + '/SVF_r37hn1.TIF'
 SVF_knmi2 = str(download_directory) + '/SVF_r37hn2.TIF'
 SVF_knmi3 = str(download_directory) + '/SVF_r37hz1.TIF'
 SVF_knmi4 = str(download_directory) + '/SVF_r37hz2.TIF'
 
-def Verification(SVF_matrix,SVF_knmi1,SVF_knmi2,SVF_knmi3,SVF_knmi4,gridboxsize, gridboxsize_knmi):
+def Verification(SVF_matrix,SVF_knmi1,gridboxsize, gridboxsize_knmi,max_radius):
     """The knmi matrix is based on a different resolution gridboxsize"""
-    ratio_resolution = gridboxsize/gridboxsize_knmi
-    print(SVF_knmi1.shape)
-    SVF_knmi1 = SVF_knmi1[0::ratio_resolution,0::ratio_resolution]
-    SVF_knmi2 = SVF_knmi2[0::ratio_resolution,0::ratio_resolution]
-    SVF_knmi3 = SVF_knmi3[0::ratio_resolution,0::ratio_resolution]
-    SVF_knmi4 = SVF_knmi4[0::ratio_resolution,0::ratio_resolution]
-    [x_len,y_len] = np.shape(SVF_knmi1)
-    """now we make a block four times the size of the blocks"""
-    SVF_knmi = np.ndarray([2*x_len,2*y_len])
-    """left upper block"""
-    SVF_knmi[:x_len,:y_len] = SVF_knmi1
-    """right upper block"""
-    SVF_knmi[:x_len,y_len::] = SVF_knmi2
-    """left lower block"""
-    SVF_knmi[x_len::,:y_len] = SVF_knmi3
-    """right lower block"""
-    SVF_knmi[x_len::,y_len::] = SVF_knmi4
-    print(SVF_knmi)
-
+    SVF_knmi = tf.imread(SVF_knmi1)
+    ratio_resolution = int(gridboxsize/gridboxsize_knmi)
+    SVF_knmi = SVF_knmi[::ratio_resolution,::ratio_resolution]
+    [x_len,y_len] = np.shape(SVF_knmi)
+    max_radius = int(max_radius/gridboxsize)
+    SVF_knmi = SVF_knmi[max_radius:x_len-max_radius,max_radius:y_len-max_radius]
     if [x_len,y_len] != SVF_matrix.shape:
         print("The matrices are not the same shape")
-
-    dif_array = np.array([x_len*y_len])
-    rel_dif_array = np.array([x_len*y_len])
+    blocklength = int(x_len-2*max_radius)*(y_len-2*max_radius)
+    dif_array = np.array([blocklength])
+    rel_dif_array = np.array([blocklength])
     idx = 0
-    for i in range(x_len):
-        for j in range(y_len):
+    for i in range(x_len-2*max_radius):
+        for j in range(y_len-2*max_radius):
             """Check what the difference is in SVF"""
             dif_array[idx] = SVF_knmi[i,j]-SVF_matrix[i,j]
             rel_dif_array[idx] = (SVF_knmi[i,j]-SVF_matrix[i,j])/SVF_knmi[i,j]

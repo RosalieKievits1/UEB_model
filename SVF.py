@@ -20,7 +20,7 @@ input_dir = config.input_dir
 """Now we want to calculate the sky view factor"""
 steps_beta = 360 # so we range in steps of 2 degrees
 steps_psi = 90 # so we range in steps of 2 degrees
-max_radius = 500 # max radius is 500 m
+max_radius = 1000 # max radius is 1000 m
 """define the gridboxsize of the model"""
 gridboxsize = 5
 gridboxsize_knmi = 0.5
@@ -131,19 +131,20 @@ def coordheight(data):
     coords = np.ndarray([x_len*y_len,3])
     """ so we start with the list of coordinates with all the points we want to evaluate
     all other points are after that, for this we use 2 different counters."""
-    rowcount_block = (x_len-2*max_radius)*(y_len-2*max_radius) #int((x_len/2)*(y_len/2))
+    #rowcount_block = (x_len-2*max_radius)*(y_len-2*max_radius)
+    rowcount_block = int((x_len/2)*(y_len/2))
     rowcount_center = 0
     """we need to make a list of coordinates where the center block is first"""
     for i in range(x_len):
         for j in range(y_len):
-            #if ((x_len/4)<=i and i<(3*x_len/4) and (y_len/4)<=j and j<(3*y_len/4)):
-            if ((max_radius)<=i and i<(x_len-max_radius) and (max_radius)<=j and j<(y_len-max_radius)):
+            if ((x_len/4)<=i and i<(3*x_len/4) and (y_len/4)<=j and j<(3*y_len/4)):
+            #if ((max_radius)<=i and i<(x_len-max_radius) and (max_radius)<=j and j<(y_len-max_radius)):
                 coords[rowcount_center,0] = i
                 coords[rowcount_center,1] = j
                 coords[rowcount_center,2] = data[i,j]
                 rowcount_center += 1
-            #elif (i<(x_len/4) or i>=(3*x_len/4) or j<(y_len/4) or j>=(3*y_len/4)):
-            elif (i<(max_radius) or i>=(x_len-max_radius) or j<(max_radius) or j>=(y_len-max_radius)):
+            elif (i<(x_len/4) or i>=(3*x_len/4) or j<(y_len/4) or j>=(3*y_len/4)):
+            #elif (i<(max_radius) or i>=(x_len-max_radius) or j<(max_radius) or j>=(y_len-max_radius)):
                 coords[rowcount_block,0] = i
                 coords[rowcount_block,1] = j
                 coords[rowcount_block,2] = data[i,j]
@@ -213,7 +214,6 @@ def SkyViewFactor(point, coords, max_radius):
     areas = d_area(betas, steps_beta, max_radius)
     """The SVF is the fraction of area of the dome that is not blocked"""
     SVF = np.around((dome_area - np.sum(areas))/dome_area, 3)
-    print(SVF)
     return SVF
 
 def calc_SVF(coords, max_radius, blocklength):
@@ -241,7 +241,8 @@ def calc_SVF(coords, max_radius, blocklength):
         return SVF_list
 
     if __name__ == '__main__':
-        return parallel_runs_SVF()
+        result = parallel_runs_SVF()
+        return result
 
 def calc_SF(coords,Julianday,latitude,longitude,LMT,blocklength):
     """
@@ -259,7 +260,7 @@ def calc_SF(coords,Julianday,latitude,longitude,LMT,blocklength):
         points = [coords[i,:] for i in range(blocklength)]
         SF_list = []
         pool = Pool()
-        SF_par = partial(shadowfactor, coords=coords, julianday=Julianday,latitude=latitude,longitude=longitude,LMT=LMT,blocklength=blocklength) # prod_x has only one argument x (y is fixed to 10)
+        SF_par = partial(shadowfactor, coords=coords, julianday=Julianday,latitude=latitude,longitude=longitude,LMT=LMT) # prod_x has only one argument x (y is fixed to 10)
         SF = pool.map(SF_par, points)
         pool.close()
         pool.join()
@@ -271,7 +272,7 @@ def calc_SF(coords,Julianday,latitude,longitude,LMT,blocklength):
         return parallel_runs_SF()
 
 
-def shadowfactor(point, coords, julianday,latitude,longitude,LMT,blocklength):
+def shadowfactor(point, coords, julianday,latitude,longitude,LMT):
     """
     :param coords: all other points, x,y,z values
     :param julianday: julian day of the year
@@ -295,20 +296,42 @@ def shadowfactor(point, coords, julianday,latitude,longitude,LMT,blocklength):
     so the shadowfactor is 1: the point receives radiation"""
     return Shadowfactor
 
-def reshape_SVF(data,coords,julianday,lat,long,LMT,reshape,save_CSV,save_Im):
-    #
+def reshape_SVF(data, coords,julianday,lat,long,LMT,blocklength,reshape,save_CSV,save_Im):
     [x_len, y_len] = [int(data.shape[0]/2),int(data.shape[1]/2)]
-    blocklength = int(x_len*y_len)
     "Compute SVF and SF and Reshape the shadow factors and SVF back to nd array"
     SVFs = calc_SVF(coords,max_radius,blocklength)
     SFs = calc_SF(coords,julianday,lat,long,LMT,blocklength)
     "If reshape is true we reshape the arrays to the original data matrix"
-    if reshape == True:
+    # if (reshape == True) & (SVFs is not None):
+    #     SVF_matrix = np.ndarray([x_len,y_len])
+    #     SF_matrix = np.ndarray([x_len,y_len])
+    #     for i in range(blocklength):
+    #         SVF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SVFs[i]
+    #         SF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SFs[i]
+    #         print(SVF_matrix)
+    #     if save_CSV == True:
+    #         np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
+    #         np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
+    #     if save_Im == True:
+    #         tf.imwrite('SVF_matrix.tif', SVF_matrix, photometric='minisblack')
+    #         tf.imwrite('SF_matrix.tif', SF_matrix, photometric='minisblack')
+    #     return SF_matrix,SF_matrix
+    #
+    # elif reshape == False:
+    #     if save_CSV == True:
+    #         np.savetxt("SVFs.csv", SVFs, delimiter=",")
+    #         np.savetxt("SFs.csv", SFs, delimiter=",")
+    #     return SVFs, SFs
+    max_r = max_radius/gridboxsize
+    if (reshape == True) & (SVFs is not None):
         SVF_matrix = np.ndarray([x_len,y_len])
         SF_matrix = np.ndarray([x_len,y_len])
         for i in range(blocklength):
-            SVF_matrix[coords[i,0],coords[i,1]]  = SVFs[i]
-            SF_matrix[coords[i,0],coords[i,1]] = SFs[i]
+            print(coords[i,0]-max_r)
+            print(coords[i,1]-max_r)
+            print(SVFs[i])
+            SVF_matrix[coords[i,0]-max_r,coords[i,1]-max_r] = SVFs[i]
+            SF_matrix[coords[i,0]-max_r,coords[i,1]-max_r] = SFs[i]
         if save_CSV == True:
             np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
             np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
@@ -322,7 +345,6 @@ def reshape_SVF(data,coords,julianday,lat,long,LMT,reshape,save_CSV,save_Im):
             np.savetxt("SVFs.csv", SVFs, delimiter=",")
             np.savetxt("SFs.csv", SFs, delimiter=",")
         return SVFs, SFs
-
 
 
 def geometricProperties(data,gridboxsize):
@@ -392,24 +414,18 @@ def wallArea(data):
     wall_area_total = np.sum(wall_area)
     return wall_area, wall_area_total
 
-# datasq = datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4)
-# coords = coordheight(datasq)
-#blocklength = int(datasq.shape[0]/2*datasq.shape[1]/2)
-
-# [SVF_matrix, SF_matrix] = reshape_SVF(datasq,coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,reshape=False,save_CSV=False,save_Im=False)
-# print(SVF_matrix)
-# endtime = time.time()
-
-
-"""What if we iterate over the middle block of 1 block instead?"""
-data = readdata(minheight,dsm1,dtm1)
+data = readdata(minheight,dtm1,dsm1)
 coords = coordheight(data)
-blocklength = int(data.shape[0]-2*max_radius)*(data.shape[1]-2*max_radius) #int((x_len/2)*(y_len/2))
-[SVF_matrix,SF_matrix] = reshape_SVF(data,coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,reshape=False,save_CSV=False,save_Im=False)
-print(SVF_matrix)
-print(SF_matrix)
+blocklength = int((data.shape[0]-max_radius/gridboxsize)*(data.shape[1]-max_radius/gridboxsize))
+
+"Compute SVF and SF and Reshape the shadow factors and SVF back to nd array"
+print(reshape_SVF(data, coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,blocklength,reshape=False,save_CSV=False,save_Im=False))
+# print(SVF_matrix)
+# print(SF_matrix)
+endtime = time.time()
+
 # print(multiprocessing.cpu_count())
-#print(KNMI_SVF_verification.Verification(SVF_matrix,KNMI_SVF_verification.SVF_knmi1,gridboxsize,gridboxsize_knmi))
+#print(KNMI_SVF_verification.Verification(SVF_matrix,KNMI_SVF_verification.SVF_knmi1,gridboxsize,gridboxsize_knmi,max_radius))
 endtime = time.time()
 elapsed_time = endtime-sttime
 print('Execution time:', elapsed_time, 'seconds')
