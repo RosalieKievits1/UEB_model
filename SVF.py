@@ -19,8 +19,7 @@ sttime = time.time()
 input_dir = config.input_dir
 """Now we want to calculate the sky view factor"""
 steps_beta = 360 # so we range in steps of 2 degrees
-steps_psi = 90 # so we range in steps of 2 degrees
-max_radius = 1000 # max radius is 1000 m
+max_radius = 500 # max radius is 1000 m
 """define the gridboxsize of the model"""
 gridboxsize = 5
 gridboxsize_knmi = 0.5
@@ -54,7 +53,6 @@ dsm3 = "".join([input_dir, '/R5_37HZ1.TIF'])
 # rechtsonder
 dtm4 = "".join([input_dir, '/M5_37HZ2.TIF'])
 dsm4 = "".join([input_dir, '/R5_37HZ2.TIF'])
-
 
 def readdata(minheight,dsm,dtm):
     """dsm (all info, with building)"""
@@ -124,27 +122,29 @@ def coordheight(data,blocklength):
     :return: 3 columns for x, y, and z
     """
     """From here on we set the height of the water elements back to 0"""
+    max_r = max_radius/gridboxsize
     data[data<0] = 0
     [x_len,y_len] = np.shape(data)
-    x_len = x_len-2*max_radius
-    y_len = y_len-2*max_radius
+    # x_len = x_len-2*max_radius
+    # y_len = y_len-2*max_radius
     coords = np.ndarray([x_len*y_len,3])
     """ so we start with the list of coordinates with all the points we want to evaluate
     all other points are after that, for this we use 2 different counters."""
     rowcount_block = blocklength #x_len*y_len
+
     #rowcount_block = int((x_len/2)*(y_len/2))
     rowcount_center = 0
     """we need to make a list of coordinates where the center block is first"""
     for i in range(x_len):
         for j in range(y_len):
             #if ((x_len/4)<=i and i<(3*x_len/4) and (y_len/4)<=j and j<(3*y_len/4)):
-            if ((max_radius)<=i and i<(x_len-max_radius) and (max_radius)<=j and j<(y_len-max_radius)):
+            if ((max_r)<=i and i<(x_len-max_r) and (max_r)<=j and j<(y_len-max_r)):
                 coords[rowcount_center,0] = i
                 coords[rowcount_center,1] = j
                 coords[rowcount_center,2] = data[i,j]
                 rowcount_center += 1
             #elif (i<(x_len/4) or i>=(3*x_len/4) or j<(y_len/4) or j>=(3*y_len/4)):
-            elif (i<(max_radius) or i>=(x_len-max_radius) or j<(max_radius) or j>=(y_len-max_radius)):
+            elif (i<(max_r) or i>=(x_len-max_r) or j<(max_r) or j>=(y_len-max_r)):
                 coords[rowcount_block,0] = i
                 coords[rowcount_block,1] = j
                 coords[rowcount_block,2] = data[i,j]
@@ -197,8 +197,9 @@ def SkyViewFactor(point, coords, max_radius):
     # dome is now a 5 column array of points:
     # the 5 columns: x,y,z,radius,angle theta"""
     dome_p = dome(point, coords, max_radius)
+    #print(dome_p.shape)
     betas = np.zeros(steps_beta)
-
+    #print(max_radius)
     """we loop over all points in the dome"""
     d = 0
     while (d < dome_p.shape[0]):
@@ -213,7 +214,9 @@ def SkyViewFactor(point, coords, max_radius):
         d += 1
     areas = d_area(betas, steps_beta, max_radius)
     """The SVF is the fraction of area of the dome that is not blocked"""
-    SVF = np.around((dome_area - np.sum(areas))/dome_area, 3)
+    #SVF = np.around((dome_area - np.sum(areas))/dome_area, 3)
+    SVF = (dome_area - np.sum(areas))/dome_area
+
     return SVF
 
 def calc_SVF(coords, max_radius, blocklength):
@@ -415,21 +418,42 @@ def wallArea(data):
     wall_area_total = np.sum(wall_area)
     return wall_area, wall_area_total
 
-data = readdata(minheight,dtm1,dsm1)
+data = readdata(minheight,dsm1,dtm1)
 blocklength = int((data.shape[0]-2*max_radius/gridboxsize)*(data.shape[1]-2*max_radius/gridboxsize))
 coords = coordheight(data,blocklength)
-
+print(blocklength)
 "Compute SVF and SF and Reshape the shadow factors and SVF back to nd array"
 SVF_list = reshape_SVF(data, coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,blocklength,reshape=False,save_CSV=False,save_Im=False)
-# print(SVF_matrix)
-# print(SF_matrix)
-endtime = time.time()
 print(SVF_list)
 if SVF_list is not None:
     print(KNMI_SVF_verification.Verification(SVF_list,KNMI_SVF_verification.SVF_knmi1,gridboxsize,gridboxsize_knmi,max_radius))
 
-# print(multiprocessing.cpu_count())
-#print(KNMI_SVF_verification.Verification(SVF_matrix,KNMI_SVF_verification.SVF_knmi1,gridboxsize,gridboxsize_knmi,max_radius))
 endtime = time.time()
 elapsed_time = endtime-sttime
 print('Execution time:', elapsed_time, 'seconds')
+"""Some runs to calculate the sensitivity"""
+"""Maxradius"""
+# Choose a random point
+# point1 = coords[0,:]
+# point2 = coords[int(blocklength/2),:]
+# point3 = coords[int(blocklength),:]
+
+# x = np.linspace(100,600,20,dtype=int)
+# SVF_array1 = np.zeros(len(x))
+# SVF_array2 = np.zeros(len(x))
+# SVF_array3 = np.zeros(len(x))
+# for i in range(len(x)):
+#     #SVF_array1[i] = SkyViewFactor(point1,coords, x[i])
+#     #SVF_array2[i] = SkyViewFactor(point2,coords, x[i])
+#     SVF_array3[i] = SkyViewFactor(point3,coords, x[i])
+# print(SVF_array2)
+# plt.figure()
+# #plt.plot(x,SVF_array1, label='Point 1')
+# #plt.plot(x,SVF_array2, label='Point 2')
+# plt.plot(x,SVF_array3, label='Point 3')
+# #plt.legend()
+# plt.xlabel('Maximum radius [m]')
+# plt.ylabel('Sky View Factor [-]')
+# plt.title('The sky view factor versus the maximum radius, for a random point')
+# plt.show()
+
