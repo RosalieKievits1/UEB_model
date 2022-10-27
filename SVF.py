@@ -297,7 +297,8 @@ def shadowfactor(point, coords, julianday,latitude,longitude,LMT):
     return Shadowfactor
 
 def reshape_SVF(data, coords,julianday,lat,long,LMT,blocklength,reshape,save_CSV,save_Im):
-    [x_len, y_len] = [int(data.shape[0]/2),int(data.shape[1]/2)]
+    #[x_len, y_len] = [int(data.shape[0]/2),int(data.shape[1]/2)]
+    [x_len, y_len] = [int(data.shape[0]-2*max_radius/gridboxsize),int(data.shape[1]-2*max_radius/gridboxsize)]
     "Compute SVF and SF and Reshape the shadow factors and SVF back to nd array"
     SVFs = calc_SVF(coords,max_radius,blocklength)
     SFs = calc_SF(coords,julianday,lat,long,LMT,blocklength)
@@ -416,7 +417,7 @@ def wallArea(data):
 
 data = readdata(minheight,dtm1,dsm1)
 coords = coordheight(data)
-blocklength = int((data.shape[0]-max_radius/gridboxsize)*(data.shape[1]-max_radius/gridboxsize))
+blocklength = int((data.shape[0]-2*max_radius/gridboxsize)*(data.shape[1]-2*max_radius/gridboxsize))
 
 "Compute SVF and SF and Reshape the shadow factors and SVF back to nd array"
 print(reshape_SVF(data, coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,blocklength,reshape=False,save_CSV=False,save_Im=False))
