@@ -22,6 +22,7 @@ steps_beta = 360 # so we range in steps of 2 degrees
 max_radius = 500 # max radius is 1000 m
 """define the gridboxsize of the model"""
 gridboxsize = 5
+gridboxsize_05 = 0.5
 gridboxsize_knmi = 0.5
 """objects below 1 m we do not look at"""
 minheight = 1
@@ -71,19 +72,21 @@ def readdata(minheight,dsm,dtm):
 
     """If all surrounding tiles are zero the middle one might be a mistake of just a lantern or something"""
     """But we only do this if we use the 0.5 m data"""
-    #[x_len, y_len] = np.shape(data)
-    # for i in range(x_len):  # maybe inefficient??
-    #     for j in range(y_len):
-    #         if data_diff[i,j] != 0 and i < (x_len -1) and j < (y_len-1) and data_diff[i+1,j] ==0 and data_diff[i-1,j] ==0 and data_diff[i,j +1] ==0 and data_diff[i,j-1] == 0 and data_diff[i+1,j+1] ==0 and data_diff[i+1,j-1] ==0 and data_diff[i-1,j+1] == 0 and data_diff[i-1,j-1] ==0:
-    #             data_diff[i, j] = 0
-    #         elif data_diff[i,j] != 0 and i == 0 and j < (y_len-1) and data_diff[i+1,j] == 0 and data_diff[i,j +1] ==0 and data_diff[i,j-1] == 0 and data_diff[i+1,j+1] ==0 and data_diff[i+1,j-1] ==0:
-    #             data_diff[i,j] = 0
-    #         elif data_diff[i,j] != 0 and i == x_len-1 and j < (y_len-1) and data_diff[i-1,j] ==0 and data_diff[i,j +1] ==0 and data_diff[i,j-1] == 0 and data_diff[i-1,j+1] == 0 and data_diff[i-1,j-1] ==0:
-    #             data_diff[i, j] = 0
-    #         elif data_diff[i,j] != 0 and j == 0 and i < (x_len-1) and data_diff[i+1,j] ==0 and data_diff[i-1,j] ==0 and data_diff[i,j +1] ==0 and data_diff[i+1,j+1] ==0 and data_diff[i-1,j+1] == 0:
-    #             data_diff[i, j] = 0
-    #         elif data_diff[i,j] != 0 and j == (y_len-1) and i < (x_len -1) and data_diff[i+1,j] ==0 and data_diff[i-1,j] ==0 and data_diff[i,j-1] == 0 and data_diff[i+1,j-1] ==0 and data_diff[i-1,j-1] ==0:
-    #             data_diff[i, j] = 0
+    [x_len, y_len] = np.shape(data)
+    print(data.shape)
+    if (x_len > 1250):
+        for i in range(x_len):  # maybe inefficient??
+            for j in range(y_len):
+                if data_diff[i,j] != 0 and i < (x_len -1) and j < (y_len-1) and data_diff[i+1,j] ==0 and data_diff[i-1,j] ==0 and data_diff[i,j +1] ==0 and data_diff[i,j-1] == 0 and data_diff[i+1,j+1] ==0 and data_diff[i+1,j-1] ==0 and data_diff[i-1,j+1] == 0 and data_diff[i-1,j-1] ==0:
+                    data_diff[i, j] = 0
+                elif data_diff[i,j] != 0 and i == 0 and j < (y_len-1) and data_diff[i+1,j] == 0 and data_diff[i,j +1] ==0 and data_diff[i,j-1] == 0 and data_diff[i+1,j+1] ==0 and data_diff[i+1,j-1] ==0:
+                    data_diff[i,j] = 0
+                elif data_diff[i,j] != 0 and i == x_len-1 and j < (y_len-1) and data_diff[i-1,j] ==0 and data_diff[i,j +1] ==0 and data_diff[i,j-1] == 0 and data_diff[i-1,j+1] == 0 and data_diff[i-1,j-1] ==0:
+                    data_diff[i, j] = 0
+                elif data_diff[i,j] != 0 and j == 0 and i < (x_len-1) and data_diff[i+1,j] ==0 and data_diff[i-1,j] ==0 and data_diff[i,j +1] ==0 and data_diff[i+1,j+1] ==0 and data_diff[i-1,j+1] == 0:
+                    data_diff[i, j] = 0
+                elif data_diff[i,j] != 0 and j == (y_len-1) and i < (x_len -1) and data_diff[i+1,j] ==0 and data_diff[i-1,j] ==0 and data_diff[i,j-1] == 0 and data_diff[i+1,j-1] ==0 and data_diff[i-1,j-1] ==0:
+                    data_diff[i, j] = 0
 
     """filter all heights below the min height out"""
     datadiffcopy = data_diff
@@ -115,7 +118,7 @@ def datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4):
     return bigblock
 
 """First we store the data in a more workable form"""
-def coordheight(data,blocklength):
+def coordheight(data,blocklength,gridboxsize):
     """
     create an array with 3 columns for x, y, and z for each tile
     :param data: the data array with the height for each tile
@@ -131,7 +134,6 @@ def coordheight(data,blocklength):
     """ so we start with the list of coordinates with all the points we want to evaluate
     all other points are after that, for this we use 2 different counters."""
     rowcount_block = blocklength #x_len*y_len
-
     #rowcount_block = int((x_len/2)*(y_len/2))
     rowcount_center = 0
     """we need to make a list of coordinates where the center block is first"""
@@ -152,7 +154,7 @@ def coordheight(data,blocklength):
 
     return coords
 
-def dist(point, coord):
+def dist(point, coord,gridboxsize):
     """
     :param point: evaluation point (x,y,z)
     :param coord: array of coordinates with heights
@@ -167,7 +169,7 @@ def dist(point, coord):
     angle = np.arctan2(dy,dx)+np.pi/2
     return dist,angle
 
-def dome(point, coords, maxR):
+def dome(point, coords, maxR,gridboxsize):
     """
     :param point: point we are evaluating
     :param coords: array of coordinates with heights
@@ -175,7 +177,7 @@ def dome(point, coords, maxR):
     :return: a dome of points that we take into account to evaluate the SVF
     """
 
-    radii, angles = dist(point,coords)
+    radii, angles = dist(point,coords,gridboxsize)
     coords = np.column_stack([coords, radii])
     coords = np.column_stack([coords, angles])
     """the dome consist of points higher than the view height and within the radius we want"""
@@ -189,17 +191,15 @@ def d_area(psi,steps_beta,maxR):
     d_area = 2*np.pi/steps_beta*maxR**2*np.sin(psi)
     return d_area
 
-def SkyViewFactor(point, coords, max_radius):
+def SkyViewFactor(point, coords, max_radius,gridboxsize):
     betas_lin = np.linspace(0,2*np.pi,steps_beta)
     """this is the analytical dome area but should make same assumption as for d_area"""
     dome_area = max_radius**2*2*np.pi
     """ we throw away all point outside the dome
     # dome is now a 5 column array of points:
     # the 5 columns: x,y,z,radius,angle theta"""
-    dome_p = dome(point, coords, max_radius)
-    #print(dome_p.shape)
+    dome_p = dome(point, coords, max_radius,gridboxsize)
     betas = np.zeros(steps_beta)
-    #print(max_radius)
     """we loop over all points in the dome"""
     d = 0
     while (d < dome_p.shape[0]):
@@ -214,9 +214,7 @@ def SkyViewFactor(point, coords, max_radius):
         d += 1
     areas = d_area(betas, steps_beta, max_radius)
     """The SVF is the fraction of area of the dome that is not blocked"""
-    #SVF = np.around((dome_area - np.sum(areas))/dome_area, 3)
-    SVF = (dome_area - np.sum(areas))/dome_area
-
+    SVF = np.around((dome_area - np.sum(areas))/dome_area, 3)
     return SVF
 
 def calc_SVF(coords, max_radius, blocklength):
@@ -235,7 +233,7 @@ def calc_SVF(coords, max_radius, blocklength):
         points = [coords[i,:] for i in range(blocklength)]
         pool = Pool()
         SVF_list = []
-        SVF_par = partial(SkyViewFactor, coords=coords,max_radius=max_radius) # prod_x has only one argument x (y is fixed to 10)
+        SVF_par = partial(SkyViewFactor, coords=coords,max_radius=max_radius,gridboxsize=gridboxsize) # prod_x has only one argument x (y is fixed to 10)
         SVF = pool.map(SVF_par, points)
         pool.close()
         pool.join()
@@ -287,7 +285,7 @@ def shadowfactor(point, coords, julianday,latitude,longitude,LMT):
         that are in the data we want to evaluate
     :return: the shadowfactor of that point:
     """
-    radii, angles = dist(point,coords)
+    radii, angles = dist(point,coords,gridboxsize)
     [azimuth,elevation_angle] = Sunpos.solarpos(julianday,latitude,longitude,LMT)
     beta_min = np.asarray(- np.arcsin(np.sqrt(2*gridboxsize**2)/2/radii) + azimuth)
     beta_max = np.asarray(np.arcsin(np.sqrt(2*gridboxsize**2)/2/radii) + azimuth)
@@ -304,7 +302,7 @@ def reshape_SVF(data, coords,julianday,lat,long,LMT,blocklength,reshape,save_CSV
     [x_len, y_len] = [int(data.shape[0]-2*max_radius/gridboxsize),int(data.shape[1]-2*max_radius/gridboxsize)]
     "Compute SVF and SF and Reshape the shadow factors and SVF back to nd array"
     SVFs = calc_SVF(coords,max_radius,blocklength)
-    #SFs = calc_SF(coords,julianday,lat,long,LMT,blocklength)
+    SFs = calc_SF(coords,julianday,lat,long,LMT,blocklength)
     "If reshape is true we reshape the arrays to the original data matrix"
     # if (reshape == True) & (SVFs is not None):
     #     SVF_matrix = np.ndarray([x_len,y_len])
@@ -418,15 +416,12 @@ def wallArea(data):
     wall_area_total = np.sum(wall_area)
     return wall_area, wall_area_total
 
-data = readdata(minheight,dsm1,dtm1)
-blocklength = int((data.shape[0]-2*max_radius/gridboxsize)*(data.shape[1]-2*max_radius/gridboxsize))
-coords = coordheight(data,blocklength)
-print(blocklength)
+
 "Compute SVF and SF and Reshape the shadow factors and SVF back to nd array"
-SVF_list = reshape_SVF(data, coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,blocklength,reshape=False,save_CSV=False,save_Im=False)
-print(SVF_list)
-if SVF_list is not None:
-    print(KNMI_SVF_verification.Verification(SVF_list,KNMI_SVF_verification.SVF_knmi1,gridboxsize,gridboxsize_knmi,max_radius))
+# SVF_list = reshape_SVF(data, coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,blocklength,reshape=False,save_CSV=False,save_Im=False)
+# print(SVF_list)
+# if SVF_list is not None:
+#     print(KNMI_SVF_verification.Verification(SVF_list,KNMI_SVF_verification.SVF_knmi1,gridboxsize,gridboxsize_knmi,max_radius))
 
 endtime = time.time()
 elapsed_time = endtime-sttime
@@ -457,3 +452,68 @@ print('Execution time:', elapsed_time, 'seconds')
 # plt.title('The sky view factor versus the maximum radius, for a random point')
 # plt.show()
 
+
+"""Compare to 0.5 data"""
+# 5 m grid
+data = readdata(minheight,dsm1,dtm1)
+blocklength = int((data.shape[0]-2*max_radius/gridboxsize_05)*(data.shape[1]-2*max_radius/gridboxsize_05))
+coords = coordheight(data,blocklength,gridboxsize)
+# Open a file and use dump()
+# with open('coordsData5m.pickle', 'wb') as file:
+#     # A new file will be created
+#     pickle.dump(coords, file)
+#
+# with open('coordsData5m.pickle') as f:
+#     coords = pickle.load(f)
+point1 = coords[0,:]
+point2 = coords[int(blocklength/2),:]
+point3 = coords[int(blocklength),:]
+
+# 0.5 m grid
+ratio_grid = gridboxsize/gridboxsize_05
+dtm_05 = "".join([input_dir, '/M_37HN1.TIF'])
+dsm_05 = "".join([input_dir, '/R_37HN1.TIF'])
+data_05 = readdata(minheight,dsm_05,dtm_05)
+blocklength_05 = int((data_05.shape[0]-2*max_radius/gridboxsize_05)*(data_05.shape[1]-2*max_radius/gridboxsize_05))
+coords_05 = coordheight(data_05,blocklength_05,gridboxsize_05)
+# with open('coordsData05m.pickle', 'wb') as file:
+#     # A new file will be created
+#     pickle.dump(coords_05, file)
+#
+# with open('coordsData05m.pickle') as f:
+#     coords_05 = pickle.load(f)
+
+point1_05 = coords_05[0,:]
+point2_05 = coords_05[int(blocklength_05/2),:]
+point3_05 = coords_05[int(blocklength_05),:]
+
+gridboxsize_5 = 5
+SVF_p1 = SkyViewFactor(point1, coords, max_radius, gridboxsize_5)
+SVF_p2 = SkyViewFactor(point2, coords, max_radius, gridboxsize_5)
+SVF_p3 = SkyViewFactor(point3, coords, max_radius, gridboxsize_5)
+print([SVF_p1, SVF_p2,SVF_p3])
+# Now for 0.5 m grid
+SVF_p1_05 = SkyViewFactor(point1_05, coords_05, max_radius, gridboxsize_05)
+SVF_p2_05 = SkyViewFactor(point2_05, coords_05, max_radius, gridboxsize_05)
+SVF_p3_05 = SkyViewFactor(point3_05, coords_05, max_radius, gridboxsize_05)
+print([SVF_p1_05,SVF_p2_05,SVF_p3_05])
+#
+# x = np.linspace(90,720,64,dtype=int)
+# print(x)
+# SVF_array1 = np.zeros(len(x))
+# SVF_array2 = np.zeros(len(x))
+# SVF_array3 = np.zeros(len(x))
+# for i in range(len(x)):
+#     #SVF_array1[i] = SkyViewFactor(point1,coords, max_radius,x[i])
+#     #SVF_array2[i] = SkyViewFactor(point2,coords, max_radius,x[i])
+#     SVF_array3[i] = SkyViewFactor(point3,coords, max_radius,x[i])
+# print(SVF_array3)
+# plt.figure()
+# #plt.plot(x,SVF_array1, label='Point 1')
+# #plt.plot(x,SVF_array2, label='Point 2')
+# plt.plot(x,SVF_array3, label='Point 3')
+# #plt.legend()
+# plt.xlabel('steps beta [-]')
+# plt.ylabel('Sky View Factor [-]')
+# plt.title('The sky view factor versus the steps in the horizontal direction for the SVF calculation, for a random point')
+# plt.show()
