@@ -264,7 +264,7 @@ def calc_SF(coords,Julianday,latitude,longitude,LMT,blocklength):
         return parallel_runs_SF()
 
 
-def shadowfactor(point, coords, julianday,latitude,longitude,LMT):
+def shadowfactor(point, coords, azimuth,elevation_angle):
     """
     :param coords: all other points, x,y,z values
     :param julianday: julian day of the year
@@ -277,7 +277,6 @@ def shadowfactor(point, coords, julianday,latitude,longitude,LMT):
     :return: the shadowfactor of that point:
     """
     radii, angles = dist(point,coords,gridboxsize)
-    [azimuth,elevation_angle] = Sunpos.solarpos(julianday,latitude,longitude,LMT)
     beta_min = np.asarray(- np.arcsin(np.sqrt(2*gridboxsize**2)/2/radii) + azimuth)
     beta_max = np.asarray(np.arcsin(np.sqrt(2*gridboxsize**2)/2/radii) + azimuth)
     if np.count_nonzero(coords[np.logical_and((np.logical_and((angles > beta_min), (angles < beta_max))), ((np.tan(elevation_angle)*radii)<(coords[:,2]-point[2]))),:])>0:
@@ -288,11 +287,12 @@ def shadowfactor(point, coords, julianday,latitude,longitude,LMT):
     so the shadowfactor is 1: the point receives radiation"""
     return Shadowfactor
 
-def reshape_SVF(data, coords,julianday,lat,long,LMT,blocklength,reshape,save_CSV,save_Im):
+def reshape_SVF(data, coords,azimuth,zenith,reshape,save_CSV,save_Im):
     [x_len, y_len] = [int(data.shape[0]/2),int(data.shape[1]/2)]
+    blocklength = x_len*y_len
     "Compute SVF and SF and Reshape the shadow factors and SVF back to nd array"
     SVFs = calc_SVF(coords,max_radius,blocklength)
-    SFs = calc_SF(coords,julianday,lat,long,LMT,blocklength)
+    SFs = calc_SF(coords,azimuth,zenith,blocklength)
     "If reshape is true we reshape the arrays to the original data matrix"
     if (reshape == True) & (SVFs is not None):
         SVF_matrix = np.ndarray([x_len,y_len])

@@ -13,6 +13,7 @@ import Functions
 # 4: implement reflection effects
 # 5: implement snow and rain surface obstruction
 # 6: implement human heat sources
+import Sunpos
 
 nr_steps = Functions.nr_steps
 T_air = Functions.T_air
@@ -26,7 +27,6 @@ T_air = Functions.T_air
 #Functions.plotTempComparison_Masson(map_temperatures_roof,map_temperatures_wall,map_temperatures_road,1)
 
 """City using SVF and shadow casting"""
-# data = SVF.datasquare(SVF.dtm1,SVF.dsm1,SVF.dtm2,SVF.dsm2,SVF.dtm3,SVF.dsm3,SVF.dtm4,SVF.dsm4)
 # #print(SVF.geometricProperties(data,SVF.gridboxsize))
 # blocklength = int(data.shape[0]/2*data.shape[1]/2)
 # coords = SVF.coordheight(data)
@@ -37,6 +37,15 @@ T_air = Functions.T_air
 # print("These are the Shadowfactors")
 # print(SF_matrix)
 # print("These are the average temperatures")
-# print(Functions.HeatEvolution(data,nr_steps,Constants.timestep,SVF_matrix,SF_matrix))
-#
+# print(Functions.HeatEvolution(data,nr_steps,Constants.timestep,azimuth,zenith))
+
+"""Calculate the Shadow casting for 24 hours on one day"""
+data = SVF.readdata(SVF.minheight,SVF.dsm1,SVF.dtm1)
+hour = np.linspace(0,24,25)
+for t in len(hour):
+    "Calculate the azimuth and zenith for every hour"
+    [zenith,azimuth] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hour[t],radians=True)
+
+    "Calculate average surface temperatures for roof and road surface types"
+    [t_roof_ave, t_road_ave, t_ave] = Functions.HeatEvolution(data,Constants.nr_of_steps,Constants.timestep,azimuth,zenith)
 

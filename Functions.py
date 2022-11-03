@@ -398,15 +398,17 @@ def layer_balance(data, d, layers,lambdas,map_temperatures,map_temp_old,T_inner_
         map_temperatures[:,:,l] = map_temp_old[:,:,l] + dT
     return map_temperatures[:,:,1:layers]
 
-def HeatEvolution(data,time_steps,delta_t):
+def HeatEvolution(data,time_steps,delta_t,azimuth,elevation_angle):
     """There is no shadow and there are no obstructions, for now"""
+    t_road_ave = np.zeros(time_steps)
     t_roof_ave = np.zeros(time_steps)
     t_ave = np.zeros(time_steps)
+
     [wallArea_matrix, wallArea_total] = SVF.wallArea(data)
     wall_layers = np.ndarray([wallArea_matrix.shape[0],wallArea_matrix.shape[1],Constants.layers])
 
     coords = SVF.coordheight(data)
-    [svf,Shadowfactor] = SVF.reshape_SVF(data,coords)
+    [svf,Shadowfactor] = SVF.reshape_SVF(data, coords,azimuth,elevation_angle,reshape=True,save_CSV=False,save_Im=False)
     """We evaluate the middle block only, but after the SVF and Shadowfactor are calculated"""
     [x_len,y_len] = data.shape
     data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
@@ -428,8 +430,9 @@ def HeatEvolution(data,time_steps,delta_t):
         map_t_old = map_t
         t_ave[t] = np.mean(map_t[:,:,0])
         t_roof_ave[t] = np.mean(map_t[data>0,0])
+        t_road_ave[t] = np.mean(map_t[data==0,0])
 
-    return t_roof_ave
+    return t_roof_ave, t_road_ave, t_ave
 
 """PLOTFUNCTIONS"""
 """PLOT TEMPERATURES"""
