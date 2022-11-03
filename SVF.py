@@ -6,7 +6,6 @@ from tqdm import tqdm
 import config
 from functools import partial
 import time
-import pickle
 
 import KNMI_SVF_verification
 import Constants
@@ -17,9 +16,9 @@ sttime = time.time()
 input_dir = config.input_dir
 """Now we want to calculate the sky view factor"""
 steps_beta = 360 # so we range in steps of 2 degrees
-max_radius = 500 # max radius is 1000 m
+max_radius = 100 # max radius is 1000 m
 """define the gridboxsize of the model"""
-gridboxsize = 5
+gridboxsize = 0.5
 gridboxsize_05 = 0.5
 gridboxsize_knmi = 0.5
 """objects below 1 m we do not look at"""
@@ -208,7 +207,7 @@ def SkyViewFactor(point, coords, max_radius,gridboxsize):
     SVF = np.around((dome_area - np.sum(areas))/dome_area, 3)
     return SVF
 
-def calc_SVF(coords, max_radius, blocklength):
+def calc_SVF(coords, max_radius, blocklength, gridboxsize):
     """
     Function to calculate the sky view factor.
     We create a dome around a point with a certain radius,
@@ -236,7 +235,7 @@ def calc_SVF(coords, max_radius, blocklength):
         result = parallel_runs_SVF()
         return result
 
-def calc_SF(coords,Julianday,latitude,longitude,LMT,blocklength):
+def calc_SF(coords,azimuth,elevation_angle,blocklength):
     """
     Function to calculate the sky view factor.
     We create a dome around a point with a certain radius,
@@ -252,7 +251,7 @@ def calc_SF(coords,Julianday,latitude,longitude,LMT,blocklength):
         points = [coords[i,:] for i in range(blocklength)]
         SF_list = []
         pool = Pool()
-        SF_par = partial(shadowfactor, coords=coords, julianday=Julianday,latitude=latitude,longitude=longitude,LMT=LMT) # prod_x has only one argument x (y is fixed to 10)
+        SF_par = partial(shadowfactor, coords=coords, azimuth=azimuth,elevation_angle=elevation_angle) # prod_x has only one argument x (y is fixed to 10)
         SF = pool.map(SF_par, points)
         pool.close()
         pool.join()
@@ -287,11 +286,11 @@ def shadowfactor(point, coords, azimuth,elevation_angle):
     so the shadowfactor is 1: the point receives radiation"""
     return Shadowfactor
 
-def reshape_SVF(data, coords,azimuth,zenith,reshape,save_CSV,save_Im):
+def reshape_SVF(data, coords,gridboxsize,azimuth,zenith,reshape,save_CSV,save_Im):
     [x_len, y_len] = [int(data.shape[0]/2),int(data.shape[1]/2)]
     blocklength = x_len*y_len
     "Compute SVF and SF and Reshape the shadow factors and SVF back to nd array"
-    SVFs = calc_SVF(coords,max_radius,blocklength)
+    SVFs = calc_SVF(coords, max_radius, blocklength, gridboxsize)
     #SFs = calc_SF(coords,azimuth,zenith,blocklength)
     "If reshape is true we reshape the arrays to the original data matrix"
     if (reshape == True) & (SVFs is not None):
@@ -338,7 +337,7 @@ def geometricProperties(data,gridboxsize):
     Roof_area = built_elements*gridboxsize**2
     Road_area = road_elements*gridboxsize**2
     Water_area = water_elements*gridboxsize**2
-    [Wall_area, wall_area_total] = wallArea(data)
+    [Wall_area, wall_area_total] = wallArea(data,gridboxsize)
 
     Total_area = Roof_area + wall_area_total + Road_area + Water_area
     """Fractions of the area of the total surface"""
@@ -351,7 +350,7 @@ def geometricProperties(data,gridboxsize):
     return ave_height, delta, Roof_area, wall_area_total, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac, H_W
 
 
-def wallArea(data):
+def wallArea(data,gridboxsize):
     """Matrix of ones where there are buildings"""
     [x_len,y_len] = [data.shape[0], data.shape[1]]
     """Set all the water elements to 0 height again"""
@@ -387,7 +386,7 @@ dsm_HN1 = "".join([input_dir, '/R_37HN1.TIF'])
 data = readdata(minheight,dsm_HN1,dtm_HN1)
 coords = coordheight(data)
 print("Coords are created")
-SVFs = reshape_SVF(data, coords,300,20,reshape=False,save_CSV=False,save_Im=True)
+SVFs = reshape_SVF(data, coords,gridboxsize_05,300,20,reshape=False,save_CSV=False,save_Im=False)
 print(SVFs)
 download_directory =  config.input_dir_knmi
 SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.TIF'])
