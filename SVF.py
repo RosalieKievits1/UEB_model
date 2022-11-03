@@ -292,28 +292,27 @@ def reshape_SVF(data, coords,azimuth,zenith,reshape,save_CSV,save_Im):
     blocklength = x_len*y_len
     "Compute SVF and SF and Reshape the shadow factors and SVF back to nd array"
     SVFs = calc_SVF(coords,max_radius,blocklength)
-    SFs = calc_SF(coords,azimuth,zenith,blocklength)
+    #SFs = calc_SF(coords,azimuth,zenith,blocklength)
     "If reshape is true we reshape the arrays to the original data matrix"
     if (reshape == True) & (SVFs is not None):
         SVF_matrix = np.ndarray([x_len,y_len])
-        SF_matrix = np.ndarray([x_len,y_len])
+        #SF_matrix = np.ndarray([x_len,y_len])
         for i in range(blocklength):
             SVF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SVFs[i]
-            SF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SFs[i]
-            print(SVF_matrix)
+            #SF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SFs[i]
         if save_CSV == True:
             np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
-            np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
+            #np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
         if save_Im == True:
             tf.imwrite('SVF_matrix.tif', SVF_matrix, photometric='minisblack')
-            tf.imwrite('SF_matrix.tif', SF_matrix, photometric='minisblack')
-        return SF_matrix,SF_matrix
+            #tf.imwrite('SF_matrix.tif', SF_matrix, photometric='minisblack')
+        return SVF_matrix#,SF_matrix
     #
     elif reshape == False:
         if save_CSV == True:
             np.savetxt("SVFs.csv", SVFs, delimiter=",")
-            np.savetxt("SFs.csv", SFs, delimiter=",")
-        return SVFs, SFs
+            #np.savetxt("SFs.csv", SFs, delimiter=",")
+        return SVFs#, SFs
 
 
 def geometricProperties(data,gridboxsize):
@@ -357,13 +356,12 @@ def wallArea(data):
     [x_len,y_len] = [data.shape[0], data.shape[1]]
     """Set all the water elements to 0 height again"""
     data[data<0] = 0
-    max_r = max_radius/gridboxsize
     """We only evaluate the area in the center block"""
     wall_area = np.ndarray([int(x_len/2),int(y_len/2)])
     i = int(x_len/4)
     j = int(y_len/4)
-    while i < int(x_len/2):
-        while j < int(y_len/2):
+    while i < int(3*x_len/4):
+        while j < int(3*y_len/4):
             if (data[i,j]>0):
                 """We check for all the points surrounding the building if they are also buildings, 
                 if the building next to it is higher the wall belongs to the building next to it,
@@ -375,7 +373,7 @@ def wallArea(data):
                 """The wall area corresponding to that building is"""
                 wall_area[int(i-x_len/4),int(j-y_len/4)] = wall1+wall2+wall3+wall4
             elif (data[i,j]==0):
-                wall_area[int(i-x_len/2),int(j-x_len/4)] = 0
+                wall_area[int(i-x_len/4),int(j-x_len/4)] = 0
             i+=1
             j+=1
     """wall_area is a matrix of the size of center block of data, 

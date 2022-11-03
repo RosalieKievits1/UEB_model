@@ -1,8 +1,8 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-import csv
-import Constants
+# import matplotlib.pyplot as plt
+# import pandas as pd
+# import csv
+# import Constants
 
 """Longitude and latitude of rotterdam in degrees"""
 
@@ -49,10 +49,7 @@ def solarpos(julian_day,latitude,longitude,hour,radians=True):
     if (radians==False):
         azimuth = azimuth*180/np.pi
         azimuth = azimuth % 360
-        #azimuth = azimuth+180
         zenith = zenith*180/np.pi
-
-
 
     return azimuth,zenith
 

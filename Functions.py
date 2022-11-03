@@ -371,7 +371,6 @@ def surfacebalance(albedos,emissivities,capacities,sigma,\
     """ Net radiation"""
     netRad = LW_net + SW_net - G_out_surf
 
-    #print("netrad = " + str(netRad))
     """ Temperature change"""
     dT = (netRad/(capacities[:,:,0]*d[:,:,0]))*delta_t
     map_temperatures = map_temperatures_old + dT
