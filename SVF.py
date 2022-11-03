@@ -1,14 +1,12 @@
-import multiprocessing
-
 import numpy as np
 import matplotlib.pyplot as plt
 from multiprocessing.pool import Pool
-import multiprocessing
 import tifffile as tf
 from tqdm import tqdm
 import config
 from functools import partial
 import time
+import pickle
 
 import KNMI_SVF_verification
 import Constants
@@ -73,7 +71,6 @@ def readdata(minheight,dsm,dtm):
     """If all surrounding tiles are zero the middle one might be a mistake of just a lantern or something"""
     """But we only do this if we use the 0.5 m data"""
     [x_len, y_len] = np.shape(data)
-    print(data.shape)
     if (x_len > 1250):
         for i in range(x_len):  # maybe inefficient??
             for j in range(y_len):
@@ -118,35 +115,29 @@ def datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4):
     return bigblock
 
 """First we store the data in a more workable form"""
-def coordheight(data,blocklength,gridboxsize):
+def coordheight(data):
     """
     create an array with 3 columns for x, y, and z for each tile
     :param data: the data array with the height for each tile
     :return: 3 columns for x, y, and z
     """
     """From here on we set the height of the water elements back to 0"""
-    max_r = max_radius/gridboxsize
     data[data<0] = 0
     [x_len,y_len] = np.shape(data)
-    # x_len = x_len-2*max_radius
-    # y_len = y_len-2*max_radius
     coords = np.ndarray([x_len*y_len,3])
     """ so we start with the list of coordinates with all the points we want to evaluate
     all other points are after that, for this we use 2 different counters."""
-    rowcount_block = blocklength #x_len*y_len
-    #rowcount_block = int((x_len/2)*(y_len/2))
+    rowcount_block = int((x_len/2)*(y_len/2))
     rowcount_center = 0
     """we need to make a list of coordinates where the center block is first"""
     for i in range(x_len):
         for j in range(y_len):
-            #if ((x_len/4)<=i and i<(3*x_len/4) and (y_len/4)<=j and j<(3*y_len/4)):
-            if ((max_r)<=i and i<(x_len-max_r) and (max_r)<=j and j<(y_len-max_r)):
+            if ((x_len/4)<=i and i<(3*x_len/4) and (y_len/4)<=j and j<(3*y_len/4)):
                 coords[rowcount_center,0] = i
                 coords[rowcount_center,1] = j
                 coords[rowcount_center,2] = data[i,j]
                 rowcount_center += 1
-            #elif (i<(x_len/4) or i>=(3*x_len/4) or j<(y_len/4) or j>=(3*y_len/4)):
-            elif (i<(max_r) or i>=(x_len-max_r) or j<(max_r) or j>=(y_len-max_r)):
+            elif (i<(x_len/4) or i>=(3*x_len/4) or j<(y_len/4) or j>=(3*y_len/4)):
                 coords[rowcount_block,0] = i
                 coords[rowcount_block,1] = j
                 coords[rowcount_block,2] = data[i,j]
@@ -298,55 +289,31 @@ def shadowfactor(point, coords, julianday,latitude,longitude,LMT):
     return Shadowfactor
 
 def reshape_SVF(data, coords,julianday,lat,long,LMT,blocklength,reshape,save_CSV,save_Im):
-    #[x_len, y_len] = [int(data.shape[0]/2),int(data.shape[1]/2)]
-    [x_len, y_len] = [int(data.shape[0]-2*max_radius/gridboxsize),int(data.shape[1]-2*max_radius/gridboxsize)]
+    [x_len, y_len] = [int(data.shape[0]/2),int(data.shape[1]/2)]
     "Compute SVF and SF and Reshape the shadow factors and SVF back to nd array"
     SVFs = calc_SVF(coords,max_radius,blocklength)
     SFs = calc_SF(coords,julianday,lat,long,LMT,blocklength)
     "If reshape is true we reshape the arrays to the original data matrix"
-    # if (reshape == True) & (SVFs is not None):
-    #     SVF_matrix = np.ndarray([x_len,y_len])
-    #     SF_matrix = np.ndarray([x_len,y_len])
-    #     for i in range(blocklength):
-    #         SVF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SVFs[i]
-    #         SF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SFs[i]
-    #         print(SVF_matrix)
-    #     if save_CSV == True:
-    #         np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
-    #         np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
-    #     if save_Im == True:
-    #         tf.imwrite('SVF_matrix.tif', SVF_matrix, photometric='minisblack')
-    #         tf.imwrite('SF_matrix.tif', SF_matrix, photometric='minisblack')
-    #     return SF_matrix,SF_matrix
-    #
-    # elif reshape == False:
-    #     if save_CSV == True:
-    #         np.savetxt("SVFs.csv", SVFs, delimiter=",")
-    #         np.savetxt("SFs.csv", SFs, delimiter=",")
-    #     return SVFs, SFs
-    max_r = max_radius/gridboxsize
     if (reshape == True) & (SVFs is not None):
         SVF_matrix = np.ndarray([x_len,y_len])
-        #SF_matrix = np.ndarray([x_len,y_len])
+        SF_matrix = np.ndarray([x_len,y_len])
         for i in range(blocklength):
-            print(coords[i,0]-max_r)
-            print(coords[i,1]-max_r)
-            print(SVFs[i])
-            SVF_matrix[coords[i,0]-max_r,coords[i,1]-max_r] = SVFs[i]
-            #SF_matrix[coords[i,0]-max_r,coords[i,1]-max_r] = SFs[i]
+            SVF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SVFs[i]
+            SF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SFs[i]
+            print(SVF_matrix)
         if save_CSV == True:
             np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
-            #np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
+            np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
         if save_Im == True:
             tf.imwrite('SVF_matrix.tif', SVF_matrix, photometric='minisblack')
-            #tf.imwrite('SF_matrix.tif', SF_matrix, photometric='minisblack')
-        return SVF_matrix #,SF_matrix
-
+            tf.imwrite('SF_matrix.tif', SF_matrix, photometric='minisblack')
+        return SF_matrix,SF_matrix
+    #
     elif reshape == False:
         if save_CSV == True:
             np.savetxt("SVFs.csv", SVFs, delimiter=",")
-            #np.savetxt("SFs.csv", SFs, delimiter=",")
-        return SVFs#, SFs
+            np.savetxt("SFs.csv", SFs, delimiter=",")
+        return SVFs, SFs
 
 
 def geometricProperties(data,gridboxsize):
@@ -390,12 +357,13 @@ def wallArea(data):
     [x_len,y_len] = [data.shape[0], data.shape[1]]
     """Set all the water elements to 0 height again"""
     data[data<0] = 0
+    max_r = max_radius/gridboxsize
     """We only evaluate the area in the center block"""
     wall_area = np.ndarray([int(x_len/2),int(y_len/2)])
     i = int(x_len/4)
     j = int(y_len/4)
-    while i < int(3*x_len/4):
-        while j < int(3*y_len/4):
+    while i < int(x_len/2):
+        while j < int(y_len/2):
             if (data[i,j]>0):
                 """We check for all the points surrounding the building if they are also buildings, 
                 if the building next to it is higher the wall belongs to the building next to it,
@@ -407,7 +375,7 @@ def wallArea(data):
                 """The wall area corresponding to that building is"""
                 wall_area[int(i-x_len/4),int(j-y_len/4)] = wall1+wall2+wall3+wall4
             elif (data[i,j]==0):
-                wall_area[int(i-x_len/4),int(j-y_len/4)] = 0
+                wall_area[int(i-x_len/2),int(j-x_len/4)] = 0
             i+=1
             j+=1
     """wall_area is a matrix of the size of center block of data, 
@@ -416,104 +384,43 @@ def wallArea(data):
     wall_area_total = np.sum(wall_area)
     return wall_area, wall_area_total
 
+# data = readdata(minheight,dsm1,dtm1)
+# print(data.shape)
+# coords = coordheight(data)
+# #for c in coords[0::10000]:
+#     #print(SkyViewFactor(c,coords,max_radius,gridboxsize_05))
+# svf = SkyViewFactor(coords[0,:],coords,max_radius,gridboxsize)
 
-"Compute SVF and SF and Reshape the shadow factors and SVF back to nd array"
-# SVF_list = reshape_SVF(data, coords,Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,blocklength,reshape=False,save_CSV=False,save_Im=False)
-# print(SVF_list)
-# if SVF_list is not None:
-#     print(KNMI_SVF_verification.Verification(SVF_list,KNMI_SVF_verification.SVF_knmi1,gridboxsize,gridboxsize_knmi,max_radius))
+"Fisheye plot"
+# # linksboven
+# dtm1 = "".join([input_dir, '/M5_37HN1.TIF'])
+# dsm1 = "".join([input_dir, '/R5_37HN1.TIF'])
+# data = readdata(minheight,dsm1,dtm1)
+# [x_len,y_len] = data.shape
+# print(x_len/2*y_len/2)
+# coords = coordheight(data)
+# [svf, areas] = SkyViewFactor(coords[500,:],coords,max_radius,gridboxsize)
+#
+# "Make fisheye plot"
+# bottom = 0
+# max_area = max_radius**2 * 2 * np.pi / steps_beta
+#
+# theta = np.linspace(0.0, 2 * np.pi, steps_beta, endpoint=False)
+# radii = - areas + max_area
+# width = (2*np.pi) / steps_beta
+#
+# ax = plt.subplot(111, polar=True)
+# bars = ax.bar(theta, radii, width=width, bottom=bottom)
+# ax.set_facecolor("grey")
+#
+# # Use custom colors and opacity
+# for r, bar in zip(radii, bars):
+#     bar.set_facecolor("blue")#(plt.cm.jet(r / 10.))
+#     bar.set_alpha(0.8)
+#
+# plt.show()
 
+"Time elapsed"
 endtime = time.time()
 elapsed_time = endtime-sttime
 print('Execution time:', elapsed_time, 'seconds')
-"""Some runs to calculate the sensitivity"""
-"""Maxradius"""
-# Choose a random point
-# point1 = coords[0,:]
-# point2 = coords[int(blocklength/2),:]
-# point3 = coords[int(blocklength),:]
-
-# x = np.linspace(100,600,20,dtype=int)
-# SVF_array1 = np.zeros(len(x))
-# SVF_array2 = np.zeros(len(x))
-# SVF_array3 = np.zeros(len(x))
-# for i in range(len(x)):
-#     #SVF_array1[i] = SkyViewFactor(point1,coords, x[i])
-#     #SVF_array2[i] = SkyViewFactor(point2,coords, x[i])
-#     SVF_array3[i] = SkyViewFactor(point3,coords, x[i])
-# print(SVF_array2)
-# plt.figure()
-# #plt.plot(x,SVF_array1, label='Point 1')
-# #plt.plot(x,SVF_array2, label='Point 2')
-# plt.plot(x,SVF_array3, label='Point 3')
-# #plt.legend()
-# plt.xlabel('Maximum radius [m]')
-# plt.ylabel('Sky View Factor [-]')
-# plt.title('The sky view factor versus the maximum radius, for a random point')
-# plt.show()
-
-
-"""Compare to 0.5 data"""
-# 5 m grid
-data = readdata(minheight,dsm1,dtm1)
-blocklength = int((data.shape[0]-2*max_radius/gridboxsize_05)*(data.shape[1]-2*max_radius/gridboxsize_05))
-coords = coordheight(data,blocklength,gridboxsize)
-# Open a file and use dump()
-# with open('coordsData5m.pickle', 'wb') as file:
-#     # A new file will be created
-#     pickle.dump(coords, file)
-#
-# with open('coordsData5m.pickle') as f:
-#     coords = pickle.load(f)
-point1 = coords[0,:]
-point2 = coords[int(blocklength/2),:]
-point3 = coords[int(blocklength),:]
-
-# 0.5 m grid
-ratio_grid = gridboxsize/gridboxsize_05
-dtm_05 = "".join([input_dir, '/M_37HN1.TIF'])
-dsm_05 = "".join([input_dir, '/R_37HN1.TIF'])
-data_05 = readdata(minheight,dsm_05,dtm_05)
-blocklength_05 = int((data_05.shape[0]-2*max_radius/gridboxsize_05)*(data_05.shape[1]-2*max_radius/gridboxsize_05))
-coords_05 = coordheight(data_05,blocklength_05,gridboxsize_05)
-# with open('coordsData05m.pickle', 'wb') as file:
-#     # A new file will be created
-#     pickle.dump(coords_05, file)
-#
-# with open('coordsData05m.pickle') as f:
-#     coords_05 = pickle.load(f)
-
-point1_05 = coords_05[0,:]
-point2_05 = coords_05[int(blocklength_05/2),:]
-point3_05 = coords_05[int(blocklength_05),:]
-
-gridboxsize_5 = 5
-SVF_p1 = SkyViewFactor(point1, coords, max_radius, gridboxsize_5)
-SVF_p2 = SkyViewFactor(point2, coords, max_radius, gridboxsize_5)
-SVF_p3 = SkyViewFactor(point3, coords, max_radius, gridboxsize_5)
-print([SVF_p1, SVF_p2,SVF_p3])
-# Now for 0.5 m grid
-SVF_p1_05 = SkyViewFactor(point1_05, coords_05, max_radius, gridboxsize_05)
-SVF_p2_05 = SkyViewFactor(point2_05, coords_05, max_radius, gridboxsize_05)
-SVF_p3_05 = SkyViewFactor(point3_05, coords_05, max_radius, gridboxsize_05)
-print([SVF_p1_05,SVF_p2_05,SVF_p3_05])
-#
-# x = np.linspace(90,720,64,dtype=int)
-# print(x)
-# SVF_array1 = np.zeros(len(x))
-# SVF_array2 = np.zeros(len(x))
-# SVF_array3 = np.zeros(len(x))
-# for i in range(len(x)):
-#     #SVF_array1[i] = SkyViewFactor(point1,coords, max_radius,x[i])
-#     #SVF_array2[i] = SkyViewFactor(point2,coords, max_radius,x[i])
-#     SVF_array3[i] = SkyViewFactor(point3,coords, max_radius,x[i])
-# print(SVF_array3)
-# plt.figure()
-# #plt.plot(x,SVF_array1, label='Point 1')
-# #plt.plot(x,SVF_array2, label='Point 2')
-# plt.plot(x,SVF_array3, label='Point 3')
-# #plt.legend()
-# plt.xlabel('steps beta [-]')
-# plt.ylabel('Sky View Factor [-]')
-# plt.title('The sky view factor versus the steps in the horizontal direction for the SVF calculation, for a random point')
-# plt.show()

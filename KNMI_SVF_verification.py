@@ -13,9 +13,6 @@ import tifffile as tf
 import requests
 from requests import Session
 
-import config
-#import SVF
-
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(os.environ.get("LOG_LEVEL", logging.INFO))
@@ -101,18 +98,18 @@ async def main():
     max_keys = "12"
 
     base_url = "https://api.dataplatform.knmi.nl/open-data/v1"
-    # When set to True, if a file with the same name exists the output is written over the file.
-    # To prevent unnecessary bandwidth usage, leave it set to False.
+    "When set to True, if a file with the same name exists the output is written over the file."
+    "To prevent unnecessary bandwidth usage, leave it set to False."
     overwrite = False
 
     download_directory = "/Users/rosaliekievits/Desktop/SVF bestanden MEP"
 
 
-    # Make sure to send the API key with every HTTP request
+    "Make sure to send the API key with every HTTP request"
     session = requests.Session()
     session.headers.update({"Authorization": api_key})
 
-    # Verify that the download directory exists
+    "Verify that the download directory exists"
     if not Path(download_directory).is_dir() or not Path(download_directory).exists():
         raise Exception(f"Invalid or non-existing directory: {download_directory}")
 
@@ -120,7 +117,7 @@ async def main():
 
     start_after_filename = "SVF_r37en2.tif"
 
-    # Use the API to get a list of all dataset filenames
+    "Use the API to get a list of all dataset filenames"
     #while True:
         # Retrieve dataset files after given filename
     dataset_filenames, response_json = list_dataset_files(
@@ -131,7 +128,7 @@ async def main():
             {"maxKeys": f"{max_keys}", "startAfterFilename": start_after_filename},
         )
 
-    # If the result is not truncated, we retrieved all filenames
+    "If the result is not truncated, we retrieved all filenames"
     is_truncated = response_json.get("isTruncated")
     if not is_truncated:
         logger.info("Retrieved names of all dataset files")
@@ -167,7 +164,7 @@ async def main():
     # if not is_truncated:
     #     logger.info("Retrieved names of all dataset files")
 
-    # Store filenames
+    "Store filenames"
     filenames += dataset_filenames
     # filenames += dataset_filenames2
     # filenames += dataset_filenames3
@@ -177,13 +174,13 @@ async def main():
     logger.info(f"Number of files to download: {len(filenames)}")
     loop = asyncio.get_event_loop()
 
-    # Allow up to 20 separate threads to download dataset files concurrently
+    "Allow up to 20 separate threads to download dataset files concurrently"
     executor = ThreadPoolExecutor(max_workers=20)
     futures = []
 
-    # Create tasks that download the dataset files
+    "Create tasks that download the dataset files"
     for dataset_filename in filenames:
-        # Create future for dataset file
+        "Create future for dataset file"
         future = loop.run_in_executor(
             executor,
             download_dataset_file,
@@ -197,7 +194,7 @@ async def main():
         )
         futures.append(future)
 
-    # # Wait for all tasks to complete and gather the results
+    "Wait for all tasks to complete and gather the results"
     future_results = await asyncio.gather(*futures)
     print("here")
     logger.info(f"Finished '{dataset_name}' dataset download")
@@ -220,66 +217,38 @@ SVF_knmi2 = str(download_directory) + '/SVF_r37hn2.TIF'
 SVF_knmi3 = str(download_directory) + '/SVF_r37hz1.TIF'
 SVF_knmi4 = str(download_directory) + '/SVF_r37hz2.TIF'
 
-def Verification(SVFs,SVF_knmi1,gridboxsize, gridboxsize_knmi,max_radius):
+def Verification(SVFs,SVF_knmi1, gridboxsize, gridboxsize_knmi,matrix):
     """The knmi matrix is based on a different resolution gridboxsize"""
-    # SVF_knmi = tf.imread(SVF_knmi1)
-    # ratio_resolution = int(gridboxsize/gridboxsize_knmi)
-    # SVF_knmi = SVF_knmi[::ratio_resolution,::ratio_resolution]
-    # [x_len,y_len] = np.shape(SVF_knmi)
-    # max_radius = int(max_radius/gridboxsize)
-    # SVF_knmi = SVF_knmi[max_radius:x_len-max_radius,max_radius:y_len-max_radius]
-    # if [x_len,y_len] != SVF_matrix.shape:
-    #     print("The matrices are not the same shape")
-    # blocklength = int(x_len-2*max_radius)*(y_len-2*max_radius)
-    # dif_array = np.array([blocklength])
-    # rel_dif_array = np.array([blocklength])
-    # idx = 0
-    # for i in range(x_len-2*max_radius):
-    #     for j in range(y_len-2*max_radius):
-    #         """Check what the difference is in SVF"""
-    #         dif_array[idx] = SVF_knmi[i,j]-SVF_matrix[i,j]
-    #         rel_dif_array[idx] = (SVF_knmi[i,j]-SVF_matrix[i,j])/SVF_knmi[i,j]
-    #         idx += 1
-    """Try 2: we reshape the KNMI one to the list"""
     SVF_knmi = tf.imread(SVF_knmi1)
-    ratio_resolution = int(gridboxsize/gridboxsize_knmi)
-    SVF_knmi = SVF_knmi[::ratio_resolution,::ratio_resolution]
     [x_len,y_len] = np.shape(SVF_knmi)
-    max_radius = int(max_radius/gridboxsize)
-    SVF_knmi = SVF_knmi[max_radius:x_len-max_radius,max_radius:y_len-max_radius]
-    # if [x_len,y_len] != SVF_matrix.shape:
-    #     print("The matrices are not the same shape")
-    blocklength = int(x_len-2*max_radius)*(y_len-2*max_radius)
-    # dif_array = np.array([blocklength])
-    # rel_dif_array = np.array([blocklength])
+    blocklength = x_len*y_len
+    dif_array = np.array([blocklength])
+    rel_dif_array = np.array([blocklength])
     idx = 0
-    KNMI_list = []
-    rowcount_center = 0
-    rowcount_block = blocklength
-    for i in range(x_len):
-        for j in range(y_len):
-            #if ((x_len/4)<=i and i<(3*x_len/4) and (y_len/4)<=j and j<(3*y_len/4)):
-            if ((max_radius)<=i and i<(x_len-max_radius) and (max_radius)<=j and j<(y_len-max_radius)):
-                #KNMI_list[rowcount_center,0] = i
-                #KNMI_list[rowcount_center,1] = j
-                KNMI_list[rowcount_center] = SVF_knmi[i,j]
-                rowcount_center += 1
-            #elif (i<(x_len/4) or i>=(3*x_len/4) or j<(y_len/4) or j>=(3*y_len/4)):
-            # elif (i<(max_radius) or i>=(x_len-max_radius) or j<(max_radius) or j>=(y_len-max_radius)):
-            #     #KNMI_list[rowcount_block,0] = i
-            #     #KNMI_list[rowcount_block,1] = j
-            #     KNMI_list[rowcount_block] = SVF_knmi[i,j]
-            #     rowcount_block += 1
-    # for i in range(x_len-2*max_radius):
-    #     for j in range(y_len-2*max_radius):
-    #       """Check what the difference is in SVF"""
-    #       dif_array[idx] = SVF_knmi[i,j]-SVF_matrix[i,j]
-    #       rel_dif_array[idx] = (SVF_knmi[i,j]-SVF_matrix[i,j])/SVF_knmi[i,j]
-    #       idx += 1
-    if KNMI_list.shape != SVFs.shape:
-        print("The lists are not the same shape")
-    dif_array = KNMI_list-SVFs
-    rel_dif_array = (KNMI_list-SVFs)/KNMI_list
+    if matrix == True:
+        ratio_resolution = int(gridboxsize/gridboxsize_knmi)
+        SVF_knmi = SVF_knmi[::ratio_resolution,::ratio_resolution]
+        if SVFs.shape != SVF_knmi.shape:
+            print("The matrices are not the same shape")
+        for i in range(x_len/2):
+            for j in range(y_len/2):
+                """Check what the difference is in SVF"""
+                dif_array[idx] = SVF_knmi[i,j]-SVFs[i,j]
+                rel_dif_array[idx] = (SVF_knmi[i,j]-SVFs[i,j])/SVF_knmi[i,j]
+                idx += 1
+    elif matrix == False:
+        """Try 2: we reshape the KNMI one to the list"""
+        KNMI_list = []
+        rowcount_center = 0
+        for i in range(x_len):
+            for j in range(y_len):
+                if ((x_len/4)<=i and i<(3*x_len/4) and (y_len/4)<=j and j<(3*y_len/4)):
+                    KNMI_list[rowcount_center] = SVF_knmi[i,j]
+                    rowcount_center += 1
+        if KNMI_list.shape != SVFs.shape:
+            print("The lists are not the same shape")
+        dif_array = KNMI_list-SVFs
+        rel_dif_array = (KNMI_list-SVFs)/KNMI_list
 
     """Return the mean of the relative difference"""
     print("The relative error is " + str(np.mean(rel_dif_array)*100) + "%")

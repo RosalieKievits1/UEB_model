@@ -1,5 +1,10 @@
 import numpy as np
-"""Longitud and latitude of rotterdam in degrees"""
+import matplotlib.pyplot as plt
+import pandas as pd
+import csv
+import Constants
+
+"""Longitude and latitude of rotterdam in degrees"""
 
 
 def solarpos(julian_day,latitude,longitude,hour,radians=True):
@@ -15,7 +20,7 @@ def solarpos(julian_day,latitude,longitude,hour,radians=True):
     long_tz = 15
     day_rel = (julian_day)*360/365.25
     EOT = -0.128*np.sin(day_rel-2.80)-0.165*np.sin(2*day_rel+19.7)
-    T = hour-1+(longitude-long_tz)/15+EOT
+    T = hour+(longitude-long_tz)/15+EOT
 
     """Compute the daily declination value"""
     latitude = latitude*np.pi/180
@@ -36,15 +41,58 @@ def solarpos(julian_day,latitude,longitude,hour,radians=True):
         elif T>12:
             azimuth = np.pi-azimuth
 
+    """Correct to measure from north"""
+    azimuth = azimuth+np.pi
+
     """Transform to degrees if we set the boolean radians to false"""
     """The azimuth angle is 0 when the sun is south and positive westwards"""
     if (radians==False):
         azimuth = azimuth*180/np.pi
-        azimuth = azimuth+180
+        azimuth = azimuth % 360
+        #azimuth = azimuth+180
         zenith = zenith*180/np.pi
 
-    """Correct to measure from north"""
-    azimuth = azimuth+np.pi
+
 
     return azimuth,zenith
+
+
+# df = pd.read_csv('SolarposNov1.csv')
+# print(df)
+#
+# with open("SolarposNov1.csv", 'r') as file:
+#     a = []
+#     gamma = []
+#     t = []
+#     csvreader = csv.reader(file, delimiter=';')
+#     for row in csvreader:
+#         t.append(row[0])
+#         a.append(row[1])
+#         gamma.append(row[2])
+#
+# t = t[1::4]
+# a = a[1::4]
+# gamma = gamma[1::4]
+# for i in range(len(a)):
+#     a[i] = float(a[i])
+#     gamma[i] = float(gamma[i])
+#
+# hour = np.linspace(0,24,25)
+# azis = np.zeros([len(hour)])
+# zens = np.zeros([len(hour)])
+# for t in range(len(hour)):
+#     int(t)
+#     [azis[t], zens[t]] = solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hour[t],radians=False)
+#
+# zero = np.zeros([len(hour)])
+# plt.figure()
+# plt.plot(hour,zens,label='Azimuth angle according to formula')
+# #plt.plot(hour,a, label ='Azimuth angle according to source')
+# plt.plot(hour,zero,label = 'Zero line: divides day and nighttime')
+# plt.xlabel('time [h]')
+# plt.legend()
+# plt.ylabel('angle [degrees]')
+# plt.title('The Zenith angle of the sun versus the time of the day in hours, on nov 1st')
+# plt.show()
+
 

@@ -102,5 +102,5 @@ p_trop = 1.089e5 # [Pa] pressure at first atmospheric level (troposphere), accor
 latitude = 51.9
 long_rd = 4.46
 "Julian day and hour of the day in local mean time"
-julianday = 291 #18 oct
-hour = 11.5 # 11:30 am
+julianday = 305 #1 nov
+hour = 10.5 # 10:30 am
