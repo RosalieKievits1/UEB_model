@@ -40,18 +40,18 @@ minheight = 1
 # dtm4 = "".join([input_dir, '/M5_37HN1.TIF'])
 # dsm4 = "".join([input_dir, '/R5_37HN1.TIF'])
 
-# linksboven
-dtm1 = "".join([input_dir, '/M5_37HN1.TIF'])
-dsm1 = "".join([input_dir, '/R5_37HN1.TIF'])
-# rechtsboven
-dtm2 = "".join([input_dir, '/M5_37HN2.TIF'])
-dsm2 = "".join([input_dir, '/R5_37HN2.TIF'])
-# linksonder
-dtm3 = "".join([input_dir, '/M5_37HZ1.TIF'])
-dsm3 = "".join([input_dir, '/R5_37HZ1.TIF'])
-# rechtsonder
-dtm4 = "".join([input_dir, '/M5_37HZ2.TIF'])
-dsm4 = "".join([input_dir, '/R5_37HZ2.TIF'])
+# # linksboven
+# dtm1 = "".join([input_dir, '/M5_37HN1.TIF'])
+# dsm1 = "".join([input_dir, '/R5_37HN1.TIF'])
+# # rechtsboven
+# dtm2 = "".join([input_dir, '/M5_37HN2.TIF'])
+# dsm2 = "".join([input_dir, '/R5_37HN2.TIF'])
+# # linksonder
+# dtm3 = "".join([input_dir, '/M5_37HZ1.TIF'])
+# dsm3 = "".join([input_dir, '/R5_37HZ1.TIF'])
+# # rechtsonder
+# dtm4 = "".join([input_dir, '/M5_37HZ2.TIF'])
+# dsm4 = "".join([input_dir, '/R5_37HZ2.TIF'])
 
 def readdata(minheight,dsm,dtm):
     """dsm (all info, with building)"""
@@ -382,13 +382,17 @@ def wallArea(data):
     wall_area_total = np.sum(wall_area)
     return wall_area, wall_area_total
 
-# data = readdata(minheight,dsm1,dtm1)
-# print(data.shape)
-# coords = coordheight(data)
-# #for c in coords[0::10000]:
-#     #print(SkyViewFactor(c,coords,max_radius,gridboxsize_05))
-# svf = SkyViewFactor(coords[0,:],coords,max_radius,gridboxsize)
-
+dtm_HN1 = "".join([input_dir, '/M_37HN1.TIF'])
+dsm_HN1 = "".join([input_dir, '/R_37HN1.TIF'])
+data = readdata(minheight,dsm_HN1,dtm_HN1)
+coords = coordheight(data)
+print("Coords are created")
+SVFs = reshape_SVF(data, coords,300,20,reshape=False,save_CSV=False,save_Im=True)
+print(SVFs)
+download_directory =  config.input_dir_knmi
+SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.TIF'])
+print("knmi svf is read")
+KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize_05,gridboxsize_knmi,matrix=False)
 "Fisheye plot"
 # # linksboven
 # dtm1 = "".join([input_dir, '/M5_37HN1.TIF'])
