@@ -386,9 +386,11 @@ dtm_HN1 = "".join([input_dir, '/M_37HN1.TIF'])
 dsm_HN1 = "".join([input_dir, '/R_37HN1.TIF'])
 data = readdata(minheight,dsm_HN1,dtm_HN1)
 [x_long, y_long] = data.shape
-data = data[int(4*x_long/5):,:int(4*y_long/5):]
+data = data[int(4*x_long/5):,int(4*y_long/5):]
 coords = coordheight(data)
 print("Coords are created")
+
+
 SVFs = reshape_SVF(data, coords,gridboxsize_05,300,20,reshape=False,save_CSV=False,save_Im=False)
 print(SVFs)
 download_directory = config.input_dir_knmi
@@ -396,7 +398,7 @@ SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.TIF'])
 SVF_knmi_HN1 = SVF_knmi_HN1[int(4*x_long/5):,:int(4*y_long/5):]
 print("knmi svf is read")
 KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize_05,gridboxsize_knmi,matrix=False)
-"Fisheye plot"
+# "Fisheye plot"
 # # linksboven
 # dtm1 = "".join([input_dir, '/M5_37HN1.TIF'])
 # dsm1 = "".join([input_dir, '/R5_37HN1.TIF'])
@@ -427,7 +429,7 @@ KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize_05,gridboxsize_
 
 "Here we print the info of the run:"
 print("gridboxsize is " + str(gridboxsize))
-print("part is 5th (last) up, 5th (last) left")
+print("part is 5th up, 5th left")
 print("Data block is HN1")
 
 "Time elapsed"
