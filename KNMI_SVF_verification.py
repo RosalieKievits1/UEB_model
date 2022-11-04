@@ -9,6 +9,7 @@ from typing import Dict
 from typing import List
 from typing import Tuple
 import tifffile as tf
+import config
 
 import requests
 from requests import Session
@@ -16,11 +17,6 @@ from requests import Session
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(os.environ.get("LOG_LEVEL", logging.INFO))
-
-# SVF_knmi1 = "SVF_r37hn1"
-# SVF_knmi2 = "SVF_r37hn2"
-# SVF_knmi3 = "SVF_r37hz1"
-# SVF_knmi4 = "SVF_r37hz2"
 
 def download_dataset_file(
     session: Session,
@@ -211,11 +207,11 @@ async def main():
 #     asyncio.run(main())
 """"""
 
-download_directory =  '/Users/rosaliekievits/Desktop/SVFbestandenMEP/' #config.input_dir_knmi
-SVF_knmi1 = str(download_directory) + '/SVF_r37hn1.TIF'
-SVF_knmi2 = str(download_directory) + '/SVF_r37hn2.TIF'
-SVF_knmi3 = str(download_directory) + '/SVF_r37hz1.TIF'
-SVF_knmi4 = str(download_directory) + '/SVF_r37hz2.TIF'
+download_directory =  config.input_dir_knmi
+SVF_knmi1 = "".join([download_directory, '/SVF_r37hn1.TIF'])
+SVF_knmi2 = "".join([download_directory, '/SVF_r37hn2.TIF'])
+SVF_knmi3 = "".join([download_directory, '/SVF_r37hz1.TIF'])
+SVF_knmi4 = "".join([download_directory, '/SVF_r37hz2.TIF'])
 
 def Verification(SVFs,SVF_knmi1, gridboxsize, gridboxsize_knmi,matrix):
     """The knmi matrix is based on a different resolution gridboxsize"""
