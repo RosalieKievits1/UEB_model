@@ -18,7 +18,7 @@ input_dir = config.input_dir
 steps_beta = 360 # so we range in steps of 2 degrees
 max_radius = 100 # max radius is 1000 m
 """define the gridboxsize of the model"""
-gridboxsize = 0.5
+gridboxsize = 5
 gridboxsize_05 = 0.5
 gridboxsize_knmi = 0.5
 """objects below 1 m we do not look at"""
@@ -396,21 +396,22 @@ def wallArea(data,gridboxsize):
 # plt.ylabel("SVF")
 # plt.show()
 
-dtm_HN1 = "".join([input_dir, '/M_37HN1.TIF'])
-dsm_HN1 = "".join([input_dir, '/R_37HN1.TIF'])
+dtm_HN1 = "".join([input_dir, '/M5_37HN1.TIF'])
+dsm_HN1 = "".join([input_dir, '/R5_37HN1.TIF'])
 data = readdata(minheight,dsm_HN1,dtm_HN1)
 [x_long, y_long] = data.shape
+grid_ratio = int(gridboxsize/gridboxsize_knmi)
 data = data[:int(x_long/5),:int(y_long/5)]
 coords = coordheight(data)
 #blocklength = 312500
 
-SVFs = reshape_SVF(data, coords,gridboxsize_05,300,20,reshape=False,save_CSV=False,save_Im=False)
+SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=False,save_Im=False)
 print(SVFs)
 download_directory = config.input_dir_knmi
 SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.TIF'])
-SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
+SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5):grid_ratio,:int(y_long/5):grid_ratio]
 print("knmi svf is read")
-KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize_05,gridboxsize_knmi,matrix=False)
+KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,gridboxsize_knmi,matrix=False)
 # "Fisheye plot"
 # # linksboven
 # dtm1 = "".join([input_dir, '/M5_37HN1.TIF'])
