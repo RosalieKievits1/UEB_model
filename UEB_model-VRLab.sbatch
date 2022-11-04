@@ -4,7 +4,7 @@
 #SBATCH --error=UEB_model-%j.err
 #SBATCH --nodes=1
 #SBATCH --partition=inf
-#SBATCH --mem=700000M
+#SBATCH --mem=150000M
 #SBATCH --tasks-per-node=1
 
 # Load Python 3.9.7
