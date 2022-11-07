@@ -404,11 +404,11 @@ grid_ratio = int(gridboxsize/gridboxsize_knmi)
 data = data[:int(x_long/5),:int(y_long/5)]
 coords = coordheight(data)
 #blocklength = 312500
-
 SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=False,save_Im=False)
 print(SVFs)
 download_directory = config.input_dir_knmi
 SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.TIF'])
+SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
 SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5):grid_ratio,:int(y_long/5):grid_ratio]
 print("knmi svf is read")
 KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,gridboxsize_knmi,matrix=False)

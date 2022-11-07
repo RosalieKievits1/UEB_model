@@ -213,17 +213,14 @@ SVF_knmi2 = "".join([download_directory, '/SVF_r37hn2.TIF'])
 SVF_knmi3 = "".join([download_directory, '/SVF_r37hz1.TIF'])
 SVF_knmi4 = "".join([download_directory, '/SVF_r37hz2.TIF'])
 
-def Verification(SVFs,SVF_knmi1, gridboxsize, gridboxsize_knmi,matrix):
+def Verification(SVFs,SVF_knmi, gridboxsize, gridboxsize_knmi,matrix):
     """The knmi matrix is based on a different resolution gridboxsize"""
-    SVF_knmi = tf.imread(SVF_knmi1)
     [x_len,y_len] = np.shape(SVF_knmi)
     blocklength = x_len*y_len
     dif_array = np.array([blocklength])
     rel_dif_array = np.array([blocklength])
     idx = 0
     if matrix == True:
-        ratio_resolution = int(gridboxsize/gridboxsize_knmi)
-        SVF_knmi = SVF_knmi[::ratio_resolution,::ratio_resolution]
         if SVFs.shape != SVF_knmi.shape:
             print("The matrices are not the same shape")
         for i in range(x_len/2):
