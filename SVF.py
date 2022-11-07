@@ -18,7 +18,7 @@ input_dir = config.input_dir
 steps_beta = 360 # so we range in steps of 2 degrees
 max_radius = 100 # max radius is 1000 m
 """define the gridboxsize of the model"""
-gridboxsize = 0.5
+gridboxsize = 5
 gridboxsize_knmi = 0.5
 """objects below 1 m we do not look at"""
 minheight = 1
@@ -125,20 +125,20 @@ def coordheight(data):
     coords = np.ndarray([x_len*y_len,3])
     """ so we start with the list of coordinates with all the points we want to evaluate
     all other points are after that, for this we use 2 different counters."""
-    #rowcount_block = int((x_len-2*max_radius/gridboxsize)*(y_len-2*max_radius/gridboxsize)) #int((x_len/2)*(y_len/2))
-    rowcount_block = int(x_len/2*y_len/2)
+    rowcount_block = int((x_len-2*max_radius/gridboxsize)*(y_len-2*max_radius/gridboxsize)) #int((x_len/2)*(y_len/2))
+    #rowcount_block = int(x_len/2*y_len/2)
     rowcount_center = 0
     """we need to make a list of coordinates where the center block is first"""
     for i in range(x_len):
         for j in range(y_len):
-            #if ((max_radius/gridboxsize)<=i and i<(x_len-max_radius/gridboxsize) and (max_radius/gridboxsize)<=j and j<(y_len-max_radius/gridboxsize)):
-            if ((x_len/4)<=i and i<(3*x_len/4) and (y_len/4)<=j and j<(3*y_len/4)):
+            if ((max_radius/gridboxsize)<=i and i<(x_len-max_radius/gridboxsize) and (max_radius/gridboxsize)<=j and j<(y_len-max_radius/gridboxsize)):
+            #if ((x_len/4)<=i and i<(3*x_len/4) and (y_len/4)<=j and j<(3*y_len/4)):
                 coords[rowcount_center,0] = i
                 coords[rowcount_center,1] = j
                 coords[rowcount_center,2] = data[i,j]
                 rowcount_center += 1
-            #elif (i<(max_radius/gridboxsize) or i>=(x_len-max_radius/gridboxsize) or j<(max_radius/gridboxsize) or j>=(y_len-max_radius/gridboxsize)):
-            elif (i<(x_len/4) or i>=(3*x_len/4) or j<(y_len/4) or j>=(3*y_len/4)):
+            elif (i<(max_radius/gridboxsize) or i>=(x_len-max_radius/gridboxsize) or j<(max_radius/gridboxsize) or j>=(y_len-max_radius/gridboxsize)):
+            #elif (i<(x_len/4) or i>=(3*x_len/4) or j<(y_len/4) or j>=(3*y_len/4)):
                 coords[rowcount_block,0] = i
                 coords[rowcount_block,1] = j
                 coords[rowcount_block,2] = data[i,j]
@@ -292,15 +292,15 @@ def shadowfactor(point, coords, azimuth,elevation_angle):
 
 def reshape_SVF(data, coords,gridboxsize,azimuth,zenith,reshape,save_CSV,save_Im):
     [x_len, y_len] = data.shape
-    blocklength = int(x_len/2*y_len/2)
-    #blocklength = int((x_len-2*max_radius/gridboxsize)*(y_len-2*max_radius/gridboxsize))
+    #blocklength = int(x_len/2*y_len/2)
+    blocklength = int((x_len-2*max_radius/gridboxsize)*(y_len-2*max_radius/gridboxsize))
     "Compute SVF and SF and Reshape the shadow factors and SVF back to nd array"
     SVFs = calc_SVF(coords, max_radius, blocklength, gridboxsize)
     #SFs = calc_SF(coords,azimuth,zenith,blocklength)
     "If reshape is true we reshape the arrays to the original data matrix"
     if (reshape == True) & (SVFs is not None):
-        #SVF_matrix = np.ndarray([x_len-2*max_radius/gridboxsize,y_len-2*max_radius/gridboxsize])
-        SVF_matrix = np.ndarray([x_len/2,y_len/2])
+        SVF_matrix = np.ndarray([x_len-2*max_radius/gridboxsize,y_len-2*max_radius/gridboxsize])
+        #SVF_matrix = np.ndarray([x_len/2,y_len/2])
         #SF_matrix = np.ndarray([x_len,y_len])
         for i in range(blocklength):
             #SVF_matrix[coords[i,0]-max_radius/gridboxsize,coords[i,1]-max_radius/gridboxsize] = SVFs[i]
@@ -408,25 +408,25 @@ dsm_HN1 = "".join([input_dir, '/R_37HN1.TIF'])
 data = readdata(minheight,dsm_HN1,dtm_HN1)
 [x_long, y_long] = data.shape
 grid_ratio = int(gridboxsize/gridboxsize_knmi)
-data = data[:int(x_long/5),:int(y_long/5)]
+#data = data[:int(x_long/5),:int(y_long/5)]
 coords = coordheight(data)
 SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=False,save_Im=False)
 print(SVFs)
 download_directory = config.input_dir_knmi
 SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.TIF'])
 SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
-SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
+#SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
 "We want to take the mean of the SVF values over a gridsize of gridratio"
-# SVF_means = np.ndarray([x_long,y_long])
-# for i in range(x_long):
-#     for j in range(y_long):
-#         part = SVF_knmi_HN1[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
-#         SVF_means[i,j] = np.mean(part)
-# print(SVF_means.shape)
+SVF_means = np.ndarray([x_long,y_long])
+for i in range(x_long):
+    for j in range(y_long):
+        part = SVF_knmi_HN1[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
+        SVF_means[i,j] = np.mean(part)
+#print(SVF_means.shape)
 
 print("knmi svf is read")
 
-KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
+KNMI_SVF_verification.Verification(SVFs,SVF_means,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
 "Fisheye plot"
 # # linksboven
 # dtm1 = "".join([input_dir, '/M_37HN1.TIF'])
@@ -466,7 +466,7 @@ KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,grid
 print("gridboxsize is " + str(gridboxsize))
 print("part is 1st up, 1st left")
 print("Data block is HN1")
-#print("Averaged KNMI svf vor 5 m grid to compare with 5m run, maxradius = 500m")
+print("Averaged KNMI svf vor 5 m grid to compare with 5m run, maxradius = 500m")
 
 "Time elapsed"
 endtime = time.time()
