@@ -209,7 +209,7 @@ def SkyViewFactor(point, coords, max_radius,gridboxsize):
     areas = d_area(betas, steps_beta, max_radius)
     """The SVF is the fraction of area of the dome that is not blocked"""
     SVF = np.around((dome_area - np.sum(areas))/dome_area, 3)
-    return SVF, areas
+    return SVF
 
 def calc_SVF(coords, max_radius, blocklength, gridboxsize):
     """
