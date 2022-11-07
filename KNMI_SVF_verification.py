@@ -213,10 +213,11 @@ SVF_knmi2 = "".join([download_directory, '/SVF_r37hn2.TIF'])
 SVF_knmi3 = "".join([download_directory, '/SVF_r37hz1.TIF'])
 SVF_knmi4 = "".join([download_directory, '/SVF_r37hz2.TIF'])
 
-def Verification(SVFs,SVF_knmi, gridboxsize, gridboxsize_knmi,matrix):
+def Verification(SVFs,SVF_knmi, gridboxsize, max_radius, gridboxsize_knmi,matrix):
     """The knmi matrix is based on a different resolution gridboxsize"""
     [x_len,y_len] = np.shape(SVF_knmi)
-    blocklength = x_len*y_len
+    #blocklength = x_len/2*y_len/2
+    blocklength = int((x_len-2*max_radius/gridboxsize)*(y_len-2*max_radius/gridboxsize))
     dif_array = np.array([blocklength])
     rel_dif_array = np.array([blocklength])
     idx = 0
@@ -235,9 +236,11 @@ def Verification(SVFs,SVF_knmi, gridboxsize, gridboxsize_knmi,matrix):
         rowcount_center = 0
         for i in range(x_len):
             for j in range(y_len):
-                if ((x_len/4)<=i and i<(3*x_len/4) and (y_len/4)<=j and j<(3*y_len/4)):
+                if ((max_radius/gridboxsize)<=i and i<(x_len-max_radius/gridboxsize) and (max_radius/gridboxsize)<=j and j<(y_len-max_radius/gridboxsize)):
+                #if ((x_len/4)<=i and i<(3*x_len/4) and (y_len/4)<=j and j<(3*y_len/4)):
                     KNMI_list[rowcount_center] = SVF_knmi[i,j]
                     rowcount_center += 1
+        KNMI_list = KNMI_list[:]
         if KNMI_list.shape != SVFs.shape:
             print("The lists are not the same shape")
         dif_array = KNMI_list-SVFs
