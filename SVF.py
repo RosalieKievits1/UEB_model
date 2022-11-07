@@ -403,8 +403,8 @@ def wallArea(data,gridboxsize):
 # plt.ylabel("SVF")
 # plt.show()
 
-dtm_HN1 = "".join([input_dir, '/M_37HN1.TIF'])
-dsm_HN1 = "".join([input_dir, '/R_37HN1.TIF'])
+dtm_HN1 = "".join([input_dir, '/M5_37HN1.TIF'])
+dsm_HN1 = "".join([input_dir, '/R5_37HN1.TIF'])
 data = readdata(minheight,dsm_HN1,dtm_HN1)
 [x_long, y_long] = data.shape
 grid_ratio = int(gridboxsize/gridboxsize_knmi)
