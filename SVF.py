@@ -127,6 +127,7 @@ def coordheight(data):
     """ so we start with the list of coordinates with all the points we want to evaluate
     all other points are after that, for this we use 2 different counters."""
     rowcount_block = int((x_len-2*max_radius/gridboxsize)*(y_len-2*max_radius/gridboxsize)) #int((x_len/2)*(y_len/2))
+    #rowcount_block = x_len/2*y_len/2
     rowcount_center = 0
     """we need to make a list of coordinates where the center block is first"""
     for i in range(x_len):
@@ -291,7 +292,7 @@ def shadowfactor(point, coords, azimuth,elevation_angle):
 def reshape_SVF(data, coords,gridboxsize,azimuth,zenith,reshape,save_CSV,save_Im):
     [x_len, y_len] = data.shape
     #blocklength = int(x_len/2*y_len/2)
-    blocklength = int((x_long-2*max_radius/gridboxsize)*(y_long-2*max_radius/gridboxsize))
+    blocklength = int((x_len-2*max_radius/gridboxsize)*(y_len-2*max_radius/gridboxsize))
     "Compute SVF and SF and Reshape the shadow factors and SVF back to nd array"
     SVFs = calc_SVF(coords, max_radius, blocklength, gridboxsize)
     #SFs = calc_SF(coords,azimuth,zenith,blocklength)
@@ -406,7 +407,7 @@ dsm_HN1 = "".join([input_dir, '/R5_37HN1.TIF'])
 data = readdata(minheight,dsm_HN1,dtm_HN1)
 [x_long, y_long] = data.shape
 grid_ratio = int(gridboxsize/gridboxsize_knmi)
-#data = data[:int(x_long/5),:int(y_long/5)]
+data = data[:int(x_long/5),:int(y_long/5)]
 coords = coordheight(data)
 SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=False,save_Im=False)
 print(SVFs)
@@ -433,9 +434,9 @@ KNMI_SVF_verification.Verification(SVFs,SVF_means,gridboxsize,max_radius,gridbox
 # print(x_len/2*y_len/2)
 # coords = coordheight(data)
 # [svf, areas] = SkyViewFactor(coords[500,:],coords,max_radius,gridboxsize)
-
-"Make fisheye plot"
-
+#
+# "Make fisheye plot"
+#
 # point = coords[int(0),:]
 # bottom = 0
 # max_area = max_radius**2 * 2 * np.pi / steps_beta
@@ -454,7 +455,7 @@ KNMI_SVF_verification.Verification(SVFs,SVF_means,gridboxsize,max_radius,gridbox
 #     bar.set_facecolor("lightblue")#(plt.cm.jet(r / 10.))
 #     bar.set_alpha(0.8)
 #
-# plt.show()
+#plt.show()
 
 "Here we print the info of the run:"
 print("gridboxsize is " + str(gridboxsize))
