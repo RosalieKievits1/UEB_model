@@ -18,7 +18,7 @@ input_dir = config.input_dir
 steps_beta = 360 # so we range in steps of 2 degrees
 max_radius = 100 # max radius is 1000 m
 """define the gridboxsize of the model"""
-gridboxsize = 5
+gridboxsize = 0.5
 gridboxsize_05 = 0.5
 gridboxsize_knmi = 0.5
 """objects below 1 m we do not look at"""
@@ -205,7 +205,7 @@ def SkyViewFactor(point, coords, max_radius,gridboxsize):
     areas = d_area(betas, steps_beta, max_radius)
     """The SVF is the fraction of area of the dome that is not blocked"""
     SVF = np.around((dome_area - np.sum(areas))/dome_area, 3)
-    return SVF, areas
+    return SVF
 
 def calc_SVF(coords, max_radius, blocklength, gridboxsize):
     """
@@ -396,8 +396,8 @@ def wallArea(data,gridboxsize):
 # plt.ylabel("SVF")
 # plt.show()
 
-dtm_HN1 = "".join([input_dir, '/M5_37HN1.TIF'])
-dsm_HN1 = "".join([input_dir, '/R5_37HN1.TIF'])
+dtm_HN1 = "".join([input_dir, '/M_37HN1.TIF'])
+dsm_HN1 = "".join([input_dir, '/R_37HN1.TIF'])
 data = readdata(minheight,dsm_HN1,dtm_HN1)
 [x_long, y_long] = data.shape
 grid_ratio = int(gridboxsize/gridboxsize_knmi)
