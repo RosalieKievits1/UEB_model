@@ -1,8 +1,8 @@
 import numpy as np
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 # import pandas as pd
 # import csv
-# import Constants
+import Constants
 
 """Longitude and latitude of rotterdam in degrees"""
 
@@ -74,22 +74,32 @@ def solarpos(julian_day,latitude,longitude,hour,radians=True):
 #     a[i] = float(a[i])
 #     gamma[i] = float(gamma[i])
 #
-# hour = np.linspace(0,24,25)
+# hour = np.linspace(0,24,25, dtype=int)
+# Julianday = np.linspace(305,311,7,dtype=int)
+# plt.figure()
 # azis = np.zeros([len(hour)])
 # zens = np.zeros([len(hour)])
-# for t in range(len(hour)):
-#     int(t)
-#     [azis[t], zens[t]] = solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hour[t],radians=False)
-#
-# zero = np.zeros([len(hour)])
-# plt.figure()
-# plt.plot(hour,zens,label='Azimuth angle according to formula')
-# #plt.plot(hour,a, label ='Azimuth angle according to source')
-# plt.plot(hour,zero,label = 'Zero line: divides day and nighttime')
+# for d in range(len(Julianday)):
+#     for t in range(len(hour)):
+#         [azis[t], zens[t]] = solarpos(Julianday[d],Constants.latitude,Constants.long_rd,hour[t],radians=False)
+#     plt.plot(hour,zens,label=str(Julianday[d]-304) + ' Nov')
 # plt.xlabel('time [h]')
-# plt.legend()
+# plt.legend(loc='upper left')
 # plt.ylabel('angle [degrees]')
-# plt.title('The Zenith angle of the sun versus the time of the day in hours, on nov 1st')
 # plt.show()
 
+# hour = np.linspace(10,14,24)
+# Julianday = np.linspace(305,312,8,dtype=int)
+# plt.figure()
+# azis = np.zeros([len(hour)])
+# zens = np.zeros([len(hour)])
+#
+# for d in range(len(Julianday)):
+#     for t in range(len(hour)):
+#         [azis[t], zens[t]] = solarpos(Julianday[d],Constants.latitude,Constants.long_rd,hour[t],radians=False)
+#     plt.plot(hour,azis,label='Nov ' + str(Julianday[d]-304))
+# plt.xlabel('time [h]')
+# plt.legend(loc='upper right')
+# plt.ylabel('azimuth angle [degrees]')
+# plt.show()
 
