@@ -6,7 +6,6 @@ from tqdm import tqdm
 import config
 from functools import partial
 import time
-import csv
 import KNMI_SVF_verification
 import Constants
 import Sunpos
@@ -18,7 +17,7 @@ input_dir = config.input_dir
 steps_beta = 360 # so we range in steps of 1 degree
 max_radius = 100 # max radius is 100 m
 """define the gridboxsize of the model"""
-gridboxsize = 0.5
+gridboxsize = 5
 gridboxsize_knmi = 0.5
 """objects below 1 m we do not look at"""
 minheight = 1
@@ -306,19 +305,19 @@ def shadowfactor(point, coords, azimuth,elevation_angle):
 
 def reshape_SVF(data, coords,gridboxsize,azimuth,zenith,reshape,save_CSV,save_Im):
     [x_len, y_len] = data.shape
-    blocklength = int(x_len/2*y_len/2)
-    #blocklength = int((x_len-2*max_radius/gridboxsize)*(y_len-2*max_radius/gridboxsize))
+    #blocklength = int(x_len/2*y_len/2)
+    blocklength = int((x_len-2*max_radius/gridboxsize)*(y_len-2*max_radius/gridboxsize))
     "Compute SVF and SF and Reshape the shadow factors and SVF back to nd array"
     SVFs = calc_SVF(coords, max_radius, blocklength, gridboxsize)
     #SFs = calc_SF(coords,azimuth,zenith,blocklength)
     "If reshape is true we reshape the arrays to the original data matrix"
     if (reshape == True) & (SVFs is not None):
-        #SVF_matrix = np.ndarray([x_len-2*max_radius/gridboxsize,y_len-2*max_radius/gridboxsize])
-        SVF_matrix = np.ndarray([x_len/2,y_len/2])
+        SVF_matrix = np.ndarray([x_len-2*max_radius/gridboxsize,y_len-2*max_radius/gridboxsize])
+        #SVF_matrix = np.ndarray([x_len/2,y_len/2])
         #SF_matrix = np.ndarray([x_len,y_len])
         for i in range(blocklength):
-            #SVF_matrix[coords[i,0]-max_radius/gridboxsize,coords[i,1]-max_radius/gridboxsize] = SVFs[i]
-            SVF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SVFs[i]
+            SVF_matrix[coords[i,0]-max_radius/gridboxsize,coords[i,1]-max_radius/gridboxsize] = SVFs[i]
+            #SVF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SVFs[i]
             #SF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SFs[i]
         if save_CSV == True:
             np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
@@ -449,6 +448,8 @@ print("Averaged KNMI svf vor 5 m grid to compare with 5m run, maxradius = 500m")
 download_directory = config.input_dir_knmi
 SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.tif'])
 SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
+SVF_knmi_HN1[SVF_knmi_HN1>1] = 0
+SVF_knmi_HN1[SVF_knmi_HN1<0] = 0
 print('SVF_knmi is read')
 grid_ratio = int(gridboxsize/gridboxsize_knmi)
 if gridboxsize==5:

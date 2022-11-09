@@ -40,12 +40,13 @@ T_air = Functions.T_air
 # print(Functions.HeatEvolution(data,nr_steps,Constants.timestep,azimuth,zenith))
 
 """Calculate the Shadow casting for 24 hours on one day"""
-data = SVF.readdata(SVF.minheight,SVF.dsm1,SVF.dtm1)
-hour = np.linspace(0,24,25)
-for t in len(hour):
-    "Calculate the azimuth and zenith for every hour"
-    [zenith,azimuth] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hour[t],radians=True)
-
-    "Calculate average surface temperatures for roof and road surface types"
-    [t_roof_ave, t_road_ave, t_ave] = Functions.HeatEvolution(data,Constants.nr_of_steps,Constants.timestep,azimuth,zenith)
-
+# data = SVF.readdata(SVF.minheight,SVF.dsm1,SVF.dtm1)
+# hour = np.linspace(0,24,25)
+# for t in len(hour):
+#     "Calculate the azimuth and zenith for every hour"
+#     [zenith,azimuth] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hour[t],radians=True)
+#
+#     "Calculate average surface temperatures for roof and road surface types"
+#     [t_roof_ave, t_road_ave, t_ave] = Functions.HeatEvolution(data,Constants.nr_of_steps,Constants.timestep,azimuth,zenith)
+#
+Functions.PlotGreyMap(SVF.SVF_knmi_HN1,middle=False,v_max=1)
