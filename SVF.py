@@ -235,7 +235,6 @@ def calc_SVF(coords, max_radius, blocklength, gridboxsize):
     :return: SVF for all points
     """
 
-
     def parallel_runs_SVF():
         points = [coords[i,:] for i in range(blocklength)]
         pool = Pool()
@@ -304,6 +303,17 @@ def shadowfactor(point, coords, azimuth,elevation_angle):
     return Shadowfactor
 
 def reshape_SVF(data, coords,gridboxsize,azimuth,zenith,reshape,save_CSV,save_Im):
+    """
+    :param data: AHN data
+    :param coords: list of coordinates
+    :param gridboxsize: size of gridcell
+    :param azimuth: solar azimuth angle
+    :param zenith: solar elevation angle
+    :param reshape: Boolean: whether to turn the SVF/SF back to matrix form
+    :param save_CSV: Boolean: save CSV file of SVF/SF
+    :param save_Im: Boolean: save image of SVF/SF
+    :return:
+    """
     [x_len, y_len] = data.shape
     blocklength = int(x_len/2*y_len/2)
     #blocklength = int((x_len-2*max_radius/gridboxsize)*(y_len-2*max_radius/gridboxsize))
@@ -369,8 +379,22 @@ def geometricProperties(data,gridboxsize):
     H_W = ave_height*delta
     return ave_height, delta, Roof_area, wall_area_total, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac, H_W
 
+def average_svf(SVF_matrix, grid_ratio):
+    [x_long, y_long] = SVF_matrix.shape
+    SVF_ave = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
+    "We want to take the mean of the SVF values over a gridsize of gridratio"
+    for i in range(x_long):
+        for j in range(y_long):
+            part = SVF_matrix[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
+            SVF_ave[i,j] = np.mean(part)
+    return SVF_ave
 
 def wallArea(data,gridboxsize):
+    """
+    :param data: Dataset to compute the wall area over
+    :param gridboxsize: size of the grid cells
+    :return: the wallarea matrix and total wall area
+    """
     """Matrix of ones where there are buildings"""
     [x_len,y_len] = [data.shape[0], data.shape[1]]
     """Set all the water elements to 0 height again"""
@@ -444,7 +468,7 @@ print("Data block is HN1")
 print("Averaged KNMI svf vor 5 m grid to compare with 5m run, maxradius = 500m")
 
 
-# "Switch for 0.5 or 5 m"
+"Switch for 0.5 or 5 m"
 download_directory = config.input_dir_knmi
 SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.tif'])
 SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
@@ -471,11 +495,11 @@ elif gridboxsize==0.5:
     [x_long, y_long] = data.shape
     data = data[:int(x_long/5),:int(y_long/5)]
     SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
-coords = coordheight(data,gridboxsize)
-print('coords array is made')
-SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=True,save_Im=False)
-print(SVFs)
-KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
+# coords = coordheight(data,gridboxsize)
+# print('coords array is made')
+# SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=True,save_Im=False)
+# print(SVFs)
+# KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
 
 "Fisheye plot"
 # # linksboven

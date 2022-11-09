@@ -214,7 +214,16 @@ SVF_knmi3 = "".join([download_directory, '/SVF_r37hz1.TIF'])
 SVF_knmi4 = "".join([download_directory, '/SVF_r37hz2.TIF'])
 
 def Verification(SVFs,SVF_knmi, gridboxsize, max_radius, gridboxsize_knmi,matrix):
-    """The knmi matrix is based on a different resolution gridboxsize"""
+    """
+    :param SVFs: Sky view factors calculated by algorithm
+    :param SVF_knmi: sky view factors of knmi
+    :param gridboxsize: gridboxsize of calculated sky view factors
+    :param max_radius: maximum search radius
+    :param gridboxsize_knmi: gridboxsize of knmi sky view factors
+    :param matrix: boolean, whether the SVFs are inputted as a matrix
+    :return: relative error between the SVF calculated and from KNMI
+    """
+    "The knmi matrix is based on a different resolution gridboxsize"
     [x_len,y_len] = np.shape(SVF_knmi)
     if gridboxsize==0.5:
         blocklength = int(x_len/2*y_len/2)

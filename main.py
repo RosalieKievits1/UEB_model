@@ -49,4 +49,4 @@ T_air = Functions.T_air
 #     "Calculate average surface temperatures for roof and road surface types"
 #     [t_roof_ave, t_road_ave, t_ave] = Functions.HeatEvolution(data,Constants.nr_of_steps,Constants.timestep,azimuth,zenith)
 #
-Functions.PlotGreyMap(SVF.SVF_knmi_HN1,middle=False,v_max=1)
+Functions.PlotGreyMap(SVF.data,middle=False,v_max=1)
