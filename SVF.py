@@ -320,12 +320,12 @@ def reshape_SVF(data, coords,gridboxsize,azimuth,zenith,reshape,save_CSV,save_Im
             SVF_matrix[coords[i,0]-max_radius/gridboxsize,coords[i,1]-max_radius/gridboxsize] = SVFs[i]
             #SVF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SVFs[i]
             #SF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SFs[i]
-    if save_CSV == True:
-        np.savetxt("SVFmatrix.csv", SVFs, delimiter=",")
-        #np.savetxt("SFmatrix.csv", SVFs, delimiter=",")
-    if save_Im == True:
-        tf.imwrite('SVF_matrix.tif', SVF_matrix, photometric='minisblack')
-        #tf.imwrite('SF_matrix.tif', SVFs, photometric='minisblack')
+        if save_CSV == True:
+            np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
+            #np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
+        if save_Im == True:
+            tf.imwrite('SVF_matrix.tif', SVF_matrix, photometric='minisblack')
+            #tf.imwrite('SF_matrix.tif', SF_matrix, photometric='minisblack')
         return SVF_matrix#,SF_matrix
     #
     elif reshape == False:
