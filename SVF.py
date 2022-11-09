@@ -471,7 +471,7 @@ elif gridboxsize==0.5:
     SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
 coords = coordheight(data,gridboxsize)
 print('coords array is made')
-SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=False,save_Im=False)
+SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=True,save_Im=False)
 print(SVFs)
 KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
 
