@@ -15,7 +15,7 @@ sttime = time.time()
 input_dir = config.input_dir
 """Now we want to calculate the sky view factor"""
 steps_beta = 360 # so we range in steps of 1 degree
-max_radius = 100 # max radius is 100 m
+max_radius = 500 # max radius is 100 m
 """define the gridboxsize of the model"""
 gridboxsize = 5
 gridboxsize_knmi = 0.5
