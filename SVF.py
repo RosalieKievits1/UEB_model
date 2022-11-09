@@ -6,7 +6,7 @@ from tqdm import tqdm
 import config
 from functools import partial
 import time
-
+import csv
 import KNMI_SVF_verification
 import Constants
 import Sunpos
@@ -16,7 +16,7 @@ sttime = time.time()
 input_dir = config.input_dir
 """Now we want to calculate the sky view factor"""
 steps_beta = 360 # so we range in steps of 1 degree
-max_radius = 100 # max radius is 100 m
+max_radius = 500 # max radius is 100 m
 """define the gridboxsize of the model"""
 gridboxsize = 5
 gridboxsize_knmi = 0.5
@@ -317,15 +317,15 @@ def reshape_SVF(data, coords,gridboxsize,azimuth,zenith,reshape,save_CSV,save_Im
         #SVF_matrix = np.ndarray([x_len/2,y_len/2])
         #SF_matrix = np.ndarray([x_len,y_len])
         for i in range(blocklength):
-            #SVF_matrix[coords[i,0]-max_radius/gridboxsize,coords[i,1]-max_radius/gridboxsize] = SVFs[i]
-            SVF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SVFs[i]
+            SVF_matrix[coords[i,0]-max_radius/gridboxsize,coords[i,1]-max_radius/gridboxsize] = SVFs[i]
+            #SVF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SVFs[i]
             #SF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SFs[i]
-        if save_CSV == True:
-            np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
-            #np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
-        if save_Im == True:
-            tf.imwrite('SVF_matrix.tif', SVF_matrix, photometric='minisblack')
-            #tf.imwrite('SF_matrix.tif', SF_matrix, photometric='minisblack')
+    if save_CSV == True:
+        np.savetxt("SVFmatrix.csv", SVFs, delimiter=",")
+        #np.savetxt("SFmatrix.csv", SVFs, delimiter=",")
+    if save_Im == True:
+        tf.imwrite('SVF_matrix.tif', SVF_matrix, photometric='minisblack')
+        #tf.imwrite('SF_matrix.tif', SVFs, photometric='minisblack')
         return SVF_matrix#,SF_matrix
     #
     elif reshape == False:
@@ -436,19 +436,27 @@ def wallArea(data,gridboxsize):
 # plt.xlabel("Angular steps")
 # plt.ylabel("SVF")
 # plt.show()
-"Switch for 0.5 or 5 m"
-download_directory = config.input_dir_knmi
-SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.TIF'])
-SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
-grid_ratio = int(gridboxsize/gridboxsize_knmi)
 
+"Here we print the info of the run:"
+print("gridboxsize is " + str(gridboxsize))
+print("part is 1st up, 1st left")
+print("Data block is HN1")
+print("Averaged KNMI svf vor 5 m grid to compare with 5m run, maxradius = 500m")
+
+
+# "Switch for 0.5 or 5 m"
+download_directory = config.input_dir_knmi
+SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.tif'])
+SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
+print('SVF_knmi is read')
+grid_ratio = int(gridboxsize/gridboxsize_knmi)
 if gridboxsize==5:
     dtm_HN1 = "".join([input_dir, '/M5_37HN1.TIF'])
     dsm_HN1 = "".join([input_dir, '/R5_37HN1.TIF'])
     data = readdata(minheight,dsm_HN1,dtm_HN1)
     [x_long, y_long] = data.shape
-    "We want to take the mean of the SVF values over a gridsize of gridratio"
     SVF_means = np.ndarray([x_long,y_long])
+    "We want to take the mean of the SVF values over a gridsize of gridratio"
     for i in range(x_long):
         for j in range(y_long):
             part = SVF_knmi_HN1[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
@@ -461,8 +469,8 @@ elif gridboxsize==0.5:
     [x_long, y_long] = data.shape
     data = data[:int(x_long/5),:int(y_long/5)]
     SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
-
 coords = coordheight(data,gridboxsize)
+print('coords array is made')
 SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=False,save_Im=False)
 print(SVFs)
 KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
@@ -501,12 +509,6 @@ KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,grid
 #     bar.set_alpha(0.8)
 #
 # plt.show()
-
-"Here we print the info of the run:"
-print("gridboxsize is " + str(gridboxsize))
-print("part is 1st up, 1st left")
-print("Data block is HN1")
-print("Averaged KNMI svf vor 5 m grid to compare with 5m run, maxradius = 500m")
 
 "Time elapsed"
 endtime = time.time()
