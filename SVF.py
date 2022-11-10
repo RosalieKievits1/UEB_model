@@ -465,8 +465,6 @@ print("gridboxsize is " + str(gridboxsize))
 print("max radius is " + str(max_radius))
 print("part is 1st up, 1st left")
 print("Data block is HN1")
-print("Averaged KNMI svf vor 5 m grid to compare with 5m run, maxradius = 500m")
-
 
 "Switch for 0.5 or 5 m"
 download_directory = config.input_dir_knmi
@@ -495,11 +493,11 @@ elif gridboxsize==0.5:
     [x_long, y_long] = data.shape
     data = data[:int(x_long/5),:int(y_long/5)]
     SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
-# coords = coordheight(data,gridboxsize)
-# print('coords array is made')
-# SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=True,save_Im=False)
-# print(SVFs)
-# KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
+coords = coordheight(data,gridboxsize)
+print('coords array is made')
+SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=True,save_Im=False)
+print(SVFs)
+KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
 
 "Fisheye plot"
 # # linksboven
