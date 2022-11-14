@@ -486,7 +486,7 @@ if gridboxsize==5:
         for j in range(y_long):
             part = SVF_knmi_HN1[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
             SVF_means[i,j] = np.mean(part)
-    SVF_knmi_HN1 = SVF_means
+    SVF_knmi = SVF_means
 elif gridboxsize==0.5:
     dtm_HN1 = "".join([input_dir, '/M_37HN1.TIF'])
     dsm_HN1 = "".join([input_dir, '/R_37HN1.TIF'])
@@ -500,19 +500,6 @@ SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=True,s
 print(SVFs)
 
 KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
-
-#
-# inputFile = open("SVFs5m", 'r')
-# exportFile = open("SVFs5m", 'w')
-# for line in inputFile:
-#    new_line = line.replace('\t', '')
-#    exportFile.write(new_line)
-# inputFile.close()
-# exportFile.close()
-# csv.field_size_limit(sys.maxsize)
-# with open ('SVFs5m', 'r') as f:
-#     SVFs = list(csv.reader(f,delimiter=","))
-# print(len(SVFs))
 
 "Fisheye plot"
 # # linksboven

@@ -243,16 +243,13 @@ def Verification(SVFs,SVF_knmi, gridboxsize, max_radius, gridboxsize_knmi,matrix
                 idx += 1
     elif matrix == False:
         """Try 2: we reshape the KNMI one to the list"""
-        KNMI_list = np.array([blocklength])
-        rowcount_center = 0
+        KNMI_list = []
         for i in range(x_len):
             for j in range(y_len):
                 if (gridboxsize==5) and ((max_radius/gridboxsize)<=i and i<(x_len-max_radius/gridboxsize) and (max_radius/gridboxsize)<=j and j<(y_len-max_radius/gridboxsize)):
-                    KNMI_list[rowcount_center] = SVF_knmi[i,j]
-                    rowcount_center += 1
+                    KNMI_list.append(SVF_knmi[i,j])
                 if (gridboxsize==0.5) and ((x_len/4)<=i and i<(3*x_len/4) and (y_len/4)<=j and j<(3*y_len/4)):
-                    KNMI_list[rowcount_center] = SVF_knmi[i,j]
-                    rowcount_center += 1
+                    KNMI_list.append(SVF_knmi[i,j])
         if KNMI_list.shape != SVFs.shape:
             print("The lists are not the same shape")
         dif_array = KNMI_list-SVFs
