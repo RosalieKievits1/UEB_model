@@ -484,7 +484,7 @@ if gridboxsize==5:
         for j in range(y_long):
             part = SVF_knmi_HN1[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
             SVF_means[i,j] = np.mean(part)
-    SVF_knmi = SVF_means
+    SVF_knmi_HN_1 = SVF_means
 elif gridboxsize==0.5:
     dtm_HN1 = "".join([input_dir, '/M_37HN1.TIF'])
     dsm_HN1 = "".join([input_dir, '/R_37HN1.TIF'])
