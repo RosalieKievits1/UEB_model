@@ -15,7 +15,7 @@ sttime = time.time()
 input_dir = config.input_dir
 """Now we want to calculate the sky view factor"""
 steps_beta = 360 # so we range in steps of 1 degree
-max_radius = 500 # max radius is 100 m
+max_radius = 500
 """define the gridboxsize of the model"""
 gridboxsize = 5
 gridboxsize_knmi = 0.5
@@ -459,11 +459,11 @@ def wallArea(data,gridboxsize):
 # plt.xlabel("Angular steps")
 # plt.ylabel("SVF")
 # plt.show()
-# "Here we print the info of the run:"
-# print("gridboxsize is " + str(gridboxsize))
-# print("max radius is " + str(max_radius))
-# print("part is 1st up, 1st left")
-# print("Data block is HN1")
+"Here we print the info of the run:"
+print("gridboxsize is " + str(gridboxsize))
+print("max radius is " + str(max_radius))
+print("part is 1st up, 1st left")
+print("Data block is HN1")
 #
 "Switch for 0.5 or 5 m"
 download_directory = config.input_dir_knmi
