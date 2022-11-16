@@ -9,15 +9,16 @@ import time
 import KNMI_SVF_verification
 import Constants
 import Sunpos
+import SVF5mPy
 
 sttime = time.time()
 
 input_dir = config.input_dir
 """Now we want to calculate the sky view factor"""
 steps_beta = 360 # so we range in steps of 1 degree
-max_radius = 500
+max_radius = 100
 """define the gridboxsize of the model"""
-gridboxsize = 5
+gridboxsize = 0.5
 gridboxsize_knmi = 0.5
 """objects below 1 m we do not look at"""
 minheight = 1
@@ -315,19 +316,19 @@ def reshape_SVF(data, coords,gridboxsize,azimuth,zenith,reshape,save_CSV,save_Im
     :return:
     """
     [x_len, y_len] = data.shape
-    #blocklength = int(x_len/2*y_len/2)
-    blocklength = int((x_len-2*max_radius/gridboxsize)*(y_len-2*max_radius/gridboxsize))
+    blocklength = int(x_len/2*y_len/2)
+    #blocklength = int((x_len-2*max_radius/gridboxsize)*(y_len-2*max_radius/gridboxsize))
     "Compute SVF and SF and Reshape the shadow factors and SVF back to nd array"
     SVFs = calc_SVF(coords, max_radius, blocklength, gridboxsize)
     #SFs = calc_SF(coords,azimuth,zenith,blocklength)
     "If reshape is true we reshape the arrays to the original data matrix"
     if (reshape == True) & (SVFs is not None):
-        SVF_matrix = np.ndarray([x_len-2*max_radius/gridboxsize,y_len-2*max_radius/gridboxsize])
-        #SVF_matrix = np.ndarray([x_len/2,y_len/2])
+        #SVF_matrix = np.ndarray([x_len-2*max_radius/gridboxsize,y_len-2*max_radius/gridboxsize])
+        SVF_matrix = np.ndarray([x_len/2,y_len/2])
         #SF_matrix = np.ndarray([x_len,y_len])
         for i in range(blocklength):
-            SVF_matrix[coords[i,0]-max_radius/gridboxsize,coords[i,1]-max_radius/gridboxsize] = SVFs[i]
-            #SVF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SVFs[i]
+            #SVF_matrix[coords[i,0]-max_radius/gridboxsize,coords[i,1]-max_radius/gridboxsize] = SVFs[i]
+            SVF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SVFs[i]
             #SF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SFs[i]
         if save_CSV == True:
             np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
@@ -459,12 +460,12 @@ def wallArea(data,gridboxsize):
 # plt.xlabel("Angular steps")
 # plt.ylabel("SVF")
 # plt.show()
-"Here we print the info of the run:"
-print("gridboxsize is " + str(gridboxsize))
-print("max radius is " + str(max_radius))
-print("part is 1st up, 1st left")
-print("Data block is HN1")
-#
+# "Here we print the info of the run:"
+# print("gridboxsize is " + str(gridboxsize))
+# print("max radius is " + str(max_radius))
+# print("part is 1st up, 1st left")
+# print("Data block is HN1")
+# #
 "Switch for 0.5 or 5 m"
 download_directory = config.input_dir_knmi
 SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.tif'])
@@ -472,20 +473,34 @@ SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
 SVF_knmi_HN1[SVF_knmi_HN1>1] = 0
 SVF_knmi_HN1[SVF_knmi_HN1<0] = 0
 print('SVF_knmi is read')
+# print('The mean of the SVFs from KNMI is ' + str(np.mean(SVF_knmi_HN1)))
+# print('The max of the SVFs from KNMI is ' + str(np.max(SVF_knmi_HN1)))
+# print('The min of the SVFs from KNMI is ' + str(np.min(SVF_knmi_HN1)))
+# print(np.sum(((SVF_knmi_HN1-np.mean(SVF_knmi_HN1))**2))/(SVF_knmi_HN1.shape[0]*SVF_knmi_HN1.shape[1]))
+
 grid_ratio = int(gridboxsize/gridboxsize_knmi)
-if gridboxsize==5:
+if (gridboxsize==5):
     dtm_HN1 = "".join([input_dir, '/M5_37HN1.TIF'])
     dsm_HN1 = "".join([input_dir, '/R5_37HN1.TIF'])
     data = readdata(minheight,dsm_HN1,dtm_HN1)
     [x_long, y_long] = data.shape
+    x_long = int(x_long/grid_ratio)
+    y_long = int(y_long/grid_ratio)
     SVF_means = np.ndarray([x_long,y_long])
+
     "We want to take the mean of the SVF values over a gridsize of gridratio"
     for i in range(x_long):
         for j in range(y_long):
             part = SVF_knmi_HN1[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
             SVF_means[i,j] = np.mean(part)
-    SVF_knmi_HN_1 = SVF_means
-elif gridboxsize==0.5:
+    SVF_knmi_HN1 = SVF_means
+    print(SVF_knmi_HN1.shape)
+    print('The mean of the SVFs from KNMI averaged over 20m is ' + str(np.mean(SVF_knmi_HN1)))
+    print('The max of the SVFs from KNMI averaged over 20m is ' + str(np.max(SVF_knmi_HN1)))
+    print('The min of the SVFs from KNMI averaged over 20m is ' + str(np.min(SVF_knmi_HN1)))
+    print(np.sum(((SVF_knmi_HN1-np.mean(SVF_knmi_HN1))**2))/(SVF_knmi_HN1.shape[0]*SVF_knmi_HN1.shape[1]))
+
+elif (gridboxsize==0.5):
     dtm_HN1 = "".join([input_dir, '/M_37HN1.TIF'])
     dsm_HN1 = "".join([input_dir, '/R_37HN1.TIF'])
     data = readdata(minheight,dsm_HN1,dtm_HN1)
@@ -496,7 +511,14 @@ coords = coordheight(data,gridboxsize)
 print('coords array is made')
 SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=True,save_Im=False)
 print(SVFs)
-KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
+# SVFs = SVF5mPy.SVFs
+# meanSVFs = sum(SVFs)/len(SVFs)
+# print('The mean of the SVFs computed on 5m is ' + str(meanSVFs))
+# print('The max of the SVFs computed on 5m is ' + str(max(SVFs)))
+# print('The min of the SVFs computed on 5m is ' + str(min(SVFs)))
+# print(np.sum(((np.array(SVFs)-meanSVFs)**2))/(len(SVFs)))
+
+#KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
 
 "Fisheye plot"
 # # linksboven

@@ -250,8 +250,10 @@ def Verification(SVFs,SVF_knmi, gridboxsize, max_radius, gridboxsize_knmi,matrix
                     KNMI_list.append(SVF_knmi[i,j])
                 if (gridboxsize==0.5) and ((x_len/4)<=i and i<(3*x_len/4) and (y_len/4)<=j and j<(3*y_len/4)):
                     KNMI_list.append(SVF_knmi[i,j])
-        if KNMI_list.shape != SVFs.shape:
+        if len(KNMI_list) != len(SVFs):
             print("The lists are not the same shape")
+        KNMI_list = np.array(KNMI_list)
+        SVFs = np.array(SVFs)
         dif_array = KNMI_list-SVFs
         rel_dif_array = (KNMI_list-SVFs)/KNMI_list
 

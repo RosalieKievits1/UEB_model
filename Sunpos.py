@@ -51,7 +51,7 @@ def solarpos(julian_day,latitude,longitude,hour,radians=True):
         azimuth = azimuth % 360
         zenith = zenith*180/np.pi
 
-    return azimuth,zenith
+    return azimuth,zenith,omega_sunrise,omega_sunset
 
 
 # df = pd.read_csv('SolarposNov1.csv')
@@ -74,6 +74,7 @@ def solarpos(julian_day,latitude,longitude,hour,radians=True):
 #     a[i] = float(a[i])
 #     gamma[i] = float(gamma[i])
 #
+
 # hour = np.linspace(0,24,25, dtype=int)
 # Julianday = np.linspace(305,311,7,dtype=int)
 # plt.figure()
