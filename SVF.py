@@ -568,11 +568,11 @@ print("part is 1st up, 1st left")
 print("Data block is HN1")
 # #
 "Switch for 0.5 or 5 m"
-download_directory = config.input_dir_knmi
-SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.tif'])
-SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
-SVF_knmi_HN1[SVF_knmi_HN1>1] = 0
-SVF_knmi_HN1[SVF_knmi_HN1<0] = 0
+# download_directory = config.input_dir_knmi
+# SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.tif'])
+# SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
+# SVF_knmi_HN1[SVF_knmi_HN1>1] = 0
+# SVF_knmi_HN1[SVF_knmi_HN1<0] = 0
 print('SVF_knmi is read')
 # print('The mean of the SVFs from KNMI is ' + str(np.mean(SVF_knmi_HN1)))
 # print('The max of the SVFs from KNMI is ' + str(np.max(SVF_knmi_HN1)))
@@ -590,12 +590,12 @@ if (gridboxsize==5):
     SVF_means = np.ndarray([x_long,y_long])
 
     "We want to take the mean of the SVF values over a gridsize of gridratio"
-    for i in range(x_long):
-        for j in range(y_long):
-            part = SVF_knmi_HN1[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
-            SVF_means[i,j] = np.mean(part)
-    SVF_knmi_HN1 = SVF_means
-    print(SVF_knmi_HN1.shape)
+    # for i in range(x_long):
+    #     for j in range(y_long):
+    #         part = SVF_knmi_HN1[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
+    #         SVF_means[i,j] = np.mean(part)
+    # SVF_knmi_HN1 = SVF_means
+    # print(SVF_knmi_HN1.shape)
     # print('The mean of the SVFs from KNMI averaged over 20m is ' + str(np.mean(SVF_knmi_HN1)))
     # print('The max of the SVFs from KNMI averaged over 20m is ' + str(np.max(SVF_knmi_HN1)))
     # print('The min of the SVFs from KNMI averaged over 20m is ' + str(np.min(SVF_knmi_HN1)))
@@ -607,7 +607,7 @@ elif (gridboxsize==0.5):
     data = readdata(minheight,dsm_HN1,dtm_HN1)
     [x_long, y_long] = data.shape
     data = data[:int(x_long/5),:int(y_long/5)]
-    SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
+    # SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
 coords = coordheight(data,gridboxsize)
 print('coords array is made')
 #print(np.nonzero(coords[10,2]))
@@ -624,7 +624,7 @@ print(SVFs)
 # print('The min of the SVFs computed on 5m is ' + str(min(SVFs)))
 # print(np.sum(((np.array(SVFs)-meanSVFs)**2))/(len(SVFs)))
 
-KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
+# KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
 
 "Fisheye plot"
 
