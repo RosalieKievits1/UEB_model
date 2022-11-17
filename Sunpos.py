@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 # import pandas as pd
 # import csv
 import Constants
@@ -29,6 +29,9 @@ def solarpos(julian_day,latitude,longitude,hour,radians=True):
 
     omega_sunset = np.arccos(-np.tan(latitude)*np.tan(delta))
     omega_sunrise = -omega_sunset
+    hour_sunrise = (omega_sunrise/0.261799+12)-EOT-(longitude-long_tz)/15
+    hour_sunset =  (omega_sunset/0.261799+12)-EOT-(longitude-long_tz)/15
+
     """the sun change 15 degrees or 0.26 radians per hour"""
     hour_rad = (T-12)*0.261799
     """the declination angle (acitually the zenith is defined as angle from top so not the same)"""
@@ -51,11 +54,11 @@ def solarpos(julian_day,latitude,longitude,hour,radians=True):
         azimuth = azimuth % 360
         zenith = zenith*180/np.pi
 
-    return azimuth,zenith,omega_sunrise,omega_sunset
+    return azimuth,zenith,hour_sunrise,hour_sunset
 
 
 # df = pd.read_csv('SolarposNov1.csv')
-# print(df)
+# #print(df)
 #
 # with open("SolarposNov1.csv", 'r') as file:
 #     a = []
@@ -74,33 +77,46 @@ def solarpos(julian_day,latitude,longitude,hour,radians=True):
 #     a[i] = float(a[i])
 #     gamma[i] = float(gamma[i])
 #
-
-# hour = np.linspace(0,24,25, dtype=int)
-# Julianday = np.linspace(305,311,7,dtype=int)
+#
+# #Julianday = np.linspace(305,311,7,dtype=int)
 # plt.figure()
+#
+# [azis_o, zens_0,T_sunrise,T_sunset] = solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,1,radians=False)
+#
+# hour = np.linspace(T_sunrise,T_sunset,100)
+# hour_r = np.linspace(0,24,25)
+# print(T_sunrise)
+# print(T_sunset)
 # azis = np.zeros([len(hour)])
 # zens = np.zeros([len(hour)])
-# for d in range(len(Julianday)):
-#     for t in range(len(hour)):
-#         [azis[t], zens[t]] = solarpos(Julianday[d],Constants.latitude,Constants.long_rd,hour[t],radians=False)
-#     plt.plot(hour,zens,label=str(Julianday[d]-304) + ' Nov')
+# # for d in range(len(Julianday)):
+# print(solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,T_sunrise,radians=False))
+# for t in range(len(hour)):
+#     [azis[t], zens[t],Tsr,Tss] = solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hour[t],radians=False)
+# plt.plot(hour,zens,label='Computed Elevation Angle')
+# plt.plot(hour_r[8:18],a[8:18],label='Measured Elevation Angle')
+# plt.legend()
+# #,label=str(Constants.julianday-304) + ' Nov')
 # plt.xlabel('time [h]')
-# plt.legend(loc='upper left')
-# plt.ylabel('angle [degrees]')
+# #plt.legend(loc='upper left')
+# plt.ylabel('Elevation angle [degrees]')
 # plt.show()
 
-# hour = np.linspace(10,14,24)
+# hour = np.linspace(T_sunrise,T_sunset,50)
 # Julianday = np.linspace(305,312,8,dtype=int)
 # plt.figure()
+# azis_0 = np.zeros([len(hour)])
+# zens_0 = np.zeros([len(hour)])
 # azis = np.zeros([len(hour)])
 # zens = np.zeros([len(hour)])
 #
 # for d in range(len(Julianday)):
 #     for t in range(len(hour)):
-#         [azis[t], zens[t]] = solarpos(Julianday[d],Constants.latitude,Constants.long_rd,hour[t],radians=False)
-#     plt.plot(hour,azis,label='Nov ' + str(Julianday[d]-304))
+#         [azis_0[t], zens_0[t],T_sr,T_ss] = solarpos(305,Constants.latitude,Constants.long_rd,hour[t],radians=False)
+#         [azis[t], zens[t],T_sr,T_ss] = solarpos(Julianday[d],Constants.latitude,Constants.long_rd,hour[t],radians=False)
+#     plt.plot(hour,azis-azis_0,label='Nov ' + str(Julianday[d]-304))
 # plt.xlabel('time [h]')
 # plt.legend(loc='upper right')
-# plt.ylabel('azimuth angle [degrees]')
+# plt.ylabel('difference in azimuth angle [degrees]')
 # plt.show()
 

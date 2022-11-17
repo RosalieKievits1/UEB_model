@@ -9,7 +9,6 @@ import time
 import KNMI_SVF_verification
 import Constants
 import Sunpos
-import SVF5mPy
 
 sttime = time.time()
 
@@ -19,6 +18,11 @@ steps_beta = 360 # so we range in steps of 1 degree
 max_radius = 100
 """define the gridboxsize of the model"""
 gridboxsize = 0.5
+if gridboxsize==5:
+    max_radius = 500
+elif gridboxsize==0.5:
+    max_radius==100
+
 gridboxsize_knmi = 0.5
 """objects below 1 m we do not look at"""
 minheight = 1
@@ -172,7 +176,7 @@ def dist(point, coord,gridboxsize):
     dy = (coord[:,0]-point[0])*gridboxsize
     dist = np.sqrt(abs(dx)**2 + abs(dy)**2)
     """angle is 0 north direction"""
-    angle = (np.pi/2 - np.arctan2(dy,dx))
+    angle = (np.pi - np.arctan2(dy,dx))
     return dist,angle
 
 def dome(point, coords, maxR,gridboxsize):
@@ -198,7 +202,8 @@ def d_area(psi,steps_beta,maxR):
     return d_area
 
 def SkyViewFactor(point, coords, max_radius,gridboxsize):
-    betas_lin = np.linspace(-np.pi/2,3*np.pi/2,steps_beta, endpoint=False)
+    betas_lin = np.linspace(0,2*np.pi,steps_beta, endpoint=False)
+
     "this is the analytical dome area"
     dome_area = max_radius**2*2*np.pi
     "we throw away all point outside the dome"
@@ -214,8 +219,6 @@ def SkyViewFactor(point, coords, max_radius,gridboxsize):
         """The angles of the min and max angle of the building"""
         beta_min = - np.arcsin(gridboxsize/2/dome_p[d,3]) + dome_p[d,4]
         beta_max = np.arcsin(gridboxsize/2/dome_p[d,3]) + dome_p[d,4]
-        # beta_min = - np.arcsin(np.sqrt(2*gridboxsize**2)/2/dome_p[d,3]) + dome_p[d,4]
-        # beta_max = np.arcsin(np.sqrt(2*gridboxsize**2)/2/dome_p[d,3]) + dome_p[d,4]
 
         """Where the index of betas fall within the min and max beta, and there is not already a larger psi blocking"""
         betas[np.nonzero(np.logical_and((betas < psi), np.logical_and((beta_min <= betas_lin), (betas_lin < beta_max))))] = psi
@@ -223,7 +226,7 @@ def SkyViewFactor(point, coords, max_radius,gridboxsize):
     areas = d_area(betas, steps_beta, max_radius)
     """The SVF is the fraction of area of the dome that is not blocked"""
     SVF = np.around((dome_area - np.sum(areas))/dome_area, 3)
-    return SVF
+    return SVF, areas
 
 def calc_SVF(coords, max_radius, blocklength, gridboxsize):
     """
@@ -390,6 +393,73 @@ def average_svf(SVF_matrix, grid_ratio):
             SVF_ave[i,j] = np.mean(part)
     return SVF_ave
 
+def SVF_WVF_wall(point,coords,maxR,type):
+    "For a wall point determine whether it is north, south east or west faced."
+    "Retrieve all points inside a max radius"
+    point_zero = np.copy(point)
+    point_zero[2] = 0
+    print(point)
+    dome_zero = dome(point_zero,coords,maxR,gridboxsize)
+
+    "Create a dome that "
+    if (type==1): #Northern facing wall
+        dome_zero = dome_zero[dome_zero[:,0]<point[0]] #so only northern points
+        dome_zero[:,4] = dome_zero[:,4+np.pi]
+        # beta_lin1 = np.linspace(3*np.pi/2,2*np.pi,int(steps_beta/4),endpoint=False)
+        # beta_lin2 = np.linspace(0,np.pi/2,int(steps_beta/4),endpoint=False)
+        # beta_lin = np.concatenate((beta_lin1,beta_lin2))
+        beta_lin = np.linspace(np.pi/2,3*np.pi/2,int(steps_beta/2),endpoint=False)
+        print(beta_lin)
+    elif (type==2):
+        dome_zero = dome_zero[dome_zero[:,1]>point[1]]
+        beta_lin = np.linspace(0,np.pi,int(steps_beta/2),endpoint=False)
+    elif (type==3):
+        dome_zero = dome_zero[dome_zero[:,0]>point[0]] #so only southern points
+        beta_lin = np.linspace(np.pi/2,3*np.pi/2,int(steps_beta/2),endpoint=False)
+    elif (type==4): #west facing wall
+        dome_zero = dome_zero[dome_zero[:,1]<point[1]] #so only western points
+        beta_lin = np.linspace(np.pi,2*np.pi,int(steps_beta/2),endpoint=False)
+    "Now we have all the points that possibly block the view"
+    # store the largest angle of blockings
+    heights = np.arange(0,np.ceil(point[2]),1)
+    points = np.ndarray([len(heights),len(point)])
+    points.shape
+    points[:,0:1] = point[0:1]
+    points[:,2] = heights
+    betas = np.zeros([len(heights),int(steps_beta/2)])
+    # store the radii of closest blockings
+    closest = np.zeros(int(steps_beta/2))
+    # maximum skydome
+    dome_max = 2*np.pi*maxR**2
+
+    "Loop over beta to find the largest blocking in every direction"
+    for d in range(dome_zero.shape[0]):
+        "The Angle between the height of the blocking and the height of the point on the wall with the horizontal axis"
+        psis = np.arctan((dome_zero[d,2]-points[:,2])/dome_zero[d,3])+np.pi/2
+        print(psis)
+        """The angles of the min and max horizontal angle of the building"""
+        beta_min = - np.arcsin(gridboxsize/2/dome_zero[d,3]) + dome_zero[d,4]
+        beta_max = np.arcsin(gridboxsize/2/dome_zero[d,3]) + dome_zero[d,4]
+        print(point)
+        print(dome_zero[d])
+        print(beta_min,beta_max)
+        """Where the index of betas fall within the min and max beta, and there is not already a larger psi blocking"""
+        arg1 = np.logical_and((beta_min <= beta_lin), (beta_lin < beta_max))
+        print(arg1)
+        betas[np.nonzero(np.logical_and(betas[:,arg1] < psis))] = psis
+        print(betas)
+        if dome_zero[:,2]==0:
+            closest[np.nonzero(np.logical_and((closest > dome_zero[d,3]), np.logical_and((beta_min <= beta_lin), (beta_lin < beta_max))))] = dome_zero[d,3]
+    areas = d_area(betas,steps_beta,maxR)
+    SVFs_wall = (dome_max - sum(areas,axis=1))/dome_max
+    SVF_wall = sum(SVFs_wall)/len(heights)
+    closest_angles = np.arctan(closest/point[2])
+    ground_areas = d_area(closest_angles,steps_beta,maxR)
+    GVF_wall = (dome_max - sum(ground_areas))/dome_max
+    WVF_wall = (1-SVF_wall-GVF_wall)
+
+    return SVF_wall, WVF_wall, GVF_wall
+
 def wallArea(data,gridboxsize):
     """
     :param data: Dataset to compute the wall area over
@@ -401,7 +471,10 @@ def wallArea(data,gridboxsize):
     """Set all the water elements to 0 height again"""
     data[data<0] = 0
     """We only evaluate the area in the center block"""
-    wall_area = np.ndarray([int(x_len/2),int(y_len/2)])
+    if gridboxsize==5:
+        wall_area = np.ndarray([int(x_len-2*max_radius/gridboxsize),int(y_len-2*max_radius/gridboxsize)])
+    elif gridboxsize==0.5:
+        wall_area = np.ndarray([int(x_len/2),int(y_len/2)])
     if (gridboxsize == 0.5):
         i = int(x_len/4)
         j = int(y_len/4)
@@ -446,6 +519,34 @@ def wallArea(data,gridboxsize):
     wall_area_total = np.sum(wall_area)
     return wall_area, wall_area_total
 
+def fisheye(data):
+    [x_len,y_len] = data.shape
+    coords = coordheight(data,gridboxsize)
+    "Make fisheye plot"
+    blocklength = x_len/2*y_len/2
+    point = coords[int(blocklength),:]
+    bottom = 0
+    max_area = max_radius**2 * 2 * np.pi / steps_beta
+    [svf, areas] = SkyViewFactor(point,coords,max_radius,gridboxsize)
+    theta = np.linspace(0.0, 2 * np.pi, steps_beta, endpoint=False)
+    radii = - areas + max_area
+    width = (2*np.pi) / steps_beta
+
+    ax = plt.subplot(111, polar=True)
+    bars = ax.bar(theta, radii, width=width, bottom=bottom)
+    ax.set_facecolor("grey")
+    ax.get_yaxis().set_ticks([])
+    ax.get_yaxis().set_visible(False)
+    ax.set_theta_zero_location('N')
+    ax.set_theta_direction(-1)
+
+    # Use custom colors and opacity
+    for r, bar in zip(radii, bars):
+        bar.set_facecolor("lightblue")
+        bar.set_alpha(0.8)
+
+    plt.show()
+
 "The block is divided into 25 blocks, this is still oke with the max radius but it does not take to much memory"
 
 # steps_beta_lin = np.linspace(90,720,8)
@@ -460,11 +561,11 @@ def wallArea(data,gridboxsize):
 # plt.xlabel("Angular steps")
 # plt.ylabel("SVF")
 # plt.show()
-# "Here we print the info of the run:"
-# print("gridboxsize is " + str(gridboxsize))
-# print("max radius is " + str(max_radius))
-# print("part is 1st up, 1st left")
-# print("Data block is HN1")
+"Here we print the info of the run:"
+print("gridboxsize is " + str(gridboxsize))
+print("max radius is " + str(max_radius))
+print("part is 1st up, 1st left")
+print("Data block is HN1")
 # #
 "Switch for 0.5 or 5 m"
 download_directory = config.input_dir_knmi
@@ -495,10 +596,10 @@ if (gridboxsize==5):
             SVF_means[i,j] = np.mean(part)
     SVF_knmi_HN1 = SVF_means
     print(SVF_knmi_HN1.shape)
-    print('The mean of the SVFs from KNMI averaged over 20m is ' + str(np.mean(SVF_knmi_HN1)))
-    print('The max of the SVFs from KNMI averaged over 20m is ' + str(np.max(SVF_knmi_HN1)))
-    print('The min of the SVFs from KNMI averaged over 20m is ' + str(np.min(SVF_knmi_HN1)))
-    print(np.sum(((SVF_knmi_HN1-np.mean(SVF_knmi_HN1))**2))/(SVF_knmi_HN1.shape[0]*SVF_knmi_HN1.shape[1]))
+    # print('The mean of the SVFs from KNMI averaged over 20m is ' + str(np.mean(SVF_knmi_HN1)))
+    # print('The max of the SVFs from KNMI averaged over 20m is ' + str(np.max(SVF_knmi_HN1)))
+    # print('The min of the SVFs from KNMI averaged over 20m is ' + str(np.min(SVF_knmi_HN1)))
+    # print(np.sum(((SVF_knmi_HN1-np.mean(SVF_knmi_HN1))**2))/(SVF_knmi_HN1.shape[0]*SVF_knmi_HN1.shape[1]))
 
 elif (gridboxsize==0.5):
     dtm_HN1 = "".join([input_dir, '/M_37HN1.TIF'])
@@ -509,6 +610,11 @@ elif (gridboxsize==0.5):
     SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
 coords = coordheight(data,gridboxsize)
 print('coords array is made')
+#print(np.nonzero(coords[10,2]))
+#point = np.array(coords[6990,:])
+
+#print(SVF_WVF_wall(point,coords,max_radius,type=1))
+#print(SkyViewFactor(point, coords, max_radius, gridboxsize))
 SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=True,save_Im=False)
 print(SVFs)
 # SVFs = SVF5mPy.SVFs
@@ -518,42 +624,10 @@ print(SVFs)
 # print('The min of the SVFs computed on 5m is ' + str(min(SVFs)))
 # print(np.sum(((np.array(SVFs)-meanSVFs)**2))/(len(SVFs)))
 
-#KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
+KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
 
 "Fisheye plot"
-# # linksboven
-# dtm1 = "".join([input_dir, '/M_37HN1.TIF'])
-# dsm1 = "".join([input_dir, '/R_37HN1.TIF'])
-# data = readdata(minheight,dsm1,dtm1)
-# [x_len,y_len] = data.shape
-# coords = coordheight(data,gridboxsize)
-# "Make fisheye plot"
-#
-# blocklength = x_len/2*y_len/2
-# point = coords[int(blocklength),:]
-# bottom = 0
-# max_area = max_radius**2 * 2 * np.pi / steps_beta
-# [svf, areas] = SkyViewFactor(point,coords,max_radius,gridboxsize)
-# print(svf)
-# #print(areas)
-# theta = np.linspace(0.0, 2 * np.pi, steps_beta, endpoint=False)
-# radii = - areas + max_area
-# width = (2*np.pi) / steps_beta
-#
-# ax = plt.subplot(111, polar=True)
-# bars = ax.bar(theta, radii, width=width, bottom=bottom)
-# ax.set_facecolor("grey")
-# ax.get_yaxis().set_ticks([])
-# ax.get_yaxis().set_visible(False)
-# ax.set_theta_zero_location('N')
-# ax.set_theta_direction(-1)
-#
-# # Use custom colors and opacity
-# for r, bar in zip(radii, bars):
-#     bar.set_facecolor("lightblue")#(plt.cm.jet(r / 10.))
-#     bar.set_alpha(0.8)
-#
-# plt.show()
+
 
 "Time elapsed"
 endtime = time.time()
