@@ -22,7 +22,7 @@ vegetation_frac = 0.25
 frac_roads = 1-building_frac-vegetation_frac
 
 """layer thickness of road wall and roof [m]"""
-d_roof = 0.005
+d_roof = [0.005]
 d_wall = 0.1
 d_fiber = 0.15
 d_road = 0.1

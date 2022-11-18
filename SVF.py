@@ -323,6 +323,7 @@ def reshape_SVF(data, coords,gridboxsize,azimuth,zenith,reshape,save_CSV,save_Im
     #blocklength = int((x_len-2*max_radius/gridboxsize)*(y_len-2*max_radius/gridboxsize))
     "Compute SVF and SF and Reshape the shadow factors and SVF back to nd array"
     SVFs = calc_SVF(coords, max_radius, blocklength, gridboxsize)
+    print(SVFs)
     #SFs = calc_SF(coords,azimuth,zenith,blocklength)
     "If reshape is true we reshape the arrays to the original data matrix"
     if (reshape == True) & (SVFs is not None):
@@ -398,18 +399,13 @@ def SVF_WVF_wall(point,coords,maxR,type):
     "Retrieve all points inside a max radius"
     point_zero = np.copy(point)
     point_zero[2] = 0
-    print(point)
     dome_zero = dome(point_zero,coords,maxR,gridboxsize)
 
     "Create a dome that "
     if (type==1): #Northern facing wall
         dome_zero = dome_zero[dome_zero[:,0]<point[0]] #so only northern points
-        dome_zero[:,4] = dome_zero[:,4+np.pi]
-        # beta_lin1 = np.linspace(3*np.pi/2,2*np.pi,int(steps_beta/4),endpoint=False)
-        # beta_lin2 = np.linspace(0,np.pi/2,int(steps_beta/4),endpoint=False)
-        # beta_lin = np.concatenate((beta_lin1,beta_lin2))
+        dome_zero[:,4] = (dome_zero[:,4]+np.pi)%(2*np.pi)
         beta_lin = np.linspace(np.pi/2,3*np.pi/2,int(steps_beta/2),endpoint=False)
-        print(beta_lin)
     elif (type==2):
         dome_zero = dome_zero[dome_zero[:,1]>point[1]]
         beta_lin = np.linspace(0,np.pi,int(steps_beta/2),endpoint=False)
@@ -420,13 +416,8 @@ def SVF_WVF_wall(point,coords,maxR,type):
         dome_zero = dome_zero[dome_zero[:,1]<point[1]] #so only western points
         beta_lin = np.linspace(np.pi,2*np.pi,int(steps_beta/2),endpoint=False)
     "Now we have all the points that possibly block the view"
-    # store the largest angle of blockings
-    heights = np.arange(0,np.ceil(point[2]),1)
-    points = np.ndarray([len(heights),len(point)])
-    points.shape
-    points[:,0:1] = point[0:1]
-    points[:,2] = heights
-    betas = np.zeros([len(heights),int(steps_beta/2)])
+    betas = np.zeros(int(steps_beta/2))
+    betas_zero = np.zeros(int(steps_beta/2))
     # store the radii of closest blockings
     closest = np.zeros(int(steps_beta/2))
     # maximum skydome
@@ -435,27 +426,31 @@ def SVF_WVF_wall(point,coords,maxR,type):
     "Loop over beta to find the largest blocking in every direction"
     for d in range(dome_zero.shape[0]):
         "The Angle between the height of the blocking and the height of the point on the wall with the horizontal axis"
-        psis = np.arctan((dome_zero[d,2]-points[:,2])/dome_zero[d,3])+np.pi/2
-        print(psis)
+        psi = np.arctan((dome_zero[d,2]-point[2])/dome_zero[d,3])
+        psi_zero = np.arctan((dome_zero[d,2])/dome_zero[d,3])
         """The angles of the min and max horizontal angle of the building"""
         beta_min = - np.arcsin(gridboxsize/2/dome_zero[d,3]) + dome_zero[d,4]
         beta_max = np.arcsin(gridboxsize/2/dome_zero[d,3]) + dome_zero[d,4]
-        print(point)
-        print(dome_zero[d])
-        print(beta_min,beta_max)
+
         """Where the index of betas fall within the min and max beta, and there is not already a larger psi blocking"""
-        arg1 = np.logical_and((beta_min <= beta_lin), (beta_lin < beta_max))
-        print(arg1)
-        betas[np.nonzero(np.logical_and(betas[:,arg1] < psis))] = psis
-        print(betas)
-        if dome_zero[:,2]==0:
+        betas[np.nonzero(np.logical_and(betas<psi,(np.logical_and((beta_min <= beta_lin),(beta_lin < beta_max)))))] = psi
+        betas_zero[np.nonzero(np.logical_and(betas_zero<psi_zero,(np.logical_and((beta_min <= beta_lin),(beta_lin < beta_max)))))] = psi_zero
+
+        if dome_zero[d,2]==0:
             closest[np.nonzero(np.logical_and((closest > dome_zero[d,3]), np.logical_and((beta_min <= beta_lin), (beta_lin < beta_max))))] = dome_zero[d,3]
-    areas = d_area(betas,steps_beta,maxR)
-    SVFs_wall = (dome_max - sum(areas,axis=1))/dome_max
-    SVF_wall = sum(SVFs_wall)/len(heights)
+
+    areas = d_area(betas,steps_beta/2,maxR)
+    areas_zero = d_area(betas_zero,steps_beta/2,maxR)
+
+    "We take the SVF of the wall surface as the average between the SVF at the top and the SVF at the bottom"
+    SVF_wall_high = (dome_max/2 - sum(areas))/(dome_max)
+    SVF_wall_zero = (dome_max/2 - sum(areas_zero))/(dome_max)
+    SVF_wall = (SVF_wall_zero+SVF_wall_high)/2
+
     closest_angles = np.arctan(closest/point[2])
-    ground_areas = d_area(closest_angles,steps_beta,maxR)
-    GVF_wall = (dome_max - sum(ground_areas))/dome_max
+    ground_areas = d_area(closest_angles,steps_beta/2,maxR)
+    GVF_wall = ((sum(ground_areas)/(dome_max))+1/2)/2
+
     WVF_wall = (1-SVF_wall-GVF_wall)
 
     return SVF_wall, WVF_wall, GVF_wall
@@ -549,18 +544,6 @@ def fisheye(data):
 
 "The block is divided into 25 blocks, this is still oke with the max radius but it does not take to much memory"
 
-# steps_beta_lin = np.linspace(90,720,8)
-# SVFs = np.zeros(len(steps_beta_lin))
-# point = coords[int(blocklength),:]
-# for i in range(len(steps_beta_lin)):
-#     SVFs[i] = SkyViewFactor(point,coords,max_radius,gridboxsize,int(steps_beta_lin[i]))
-
-#print(SVFs)
-# plt.figure()
-# plt.plot(steps_beta_lin,SVFs)
-# plt.xlabel("Angular steps")
-# plt.ylabel("SVF")
-# plt.show()
 "Here we print the info of the run:"
 print("gridboxsize is " + str(gridboxsize))
 print("max radius is " + str(max_radius))
@@ -568,16 +551,10 @@ print("part is 1st up, 1st left")
 print("Data block is HN1")
 # #
 "Switch for 0.5 or 5 m"
-# download_directory = config.input_dir_knmi
-# SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.tif'])
-# SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
-# SVF_knmi_HN1[SVF_knmi_HN1>1] = 0
-# SVF_knmi_HN1[SVF_knmi_HN1<0] = 0
-print('SVF_knmi is read')
-# print('The mean of the SVFs from KNMI is ' + str(np.mean(SVF_knmi_HN1)))
-# print('The max of the SVFs from KNMI is ' + str(np.max(SVF_knmi_HN1)))
-# print('The min of the SVFs from KNMI is ' + str(np.min(SVF_knmi_HN1)))
-# print(np.sum(((SVF_knmi_HN1-np.mean(SVF_knmi_HN1))**2))/(SVF_knmi_HN1.shape[0]*SVF_knmi_HN1.shape[1]))
+download_directory = config.input_dir_knmi
+SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.tif'])
+SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
+SVF_knmi_HN1[SVF_knmi_HN1<0] = 0
 
 grid_ratio = int(gridboxsize/gridboxsize_knmi)
 if (gridboxsize==5):
@@ -607,16 +584,22 @@ elif (gridboxsize==0.5):
     data = readdata(minheight,dsm_HN1,dtm_HN1)
     [x_long, y_long] = data.shape
     data = data[:int(x_long/5),:int(y_long/5)]
-    # SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
+    SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
 coords = coordheight(data,gridboxsize)
 print('coords array is made')
-#print(np.nonzero(coords[10,2]))
-#point = np.array(coords[6990,:])
 
-#print(SVF_WVF_wall(point,coords,max_radius,type=1))
+print('SVF_knmi is read')
+print('The mean of the SVFs from KNMI is ' + str(np.mean(SVF_knmi_HN1)))
+print('The max of the SVFs from KNMI is ' + str(np.max(SVF_knmi_HN1)))
+print('The min of the SVFs from KNMI is ' + str(np.min(SVF_knmi_HN1)))
+print("The variance of the knmi SVF is" + str(np.sum(((SVF_knmi_HN1-np.mean(SVF_knmi_HN1))**2))/(SVF_knmi_HN1.shape[0]*SVF_knmi_HN1.shape[1])))
+
+#print(np.nonzero(coords[10,2]))
+# point = np.array(coords[6990,:])
+
+# print(SVF_WVF_wall(point,coords,max_radius,type=1))
 #print(SkyViewFactor(point, coords, max_radius, gridboxsize))
 SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=True,save_Im=False)
-print(SVFs)
 # SVFs = SVF5mPy.SVFs
 # meanSVFs = sum(SVFs)/len(SVFs)
 # print('The mean of the SVFs computed on 5m is ' + str(meanSVFs))
