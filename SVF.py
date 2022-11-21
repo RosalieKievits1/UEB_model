@@ -15,13 +15,12 @@ sttime = time.time()
 input_dir = config.input_dir
 """Now we want to calculate the sky view factor"""
 steps_beta = 360 # so we range in steps of 1 degree
-max_radius = 100
 """define the gridboxsize of the model"""
 gridboxsize = 0.5
 if gridboxsize==5:
     max_radius = 500
 elif gridboxsize==0.5:
-    max_radius==100
+    max_radius = 100
 
 gridboxsize_knmi = 0.5
 """objects below 1 m we do not look at"""
@@ -349,7 +348,7 @@ def reshape_SVF(data, coords,gridboxsize,azimuth,zenith,reshape,save_CSV,save_Im
         return SVFs#, SFs
 
 
-def geometricProperties(data,gridboxsize):
+def geometricProperties(data,delta_x,gridboxsize):
     """
     Function that determines the average height over width of an area,
     the average height over width, and the built fraction of an area
@@ -359,12 +358,29 @@ def geometricProperties(data,gridboxsize):
     ave_height : average height of the area
     delta: fraction of built area
     """
-    ave_height = np.mean(data[data>0])
-    """The road elements are actually also water elements"""
-    road_elements = np.count_nonzero(data==0)
-    built_elements = np.count_nonzero(data>0)
-    water_elements = np.count_nonzero(data==-1)
-    delta = built_elements/(road_elements+built_elements+water_elements)
+    grid_ratio = delta_x/gridboxsize
+    [x_long, y_long] = data.shape
+    [Wall_area, wall_area_total] = wallArea(data,gridboxsize)
+
+    delta = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
+    ave_height = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
+    road_elements = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
+    built_elements = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
+    water_elements = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
+    wall_area_med = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
+    "We want to take the mean of the SVF values over a gridsize of gridratio"
+    for i in range(x_long):
+        for j in range(y_long):
+            part = data[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
+            part_wall = Wall_area[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
+            ave_height[i,j] = np.mean(part[part>0])
+            road_elements[i,j] = np.count_nonzero(part==0)
+            built_elements[i,j] = np.count_nonzero(part>0)
+            "The road elements are actually also water elements"
+            water_elements[i,j] = np.count_nonzero(part==-1)
+            delta[i,j] = built_elements[i,j]/(road_elements[i,j]+built_elements[i,j]+water_elements[i,j])
+            wall_area_med[i,j] = np.sum(part_wall)
+
     """We want to determine the wall area from the height and delta
     Say each block is a separate building: then the wall area would be 4*sum(builtarea), 
     but since we have a certain density of houses we could make a relation 
@@ -372,17 +388,16 @@ def geometricProperties(data,gridboxsize):
     Roof_area = built_elements*gridboxsize**2
     Road_area = road_elements*gridboxsize**2
     Water_area = water_elements*gridboxsize**2
-    [Wall_area, wall_area_total] = wallArea(data,gridboxsize)
 
-    Total_area = Roof_area + wall_area_total + Road_area + Water_area
+    Total_area = Roof_area + wall_area_med + Road_area + Water_area
     """Fractions of the area of the total surface"""
     Roof_frac = np.around(Roof_area/Total_area,3)
-    Wall_frac = np.around(wall_area_total/Total_area,3)
+    Wall_frac = np.around(wall_area_med/Total_area,3)
     Road_frac = np.around(Road_area/Total_area,3)
     Water_frac = np.around(Water_area/Total_area,3)
 
     H_W = ave_height*delta
-    return ave_height, delta, Roof_area, wall_area_total, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac, H_W
+    return ave_height, delta, Roof_area, wall_area_med, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac, H_W
 
 def average_svf(SVF_matrix, grid_ratio):
     [x_long, y_long] = SVF_matrix.shape
@@ -554,7 +569,17 @@ print("Data block is HN1")
 download_directory = config.input_dir_knmi
 SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.tif'])
 SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
-SVF_knmi_HN1[SVF_knmi_HN1<0] = 0
+
+"Water elements are -3.4e38"
+# count = np.count_nonzero(SVF_knmi_HN1 < 0)
+# meanSVF = np.mean(SVF_knmi_HN1[SVF_knmi_HN1>=0])
+#
+# print('SVF_knmi is read')
+# print('The mean of the SVFs from KNMI is ' + str(meanSVF))
+# print('The max of the SVFs from KNMI is ' + str(np.max(SVF_knmi_HN1)))
+# print('The min of the SVFs from KNMI is ' + str(np.min(SVF_knmi_HN1)))
+# print("The variance of the knmi SVF is " + str(np.around(np.sum(((SVF_knmi_HN1[SVF_knmi_HN1>=0]-meanSVF)**2))/count,2)))
+# "Now with filtering out water"
 
 grid_ratio = int(gridboxsize/gridboxsize_knmi)
 if (gridboxsize==5):
@@ -565,18 +590,18 @@ if (gridboxsize==5):
     x_long = int(x_long/grid_ratio)
     y_long = int(y_long/grid_ratio)
     SVF_means = np.ndarray([x_long,y_long])
-
+    #SVF_knmi_HN1[SVF_knmi_HN1<0] = 0
     "We want to take the mean of the SVF values over a gridsize of gridratio"
-    # for i in range(x_long):
-    #     for j in range(y_long):
-    #         part = SVF_knmi_HN1[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
-    #         SVF_means[i,j] = np.mean(part)
-    # SVF_knmi_HN1 = SVF_means
+    for i in range(x_long):
+        for j in range(y_long):
+            part = SVF_knmi_HN1[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
+            SVF_means[i,j] = np.mean(part[(part >= 0)])
+    SVF_knmi_HN1 = SVF_means
     # print(SVF_knmi_HN1.shape)
-    # print('The mean of the SVFs from KNMI averaged over 20m is ' + str(np.mean(SVF_knmi_HN1)))
-    # print('The max of the SVFs from KNMI averaged over 20m is ' + str(np.max(SVF_knmi_HN1)))
-    # print('The min of the SVFs from KNMI averaged over 20m is ' + str(np.min(SVF_knmi_HN1)))
-    # print(np.sum(((SVF_knmi_HN1-np.mean(SVF_knmi_HN1))**2))/(SVF_knmi_HN1.shape[0]*SVF_knmi_HN1.shape[1]))
+    # print('The mean of the SVFs from KNMI averaged over 5m is ' + str(np.around(np.mean(SVF_knmi_HN1),2)))
+    # print('The max of the SVFs from KNMI averaged over 5m is ' + str(np.max(SVF_knmi_HN1)))
+    # print('The min of the SVFs from KNMI averaged over 5m is ' + str(np.min(SVF_knmi_HN1)))
+    # print(np.sum(((SVF_knmi_HN1-np.mean(SVF_knmi_HN1))**2))/(count/(grid_ratio**2)))
 
 elif (gridboxsize==0.5):
     dtm_HN1 = "".join([input_dir, '/M_37HN1.TIF'])
@@ -585,16 +610,12 @@ elif (gridboxsize==0.5):
     [x_long, y_long] = data.shape
     data = data[:int(x_long/5),:int(y_long/5)]
     SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
+    "Filter out water"
+    SVF_knmi_HN1 = SVF_knmi_HN1[SVF_knmi_HN1>=0]
 coords = coordheight(data,gridboxsize)
 print('coords array is made')
 
-print('SVF_knmi is read')
-print('The mean of the SVFs from KNMI is ' + str(np.mean(SVF_knmi_HN1)))
-print('The max of the SVFs from KNMI is ' + str(np.max(SVF_knmi_HN1)))
-print('The min of the SVFs from KNMI is ' + str(np.min(SVF_knmi_HN1)))
-print("The variance of the knmi SVF is" + str(np.sum(((SVF_knmi_HN1-np.mean(SVF_knmi_HN1))**2))/(SVF_knmi_HN1.shape[0]*SVF_knmi_HN1.shape[1])))
 
-#print(np.nonzero(coords[10,2]))
 # point = np.array(coords[6990,:])
 
 # print(SVF_WVF_wall(point,coords,max_radius,type=1))
@@ -607,7 +628,7 @@ SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=True,s
 # print('The min of the SVFs computed on 5m is ' + str(min(SVFs)))
 # print(np.sum(((np.array(SVFs)-meanSVFs)**2))/(len(SVFs)))
 
-# KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
+KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
 
 "Fisheye plot"
 

@@ -5,28 +5,12 @@ import numpy as np
 sigma = 5.67e-8
 
 # layers of simulation
-layers_roof = 5
-layers_road = 3
-layers_wall = 5
-
-#layers = 3
-
-"""fractions of built environment in town:"""
-# has to add up to one
-# This can be expanded to contain more categories
-# fraction of buildings in town [0-1]
-building_frac = 0.25
-# fraction of vegetation in town [0-1]
-vegetation_frac = 0.25
-# fraction of roads/pavement in town [0-1]
-frac_roads = 1-building_frac-vegetation_frac
+layers = 3
 
 """layer thickness of road wall and roof [m]"""
-d_roof = [0.005]
-d_wall = 0.1
-d_fiber = 0.15
-d_road = 0.1
-d_water = 0.1
+d_roof = np.ones([layers]) * 0.05
+d_wall = np.ones([layers]) * 0.05
+d_road = np.ones([layers]) * 0.1
 
 """timestep"""
 timestep = 1*60 #[s]
@@ -61,8 +45,6 @@ T_ground = 10+273.15
 T_water = 10+273.15
 # building heating temp
 T_building = 20+273.15
-
-T_inner_bc = [T_building,T_building,T_ground,T_water]
 
 """BUILDING MATERIALS"""
 """heat capacities"""

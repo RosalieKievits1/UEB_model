@@ -238,9 +238,10 @@ def Verification(SVFs,SVF_knmi, gridboxsize, max_radius, gridboxsize_knmi,matrix
         for i in range(x_len/2):
             for j in range(y_len/2):
                 """Check what the difference is in SVF"""
-                dif_array[idx] = SVF_knmi[i,j]-SVFs[i,j]
-                rel_dif_array[idx] = (SVF_knmi[i,j]-SVFs[i,j])/SVF_knmi[i,j]
-                idx += 1
+                if SVF_knmi[i,j]>=0:
+                    dif_array[idx] = SVF_knmi[i,j]-SVFs[i,j]
+                    rel_dif_array[idx] = (SVF_knmi[i,j]-SVFs[i,j])/SVF_knmi[i,j]
+                    idx += 1
     elif matrix == False:
         """Try 2: we reshape the KNMI one to the list"""
         KNMI_list = []
@@ -254,8 +255,8 @@ def Verification(SVFs,SVF_knmi, gridboxsize, max_radius, gridboxsize_knmi,matrix
             print("The lists are not the same shape")
         KNMI_list = np.array(KNMI_list)
         SVFs = np.array(SVFs)
-        dif_array = KNMI_list-SVFs
-        rel_dif_array = (KNMI_list-SVFs)/KNMI_list
+        dif_array = KNMI_list[KNMI_list>=0]-SVFs[KNMI_list>=0]
+        rel_dif_array = (KNMI_list[KNMI_list>=0]-SVFs[KNMI_list>=0])/KNMI_list[KNMI_list>=0]
 
     """Return the mean of the relative difference"""
     print("The relative error is " + str(np.mean(rel_dif_array)*100) + "%")
