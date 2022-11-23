@@ -599,21 +599,21 @@ print("max radius is " + str(max_radius))
 print("part is 1st up, 1st left")
 print("Data block is HN1")
 # #
-"Switch for 0.5 or 5 m"
-download_directory = config.input_dir_knmi
-SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.tif'])
-SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
+# "Switch for 0.5 or 5 m"
+# download_directory = config.input_dir_knmi
+# SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.tif'])
+# SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
+#
+# "Water elements are -3.4e38"
+# count = np.count_nonzero(SVF_knmi_HN1 < 0)
+# meanSVF = np.mean(SVF_knmi_HN1[SVF_knmi_HN1>=0])
 
-"Water elements are -3.4e38"
-count = np.count_nonzero(SVF_knmi_HN1 < 0)
-meanSVF = np.mean(SVF_knmi_HN1[SVF_knmi_HN1>=0])
-
-print('SVF_knmi is read')
-print('The mean of the SVFs from KNMI is ' + str(meanSVF))
-print('The max of the SVFs from KNMI is ' + str(np.max(SVF_knmi_HN1)))
-print('The min of the SVFs from KNMI is ' + str(np.min(SVF_knmi_HN1)))
-print("The variance of the knmi SVF is " + str(np.around(np.sum(((SVF_knmi_HN1[SVF_knmi_HN1>=0]-meanSVF)**2))/count,2)))
-"Now with filtering out water"
+# print('SVF_knmi is read')
+# print('The mean of the SVFs from KNMI is ' + str(meanSVF))
+# print('The max of the SVFs from KNMI is ' + str(np.max(SVF_knmi_HN1)))
+# print('The min of the SVFs from KNMI is ' + str(np.min(SVF_knmi_HN1)))
+# print("The variance of the knmi SVF is " + str(np.around(np.sum(((SVF_knmi_HN1[SVF_knmi_HN1>=0]-meanSVF)**2))/count,2)))
+# "Now with filtering out water"
 
 grid_ratio = int(gridboxsize/gridboxsize_knmi)
 if (gridboxsize==5):
@@ -623,15 +623,15 @@ if (gridboxsize==5):
     [x_long, y_long] = data.shape
     x_long = int(x_long/grid_ratio)
     y_long = int(y_long/grid_ratio)
-    SVF_means = np.ndarray([x_long,y_long])
-    #SVF_knmi_HN1[SVF_knmi_HN1<0] = 0
-    "We want to take the mean of the SVF values over a gridsize of gridratio"
-    for i in range(x_long):
-        for j in range(y_long):
-            part = SVF_knmi_HN1[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
-            SVF_means[i,j] = np.mean(part[(part >= 0)])
-    SVF_knmi_HN1 = SVF_means
-    SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
+    # SVF_means = np.ndarray([x_long,y_long])
+    # #SVF_knmi_HN1[SVF_knmi_HN1<0] = 0
+    # "We want to take the mean of the SVF values over a gridsize of gridratio"
+    # for i in range(x_long):
+    #     for j in range(y_long):
+    #         part = SVF_knmi_HN1[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
+    #         SVF_means[i,j] = np.mean(part[(part >= 0)])
+    # SVF_knmi_HN1 = SVF_means
+    # SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
     # print(SVF_knmi_HN1.shape)
     # print('The mean of the SVFs from KNMI averaged over 5m is ' + str(np.around(np.mean(SVF_knmi_HN1),2)))
     # print('The max of the SVFs from KNMI averaged over 5m is ' + str(np.max(SVF_knmi_HN1)))
@@ -644,7 +644,7 @@ elif (gridboxsize==0.5):
     data = readdata(minheight,dsm_HN1,dtm_HN1)
     [x_long, y_long] = data.shape
     data = data[:int(x_long/5),:int(y_long/5)]
-    SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
+    #SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
     "Filter out water"
     #SVF_knmi_HN1 = SVF_knmi_HN1[SVF_knmi_HN1>=0]
 coords = coordheight(data,gridboxsize)
@@ -659,7 +659,7 @@ SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=True,s
 # print('The min of the SVFs computed on 5m is ' + str(min(SVFs)))
 # print(np.sum(((np.array(SVFs)-meanSVFs)**2))/(len(SVFs)))
 
-KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
+#KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
 
 "Fisheye plot"
 
