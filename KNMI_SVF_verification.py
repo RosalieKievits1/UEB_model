@@ -253,10 +253,11 @@ def Verification(SVFs,SVF_knmi, gridboxsize, max_radius, gridboxsize_knmi,matrix
                     KNMI_list.append(SVF_knmi[i,j])
         if len(KNMI_list) != len(SVFs):
             print("The lists are not the same shape")
-        KNMI_list = np.array(KNMI_list)
-        SVFs = np.array(SVFs)
-        dif_array = KNMI_list[KNMI_list>=0]-SVFs[KNMI_list>=0]
-        rel_dif_array = (KNMI_list[KNMI_list>=0]-SVFs[KNMI_list>=0])/KNMI_list[KNMI_list>=0]
+        if SVFs is not None:
+            KNMI_list = np.array(KNMI_list)
+            SVFs = np.array(SVFs)
+            dif_array = KNMI_list[KNMI_list>=0]-SVFs[KNMI_list>=0]
+            rel_dif_array = (KNMI_list[KNMI_list>=0]-SVFs[KNMI_list>=0])/KNMI_list[KNMI_list>=0]
 
     """Return the mean of the relative difference"""
     print("The relative error is " + str(np.mean(rel_dif_array)*100) + "%")

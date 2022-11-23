@@ -202,6 +202,7 @@ def layer_balance(d_roof, d_wall, d_road,
         dT_wall = ((G_in_wall-G_out_wall)*delta_t)/(capacities_wall[:,:,l]*d_wall[l])
         dT_road = ((G_in_road-G_out_road)*delta_t)/(capacities_road[:,:,l]*d_road[l])
 
+        "New temperatures"
         map_T_roof[:,:,l] = T_old_roof[:,:,l] + dT_roof
         map_T_wall[:,:,l] = T_old_wall[:,:,l] + dT_wall
         map_T_road[:,:,l] = T_old_road[:,:,l] + dT_road
@@ -223,6 +224,8 @@ def HeatEvolution(data,time_steps,delta_t,azimuth,elevation_angle, T_surf):
     coords = SVF.coordheight(data)
     [svf,Shadowfactor] = SVF.reshape_SVF(data, coords,azimuth,elevation_angle,reshape=True,save_CSV=False,save_Im=False)
     "Now we need to separate the roof, wall and road SVF and SF"
+    SVF_roof = (np.zeros([data.shape]) + np.ones(data>0))*svf
+    SVF_road = (np.zeros([data.shape]) + np.ones(data==0))*svf
 
     """We evaluate the middle block only, but after the SVF and Shadowfactor are calculated"""
     [x_len,y_len] = data.shape

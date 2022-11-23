@@ -225,7 +225,7 @@ def SkyViewFactor(point, coords, max_radius,gridboxsize):
     areas = d_area(betas, steps_beta, max_radius)
     """The SVF is the fraction of area of the dome that is not blocked"""
     SVF = np.around((dome_area - np.sum(areas))/dome_area, 3)
-    return SVF, areas
+    return SVF
 
 def calc_SVF(coords, max_radius, blocklength, gridboxsize):
     """
@@ -409,25 +409,58 @@ def average_svf(SVF_matrix, grid_ratio):
             SVF_ave[i,j] = np.mean(part)
     return SVF_ave
 
-def SVF_WVF_wall(point,coords,maxR,type):
+def SF_wall(point,coords,type,wall_area,azimuth,elevation_angle):
+    "Now the shadowfactor is 0 if the top of the wall surface does not receive radiation. "
+    " But sometimes (most of the times) part of the wall is blocked from sunlight, how to solve this??"
+    if type==0:
+        coords = coords[(coords[:,0]<point[0]),:]
+    elif type==1:
+        coords = coords[(coords[:,1]>point[1]),:]
+    elif type==2:
+        coords = coords[(coords[:,0]>point[0]),:]
+    elif type==3:
+        coords = coords[(coords[:,1]<point[1]),:]
+
+    radii, angles = dist(point,coords,gridboxsize)
+    beta_min = np.asarray(- np.arcsin(np.sqrt(2*gridboxsize**2)/2/radii) + azimuth)
+    beta_max = np.asarray(np.arcsin(np.sqrt(2*gridboxsize**2)/2/radii) + azimuth)
+
+    if np.logical_or((np.count_nonzero(coords[np.logical_and((np.logical_and((angles > beta_min), (angles < beta_max))), ((np.tan(elevation_angle)*radii)<(coords[:,2]-point[2]))),:])>0),type==0):
+        Shadowfactor = 0
+    else:
+        Shadowfactor = 1
+    """in all other cases there is no point in the same direction as the sun that is higher
+    so the shadowfactor is 1: the point receives radiation"""
+    return Shadowfactor
+
+def SVF_WVF_wall(point,coords,maxR,type,wall_area):
     "For a wall point determine whether it is north, south east or west faced."
     "Retrieve all points inside a max radius"
+    "Point is a point on the dataset that is either north, west, east or south facing"
+    "wall area is point []"
+
     point_zero = np.copy(point)
     point_zero[2] = 0
     dome_zero = dome(point_zero,coords,maxR,gridboxsize)
 
-    "Create a dome that "
-    if (type==1): #Northern facing wall
+    "We have a point on data that is elevated: " \
+    "for this point we have wallmatrix that has dimensions [data.shape[0],data.shape[1],4]" \
+    "So for the SVF for wallmatrix[i,j,0] (north facing)"
+    "Use this function in a loop where we loop over all data points in coords > 0 (all buildings), " \
+    "then call this function while looping over all 4 sides with w in wall" \
+    "SVF_WVF_wall(point,coords,maxR,type=w,wall_area[point[0],point[1],w])"
+
+    if (type==0): #Northern facing wall
         dome_zero = dome_zero[dome_zero[:,0]<point[0]] #so only northern points
         dome_zero[:,4] = (dome_zero[:,4]+np.pi)%(2*np.pi)
         beta_lin = np.linspace(np.pi/2,3*np.pi/2,int(steps_beta/2),endpoint=False)
-    elif (type==2):
-        dome_zero = dome_zero[dome_zero[:,1]>point[1]]
+    elif (type==1): #east facing wall
+        dome_zero = dome_zero[dome_zero[:,1]>point[1]] #so only eastern points
         beta_lin = np.linspace(0,np.pi,int(steps_beta/2),endpoint=False)
-    elif (type==3):
+    elif (type==2): #south facing wall
         dome_zero = dome_zero[dome_zero[:,0]>point[0]] #so only southern points
         beta_lin = np.linspace(np.pi/2,3*np.pi/2,int(steps_beta/2),endpoint=False)
-    elif (type==4): #west facing wall
+    elif (type==3): #west facing wall
         dome_zero = dome_zero[dome_zero[:,1]<point[1]] #so only western points
         beta_lin = np.linspace(np.pi,2*np.pi,int(steps_beta/2),endpoint=False)
     "Now we have all the points that possibly block the view"
@@ -442,7 +475,7 @@ def SVF_WVF_wall(point,coords,maxR,type):
     for d in range(dome_zero.shape[0]):
         "The Angle between the height of the blocking and the height of the point on the wall with the horizontal axis"
         psi = np.arctan((dome_zero[d,2]-point[2])/dome_zero[d,3])
-        psi_zero = np.arctan((dome_zero[d,2])/dome_zero[d,3])
+        psi_zero = np.arctan((dome_zero[d,2]-(point[2]-wall_area[2]))/dome_zero[d,3])
         """The angles of the min and max horizontal angle of the building"""
         beta_min = - np.arcsin(gridboxsize/2/dome_zero[d,3]) + dome_zero[d,4]
         beta_max = np.arcsin(gridboxsize/2/dome_zero[d,3]) + dome_zero[d,4]
@@ -468,7 +501,7 @@ def SVF_WVF_wall(point,coords,maxR,type):
 
     WVF_wall = (1-SVF_wall-GVF_wall)
 
-    return SVF_wall, WVF_wall, GVF_wall
+    return SVF_wall, WVF_wall, GVF_wall, SF_wall
 
 def wallArea(data,gridboxsize):
     """
@@ -481,10 +514,11 @@ def wallArea(data,gridboxsize):
     """Set all the water elements to 0 height again"""
     data[data<0] = 0
     """We only evaluate the area in the center block"""
+    "The 3d wall area matrix is the size of data with 4 rows for each wall in order north, east, south west"
     if gridboxsize==5:
-        wall_area = np.ndarray([int(x_len-2*max_radius/gridboxsize),int(y_len-2*max_radius/gridboxsize)])
+        wall_area = np.ndarray([int(x_len-2*max_radius/gridboxsize),int(y_len-2*max_radius/gridboxsize),4])
     elif gridboxsize==0.5:
-        wall_area = np.ndarray([int(x_len/2),int(y_len/2)])
+        wall_area = np.ndarray([int(x_len/2),int(y_len/2),4])
     if (gridboxsize == 0.5):
         i = int(x_len/4)
         j = int(y_len/4)
@@ -494,14 +528,14 @@ def wallArea(data,gridboxsize):
                     """We check for all the points surrounding the building if they are also buildings, 
                     if the building next to it is higher the wall belongs to the building next to it,
                     if the current building is higher, the exterior wall is the difference in height * gridboxsize"""
-                    wall1 = max(data[i,j]-data[i+1,j],0)*gridboxsize
-                    wall2 = max(data[i,j]-data[i-1,j],0)*gridboxsize
-                    wall3 = max(data[i,j]-data[i,j+1],0)*gridboxsize
-                    wall4 = max(data[i,j]-data[i,j-1],0)*gridboxsize
+                    wall_area[int(i-x_len/4),int(j-y_len/4),0] = max(data[i,j]-data[i-1,j],0)*gridboxsize
+                    wall_area[int(i-x_len/4),int(j-y_len/4),1] = max(data[i,j]-data[i,j+1],0)*gridboxsize
+                    wall_area[int(i-x_len/4),int(j-y_len/4),2] = max(data[i,j]-data[i+1,j],0)*gridboxsize
+                    wall_area[int(i-x_len/4),int(j-y_len/4),3] = max(data[i,j]-data[i,j-1],0)*gridboxsize
                     """The wall area corresponding to that building is"""
-                    wall_area[int(i-x_len/4),int(j-y_len/4)] = wall1+wall2+wall3+wall4
+                    #wall_area[int(i-x_len/4),int(j-y_len/4)] = wall1+wall2+wall3+wall4
                 elif (data[i,j]==0):
-                    wall_area[int(i-x_len/4),int(j-x_len/4)] = 0
+                    wall_area[int(i-x_len/4),int(j-x_len/4),:] = 0
                 i+=1
                 j+=1
     elif (gridboxsize==5):
@@ -513,18 +547,18 @@ def wallArea(data,gridboxsize):
                     """We check for all the points surrounding the building if they are also buildings, 
                     if the building next to it is higher the wall belongs to the building next to it,
                     if the current building is higher, the exterior wall is the difference in height * gridboxsize"""
-                    wall1 = max(data[i,j]-data[i+1,j],0)*gridboxsize
-                    wall2 = max(data[i,j]-data[i-1,j],0)*gridboxsize
-                    wall3 = max(data[i,j]-data[i,j+1],0)*gridboxsize
-                    wall4 = max(data[i,j]-data[i,j-1],0)*gridboxsize
+                    wall_area[int(i-max_radius/gridboxsize),int(j-max_radius/gridboxsize),0] = max(data[i,j]-data[i-1,j],0)*gridboxsize
+                    wall_area[int(i-max_radius/gridboxsize),int(j-max_radius/gridboxsize),2] = max(data[i,j]-data[i,j+1],0)*gridboxsize
+                    wall_area[int(i-max_radius/gridboxsize),int(j-max_radius/gridboxsize),1] = max(data[i,j]-data[i+1,j],0)*gridboxsize
+                    wall_area[int(i-max_radius/gridboxsize),int(j-max_radius/gridboxsize),3] = max(data[i,j]-data[i,j-1],0)*gridboxsize
                     """The wall area corresponding to that building is"""
-                    wall_area[int(i-max_radius/gridboxsize),int(j-max_radius/gridboxsize)] = wall1+wall2+wall3+wall4
+                    #wall_area[int(i-max_radius/gridboxsize),int(j-max_radius/gridboxsize)] = np.sum(wall,axis=2)
                 elif (data[i,j]==0):
-                    wall_area[int(i-max_radius/gridboxsize),int(j-max_radius/gridboxsize)] = 0
+                    wall_area[int(i-max_radius/gridboxsize),int(j-max_radius/gridboxsize),:] = 0
                 i+=1
                 j+=1
     """wall_area is a matrix of the size of center block of data, 
-    with each point storing the the exterior wall for that building,
+    with each point storing the exterior wall for that building,
     wall_area_total is the total exterior wall area of the dataset"""
     wall_area_total = np.sum(wall_area)
     return wall_area, wall_area_total
@@ -571,15 +605,15 @@ SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.tif'])
 SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
 
 "Water elements are -3.4e38"
-# count = np.count_nonzero(SVF_knmi_HN1 < 0)
-# meanSVF = np.mean(SVF_knmi_HN1[SVF_knmi_HN1>=0])
-#
-# print('SVF_knmi is read')
-# print('The mean of the SVFs from KNMI is ' + str(meanSVF))
-# print('The max of the SVFs from KNMI is ' + str(np.max(SVF_knmi_HN1)))
-# print('The min of the SVFs from KNMI is ' + str(np.min(SVF_knmi_HN1)))
-# print("The variance of the knmi SVF is " + str(np.around(np.sum(((SVF_knmi_HN1[SVF_knmi_HN1>=0]-meanSVF)**2))/count,2)))
-# "Now with filtering out water"
+count = np.count_nonzero(SVF_knmi_HN1 < 0)
+meanSVF = np.mean(SVF_knmi_HN1[SVF_knmi_HN1>=0])
+
+print('SVF_knmi is read')
+print('The mean of the SVFs from KNMI is ' + str(meanSVF))
+print('The max of the SVFs from KNMI is ' + str(np.max(SVF_knmi_HN1)))
+print('The min of the SVFs from KNMI is ' + str(np.min(SVF_knmi_HN1)))
+print("The variance of the knmi SVF is " + str(np.around(np.sum(((SVF_knmi_HN1[SVF_knmi_HN1>=0]-meanSVF)**2))/count,2)))
+"Now with filtering out water"
 
 grid_ratio = int(gridboxsize/gridboxsize_knmi)
 if (gridboxsize==5):
@@ -597,6 +631,7 @@ if (gridboxsize==5):
             part = SVF_knmi_HN1[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
             SVF_means[i,j] = np.mean(part[(part >= 0)])
     SVF_knmi_HN1 = SVF_means
+    SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
     # print(SVF_knmi_HN1.shape)
     # print('The mean of the SVFs from KNMI averaged over 5m is ' + str(np.around(np.mean(SVF_knmi_HN1),2)))
     # print('The max of the SVFs from KNMI averaged over 5m is ' + str(np.max(SVF_knmi_HN1)))
@@ -611,13 +646,9 @@ elif (gridboxsize==0.5):
     data = data[:int(x_long/5),:int(y_long/5)]
     SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
     "Filter out water"
-    SVF_knmi_HN1 = SVF_knmi_HN1[SVF_knmi_HN1>=0]
+    #SVF_knmi_HN1 = SVF_knmi_HN1[SVF_knmi_HN1>=0]
 coords = coordheight(data,gridboxsize)
 print('coords array is made')
-
-
-# point = np.array(coords[6990,:])
-
 # print(SVF_WVF_wall(point,coords,max_radius,type=1))
 #print(SkyViewFactor(point, coords, max_radius, gridboxsize))
 SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=True,save_Im=False)
