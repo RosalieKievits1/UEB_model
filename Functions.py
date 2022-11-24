@@ -37,16 +37,9 @@ def exner(pressure):
     return (pressure/p_zero)**(Constants.R_d/Constants.C_pd)
 
 def q_sat(T,p):
-    R_w = 461.52 # J/kgK gas constant of water
-    L = 2.5e6 #J/kg latent vaporization heat of water
-    T_0 = 273.16 # K ref temp
-    e_s_T0 = 6.11e2 #Pa e_s at reference temperature
-    eps = 0.622 # ratio of molar masses of vapor and dry air
-
-    e_sat = e_s_T0 * np.log(L/R_w*(1/T_0-1/T))
-    q_sat = (eps*e_sat)/(p - (1-eps)*e_sat)
+    e_sat = Constants.e_s_T0 * np.log(Constants.L_v/Constants.R_w*(1/Constants.T_0-1/T))
+    q_sat = (Constants.eps*e_sat)/(p - (1-Constants.eps)*e_sat)
     return q_sat
-
 
 """Equations for map model"""
 def initialize_map(layers,T_surf,data):
@@ -112,8 +105,9 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
                    T_old_subs_roof, T_old_subs_wall, T_old_subs_road,
                    delta_t,
                    sigma,
-                   theta_z,
-                   SW_diff, SW_dir,
+                   theta_z,             # pi/2 - elevation angle: computed by sunpos
+                   SW_diff, SW_dir,     # from dales
+                   T_firstlayer, q_firstlayer, # from dales
                    LW_down):
     """
     Returns a map of the surface temperatures for all three surface types
@@ -137,7 +131,16 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
     SW_net_road = SW_dir * SF_road * (1-albedos_road) + SW_diff * SVF_road * (1-albedos_road) + \
                   (SW_dir * np.tan(theta_z) * SF_wall + SW_diff * SVF_wall) * albedos_wall * (1-albedos_road) * (1-SVF_road)
 
-    """conduction"""
+    " Latent and Sensible Heat fluxes "
+    SHF_roof = Constants.C_pd * Constants.rho_air * (1/Constants.res_roof) * (T_old_roof - T_firstlayer)
+    SHF_wall = 0
+    SHF_road = Constants.C_pd * Constants.rho_air * (1/Constants.res_road) * (T_old_road - T_firstlayer)
+
+    LHF_roof = Constants.C_pd * Constants.L_v * (1/Constants.res_roof) * (q_sat(T_old_roof,Constants.p_surf) - q_firstlayer)
+    LHF_wall = 0
+    LHF_road = Constants.C_pd * Constants.L_v * (1/Constants.res_road) * (q_sat(T_old_road,Constants.p_surf) - q_firstlayer)
+
+    " conduction "
     lamb_ave_out_surf_roof = (d_roof[0]+d_roof[1])/((d_roof[0]/lambdas_roof[:,:,0])+(d_roof[1]/lambdas_roof[:,:,1]))
     G_out_surf_roof = lamb_ave_out_surf_roof*((T_old_roof-T_old_subs_roof)/(1/2*(d_roof[0]+d_road[1])))
     lamb_ave_out_surf_wall = (d_wall[0]+d_wall[1])/((d_wall[0]/lambdas_wall[:,:,0])+(d_wall[1]/lambdas_wall[:,:,1]))
@@ -145,12 +148,12 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
     lamb_ave_out_surf_road = (d_road[0]+d_road[1])/((d_road[0]/lambdas_road[:,:,0])+(d_wall[1]/lambdas_road[:,:,1]))
     G_out_surf_road = lamb_ave_out_surf_road*((T_old_road-T_old_subs_road)/(1/2*(d_road[0]+d_road[1])))
 
-    """ Net radiation"""
-    netRad_roof = LW_net_roof + SW_net_roof - G_out_surf_roof
-    netRad_wall = LW_net_wall + SW_net_wall - G_out_surf_wall
-    netRad_road = LW_net_road + SW_net_road - G_out_surf_road
+    " Net radiation "
+    netRad_roof = LW_net_roof + SW_net_roof - G_out_surf_roof - SHF_roof - LHF_roof
+    netRad_wall = LW_net_wall + SW_net_wall - G_out_surf_wall - SHF_wall - LHF_wall
+    netRad_road = LW_net_road + SW_net_road - G_out_surf_road - SVF_road - LHF_road
 
-    """ Temperature change"""
+    " Temperature change "
     dT_roof = (netRad_roof/(capacities_roof[:,:,0]*d_roof[0]))*delta_t
     map_T_roof = T_old_roof + dT_roof
     dT_wall = (netRad_wall/(capacities_wall[:,:,0]*d_wall[0]))*delta_t

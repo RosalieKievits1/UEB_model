@@ -222,10 +222,10 @@ def SkyViewFactor(point, coords, max_radius,gridboxsize):
         """Where the index of betas fall within the min and max beta, and there is not already a larger psi blocking"""
         betas[np.nonzero(np.logical_and((betas < psi), np.logical_and((beta_min <= betas_lin), (betas_lin < beta_max))))] = psi
         d += 1
-    areas = d_area(betas, steps_beta, max_radius)
     """The SVF is the fraction of area of the dome that is not blocked"""
-    SVF = np.around((dome_area - np.sum(areas))/dome_area, 3)
-    return SVF
+    #SVF = np.around((np.sum(1-np.sin(betas))/steps_beta),3)
+    SVF_2 = np.around((np.sum(np.cos(betas)**2)/steps_beta),3)
+    return SVF_2
 
 def calc_SVF(coords, max_radius, blocklength, gridboxsize):
     """
@@ -650,7 +650,6 @@ elif (gridboxsize==0.5):
 coords = coordheight(data,gridboxsize)
 print('coords array is made')
 # print(SVF_WVF_wall(point,coords,max_radius,type=1))
-#print(SkyViewFactor(point, coords, max_radius, gridboxsize))
 SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=True,save_Im=False)
 # SVFs = SVF5mPy.SVFs
 # meanSVFs = sum(SVFs)/len(SVFs)
@@ -668,3 +667,4 @@ SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=True,s
 endtime = time.time()
 elapsed_time = endtime-sttime
 print('Execution time:', elapsed_time, 'seconds')
+

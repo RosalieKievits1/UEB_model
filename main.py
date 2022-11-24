@@ -2,18 +2,21 @@
 import numpy as np
 import pandas as pd
 import Constants
-import SVF
 import matplotlib.pyplot as plt
-import Functions
-
-# This script is for simulating an urban energy balance, taking into consideration the town geometry.
-# 1: first we define all governing equations and test the surface energy and temperature for a flat surface
-# 2: Next we implement a surface with height differences (start with infinite canyon)
-# 3: Implement solar angle and shading effects
-# 4: implement reflection effects
-# 5: implement snow and rain surface obstruction
-# 6: implement human heat sources
+#import Functions
+#import SVF
 import Sunpos
+
+plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
+# csfont = {'fontname':'Arial (sans-serif)'}
+# hfont = {'fontname':'Arial (sans-serif)'}
+
+plt.figure()
+x = np.linspace(0,100,100)
+y = x**2
+plt.title('The built area fraction')
+plt.xlabel('xlabel')
+plt.show()
 
 nr_steps = Functions.nr_steps
 T_air = Functions.T_air
@@ -49,4 +52,4 @@ T_air = Functions.T_air
 #     "Calculate average surface temperatures for roof and road surface types"
 #     [t_roof_ave, t_road_ave, t_ave] = Functions.HeatEvolution(data,Constants.nr_of_steps,Constants.timestep,azimuth,zenith)
 #
-Functions.PlotGreyMap(SVF.data,middle=False,v_max=1)
+# Functions.PlotGreyMap(SVF.data,middle=False,v_max=1)

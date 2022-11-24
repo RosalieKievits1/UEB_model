@@ -80,6 +80,17 @@ rho_air = 1.2985 # [kg/m3] air density at first atmospheric level
 p_surf = 1.01325e5 # [Pa] surface pressure
 p_trop = 1.089e5 # [Pa] pressure at first atmospheric level (troposphere), according to literature ranges between 100 and 200mBar
 
+"Aerodynamc resistances for roof and road"
+res_roof = 1
+res_road = 1
+
+
+R_w = 461.52 # J/kgK gas constant of water
+L_v = 2.5e6 #J/kg latent vaporization heat of water
+T_0 = 273.16 # K ref temp
+e_s_T0 = 6.11e2 #Pa e_s at reference temperature
+eps = 0.622 # ratio of molar masses of vapor and dry air
+
 """For the solar position algorithm (based on Rotterdam)"""
 latitude = 51.9
 long_rd = 4.46
