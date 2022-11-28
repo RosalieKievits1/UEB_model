@@ -20,7 +20,7 @@ gridboxsize = 0.5
 if gridboxsize==5:
     max_radius = 500
 elif gridboxsize==0.5:
-    max_radius = 100
+    max_radius = 200
 
 gridboxsize_knmi = 0.5
 """objects below 1 m we do not look at"""
@@ -487,8 +487,8 @@ def SVF_WVF_wall(point,coords,maxR,type,wall_area):
         if dome_zero[d,2]==0:
             closest[np.nonzero(np.logical_and((closest > dome_zero[d,3]), np.logical_and((beta_min <= beta_lin), (beta_lin < beta_max))))] = dome_zero[d,3]
 
-    areas = d_area(betas,steps_beta/2,maxR)
-    areas_zero = d_area(betas_zero,steps_beta/2,maxR)
+    areas = sum(np.cos(betas)**2)/(steps_beta/2)
+    areas_zero = sum(np.cos(betas_zero)**2)/(steps_beta/2)
 
     "We take the SVF of the wall surface as the average between the SVF at the top and the SVF at the bottom"
     SVF_wall_high = (dome_max/2 - sum(areas))/(dome_max)
@@ -510,7 +510,7 @@ def wallArea(data,gridboxsize):
     :return: the wallarea matrix and total wall area
     """
     """Matrix of ones where there are buildings"""
-    [x_len,y_len] = [data.shape[0], data.shape[1]]
+    [x_len,y_len] = data.shape
     """Set all the water elements to 0 height again"""
     data[data<0] = 0
     """We only evaluate the area in the center block"""
@@ -571,7 +571,8 @@ def fisheye(data):
     point = coords[int(blocklength),:]
     bottom = 0
     max_area = max_radius**2 * 2 * np.pi / steps_beta
-    [svf, areas] = SkyViewFactor(point,coords,max_radius,gridboxsize)
+    [svf, betas] = SkyViewFactor(point,coords,max_radius,gridboxsize)
+    areas = (np.cos(betas)**2)
     theta = np.linspace(0.0, 2 * np.pi, steps_beta, endpoint=False)
     radii = - areas + max_area
     width = (2*np.pi) / steps_beta
@@ -599,21 +600,10 @@ print("max radius is " + str(max_radius))
 print("part is 1st up, 1st left")
 print("Data block is HN1")
 # #
-# "Switch for 0.5 or 5 m"
-# download_directory = config.input_dir_knmi
-# SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.tif'])
-# SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
-#
-# "Water elements are -3.4e38"
-# count = np.count_nonzero(SVF_knmi_HN1 < 0)
-# meanSVF = np.mean(SVF_knmi_HN1[SVF_knmi_HN1>=0])
-
-# print('SVF_knmi is read')
-# print('The mean of the SVFs from KNMI is ' + str(meanSVF))
-# print('The max of the SVFs from KNMI is ' + str(np.max(SVF_knmi_HN1)))
-# print('The min of the SVFs from KNMI is ' + str(np.min(SVF_knmi_HN1)))
-# print("The variance of the knmi SVF is " + str(np.around(np.sum(((SVF_knmi_HN1[SVF_knmi_HN1>=0]-meanSVF)**2))/count,2)))
-# "Now with filtering out water"
+"Switch for 0.5 or 5 m"
+download_directory = config.input_dir_knmi
+SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.tif'])
+SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
 
 grid_ratio = int(gridboxsize/gridboxsize_knmi)
 if (gridboxsize==5):
@@ -644,24 +634,48 @@ elif (gridboxsize==0.5):
     data = readdata(minheight,dsm_HN1,dtm_HN1)
     [x_long, y_long] = data.shape
     data = data[:int(x_long/5),:int(y_long/5)]
-    #SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
-    "Filter out water"
+    SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
+    [x_len,y_len] = SVF_knmi_HN1.shape
+#     "Filter out water"
+#     KNMI_list = []
+#     for i in range(x_len):
+#         for j in range(y_len):
+#             if (gridboxsize==5) and ((max_radius/gridboxsize)<=i and i<(x_len-max_radius/gridboxsize) and (max_radius/gridboxsize)<=j and j<(y_len-max_radius/gridboxsize)):
+#                 KNMI_list.append(SVF_knmi_HN1[i,j])
+#             if (gridboxsize==0.5) and ((x_len/4)<=i and i<(3*x_len/4) and (y_len/4)<=j and j<(3*y_len/4)):
+#                 KNMI_list.append(SVF_knmi_HN1[i,j])
+#     "Water elements are -3.4e38"
+#     count = np.count_nonzero(SVF_knmi_HN1 >= 0)
+#     meanSVF = np.mean(SVF_knmi_HN1[SVF_knmi_HN1>=0])
+#
+#     print('SVF_knmi is read')
+#     print('The mean of the SVFs from KNMI is ' + str(meanSVF))
+#     print('The max of the SVFs from KNMI is ' + str(np.max(SVF_knmi_HN1)))
+#     print('The min of the SVFs from KNMI is ' + str(np.min(SVF_knmi_HN1)))
+#     print("The variance of the knmi SVF is " + str(np.around(np.sum(((SVF_knmi_HN1[SVF_knmi_HN1>=0]-meanSVF)**2))/count,2)))
+# # "Now with filtering out water"
     #SVF_knmi_HN1 = SVF_knmi_HN1[SVF_knmi_HN1>=0]
 coords = coordheight(data,gridboxsize)
 print('coords array is made')
+# print(KNMI_list[50:100])
 # print(SVF_WVF_wall(point,coords,max_radius,type=1))
 SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=True,save_Im=False)
-# SVFs = SVF5mPy.SVFs
-# meanSVFs = sum(SVFs)/len(SVFs)
-# print('The mean of the SVFs computed on 5m is ' + str(meanSVFs))
-# print('The max of the SVFs computed on 5m is ' + str(max(SVFs)))
-# print('The min of the SVFs computed on 5m is ' + str(min(SVFs)))
-# print(np.sum(((np.array(SVFs)-meanSVFs)**2))/(len(SVFs)))
+# SVFs05 = SVFs05m.SVFs
+# print(SVFs05[50:100])
+# meanSVFs05 = sum(SVFs05)/len(SVFs05)
+# print('The mean of the SVFs computed on 0.5m is ' + str(meanSVFs05))
+# print('The max of the SVFs computed on 0.5m is ' + str(max(SVFs05)))
+# print('The min of the SVFs computed on 0.5m is ' + str(min(SVFs05)))
+# print(np.sum(((np.array(SVFs05)-meanSVFs05)**2))/(len(SVFs05)))
+#
+# SVFs5m = SVF5mPy.SVFs
+# meanSVFs5m = sum(SVFs5m)/len(SVFs5m)
+# print('The mean of the SVFs computed on 5m is ' + str(meanSVFs5m))
+# print('The max of the SVFs computed on 5m is ' + str(max(SVFs5m)))
+# print('The min of the SVFs computed on 5m is ' + str(min(SVFs5m)))
+# print(np.sum(((np.array(SVFs5m)-meanSVFs5m)**2))/(len(SVFs5m)))
 
-#KNMI_SVF_verification.Verification(SVFs,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
-
-"Fisheye plot"
-
+#KNMI_SVF_verification.Verification(SVFs05,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
 
 "Time elapsed"
 endtime = time.time()

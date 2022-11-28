@@ -256,11 +256,17 @@ def Verification(SVFs,SVF_knmi, gridboxsize, max_radius, gridboxsize_knmi,matrix
         if SVFs is not None:
             KNMI_list = np.array(KNMI_list)
             SVFs = np.array(SVFs)
-            dif_array = KNMI_list[KNMI_list>=0]-SVFs[KNMI_list>=0]
-            rel_dif_array = (KNMI_list[KNMI_list>=0]-SVFs[KNMI_list>=0])/KNMI_list[KNMI_list>=0]
+            dif_array = SVFs[KNMI_list>=0]-KNMI_list[KNMI_list>=0]
+            rel_dif_array = (SVFs[KNMI_list>=0]-KNMI_list[KNMI_list>=0])/SVFs[KNMI_list>=0]
+    # print(np.around(KNMI_list[50:100],3))
+    # print(SVFs[50:100])
+    meanSVFs05 = sum(SVFs[KNMI_list>=0])/len(SVFs[KNMI_list>=0])
+    print('The mean of the SVFs computed on 0.5m is ' + str(meanSVFs05))
+    meanSVF = np.mean(KNMI_list[KNMI_list>=0])
+    print('The mean of the SVFs from KNMI is ' + str(meanSVF))
 
     """Return the mean of the relative difference"""
-    print("The relative error is " + str(np.mean(rel_dif_array)*100) + "%")
+    print("The mean relative error is " + str(np.mean(rel_dif_array)*100) + " %")
     print("The maximum absolute error is " + str(np.max(dif_array)))
     print("The maximum relative error is " + str(np.max(rel_dif_array)))
     return
