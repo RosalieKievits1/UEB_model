@@ -3,23 +3,23 @@ import numpy as np
 import pandas as pd
 import Constants
 import matplotlib.pyplot as plt
-#import Functions
-#import SVF
+import Functions
+import SVF
 import Sunpos
 
-plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
+#plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
 # csfont = {'fontname':'Arial (sans-serif)'}
 # hfont = {'fontname':'Arial (sans-serif)'}
 
-plt.figure()
-x = np.linspace(0,100,100)
-y = x**2
-plt.title('The built area fraction')
-plt.xlabel('xlabel')
-plt.show()
-
-nr_steps = Functions.nr_steps
-T_air = Functions.T_air
+# plt.figure()
+# x = np.linspace(0,100,100)
+# y = x**2
+# plt.title('The built area fraction')
+# plt.xlabel('xlabel')
+# plt.show()
+#
+# nr_steps = Functions.nr_steps
+# T_air = Functions.T_air
 
 """MASSON"""
 """Plotting of the layers temperatures for each material"""
@@ -53,3 +53,5 @@ T_air = Functions.T_air
 #     [t_roof_ave, t_road_ave, t_ave] = Functions.HeatEvolution(data,Constants.nr_of_steps,Constants.timestep,azimuth,zenith)
 #
 # Functions.PlotGreyMap(SVF.data,middle=False,v_max=1)
+[T_r, T_w,T_road] = Functions.HeatEvolution(SVF.data,Constants.nr_of_steps,Constants.timestep,180,40, Functions.T_2m,SVF.SVF_matrix)
+Functions.PlotSurfaceTemp(T_r, T_w,T_road,Constants.nr_of_steps)

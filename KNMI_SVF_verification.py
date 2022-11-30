@@ -226,21 +226,21 @@ def Verification(SVFs,SVF_knmi, gridboxsize, max_radius, gridboxsize_knmi,matrix
     "The knmi matrix is based on a different resolution gridboxsize"
     [x_len,y_len] = np.shape(SVF_knmi)
     if gridboxsize==0.5:
-        blocklength = int(x_len/2*y_len/2)
+        blocklength = int(x_len*y_len)
     elif gridboxsize==5:
         blocklength = int((x_len-2*max_radius/gridboxsize)*(y_len-2*max_radius/gridboxsize))
-    dif_array = np.array([blocklength])
-    rel_dif_array = np.array([blocklength])
+    dif_array = np.zeros((blocklength))
+    rel_dif_array = np.zeros((blocklength))
     idx = 0
     if matrix == True:
         if SVFs.shape != SVF_knmi.shape:
             print("The matrices are not the same shape")
-        for i in range(x_len/2):
-            for j in range(y_len/2):
+        for i in range(int(x_len)):
+            for j in range(int(y_len)):
                 """Check what the difference is in SVF"""
                 if SVF_knmi[i,j]>=0:
                     dif_array[idx] = SVF_knmi[i,j]-SVFs[i,j]
-                    rel_dif_array[idx] = (SVF_knmi[i,j]-SVFs[i,j])/SVF_knmi[i,j]
+                    rel_dif_array[idx] = (SVFs[i,j]-SVF_knmi[i,j])/SVFs[i,j]
                     idx += 1
     elif matrix == False:
         """Try 2: we reshape the KNMI one to the list"""
@@ -258,12 +258,14 @@ def Verification(SVFs,SVF_knmi, gridboxsize, max_radius, gridboxsize_knmi,matrix
             SVFs = np.array(SVFs)
             dif_array = SVFs[KNMI_list>=0]-KNMI_list[KNMI_list>=0]
             rel_dif_array = (SVFs[KNMI_list>=0]-KNMI_list[KNMI_list>=0])/SVFs[KNMI_list>=0]
-    # print(np.around(KNMI_list[50:100],3))
-    # print(SVFs[50:100])
-    meanSVFs05 = sum(SVFs[KNMI_list>=0])/len(SVFs[KNMI_list>=0])
+            SVF_knmi=KNMI_list
+
+    meanSVFs05 = np.mean(SVFs[SVF_knmi>=0])
     print('The mean of the SVFs computed on 0.5m is ' + str(meanSVFs05))
-    meanSVF = np.mean(KNMI_list[KNMI_list>=0])
+    print('The variance of the SVFs computed on 0.5 m is ' + str(np.sum(((SVFs[SVF_knmi>=0]-meanSVFs05)**2))/(len(SVFs[SVF_knmi>=0]))))
+    meanSVF = np.mean(SVF_knmi[SVF_knmi>=0])
     print('The mean of the SVFs from KNMI is ' + str(meanSVF))
+    print('The variance of the SVFs of the KNMI is ' + str(np.sum(((SVF_knmi[SVF_knmi>=0]-meanSVF)**2))/(len(SVF_knmi[SVF_knmi>=0]))))
 
     """Return the mean of the relative difference"""
     print("The mean relative error is " + str(np.mean(rel_dif_array)*100) + " %")

@@ -8,13 +8,13 @@ sigma = 5.67e-8
 layers = 3
 
 """layer thickness of road wall and roof [m]"""
-d_roof = np.ones([layers]) * 0.05
-d_wall = np.ones([layers]) * 0.05
-d_road = np.ones([layers]) * 0.1
+d_roof = [0.05,0.1,0.15] #np.ones([layers]) * 0.05
+d_wall = [0.05,0.1,0.15] #np.ones([layers]) * 0.05
+d_road = [0.05,0.1,0.15] #np.ones([layers]) * 0.05
 
 """timestep"""
-timestep = 1*60 #[s]
-nr_of_steps = 1000
+timestep = 10*60 #[s]
+nr_of_steps = 200
 
 """albedos"""
 a_bitumen = 0.08
@@ -74,21 +74,21 @@ H = 20
 # reference pressure
 p_0 = 1e5 # [Pa]
 R_d = 28.964917 # [g/mol]
-C_pd = 1.005 # [kJ/kgK] heat capacity of dry air
+C_pd = 1.005e3 # [J/kgK] heat capacity of dry air
 rho_air = 1.2985 # [kg/m3] air density at first atmospheric level
 # surface and first atmospheric level pressures (should these be inputs from DALES??)
-p_surf = 1.01325e5 # [Pa] surface pressure
-p_trop = 1.089e5 # [Pa] pressure at first atmospheric level (troposphere), according to literature ranges between 100 and 200mBar
+p_atm = 1.01325e5 # [Pa] surface pressure
+p_surf = 1.089e5 # [Pa] pressure at first atmospheric level (troposphere), according to literature ranges between 100 and 200mBar
 
 "Aerodynamc resistances for roof and road"
-res_roof = 1
-res_road = 1
+res_roof = 1/0.03
+res_road = 1/0.03
 
 
 R_w = 461.52 # J/kgK gas constant of water
 L_v = 2.5e6 #J/kg latent vaporization heat of water
-T_0 = 273.16 # K ref temp
-e_s_T0 = 6.11e2 #Pa e_s at reference temperature
+T_0 = 273.15 # K ref temp
+e_s_T0 = 0.611e3 #Pa e_s at reference temperature
 eps = 0.622 # ratio of molar masses of vapor and dry air
 
 """For the solar position algorithm (based on Rotterdam)"""

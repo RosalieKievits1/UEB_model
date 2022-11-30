@@ -9,6 +9,7 @@ import time
 import KNMI_SVF_verification
 import Constants
 import Sunpos
+import SVFs05m
 
 sttime = time.time()
 
@@ -20,7 +21,7 @@ gridboxsize = 0.5
 if gridboxsize==5:
     max_radius = 500
 elif gridboxsize==0.5:
-    max_radius = 200
+    max_radius = 100
 
 gridboxsize_knmi = 0.5
 """objects below 1 m we do not look at"""
@@ -327,12 +328,14 @@ def reshape_SVF(data, coords,gridboxsize,azimuth,zenith,reshape,save_CSV,save_Im
     "If reshape is true we reshape the arrays to the original data matrix"
     if (reshape == True) & (SVFs is not None):
         #SVF_matrix = np.ndarray([x_len-2*max_radius/gridboxsize,y_len-2*max_radius/gridboxsize])
-        SVF_matrix = np.ndarray([x_len/2,y_len/2])
+        SVF_matrix = np.ndarray([x_len,y_len])
         #SF_matrix = np.ndarray([x_len,y_len])
         for i in range(blocklength):
             #SVF_matrix[coords[i,0]-max_radius/gridboxsize,coords[i,1]-max_radius/gridboxsize] = SVFs[i]
-            SVF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SVFs[i]
-            #SF_matrix[coords[i,0]-x_len/2,coords[i,1]-y_len/2] = SFs[i]
+            SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVFs05[i]
+            #SF_matrix[int(coords[i,0]),int(coords[i,1])] = SFs[i]
+        SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+        #SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
         if save_CSV == True:
             np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
             #np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
@@ -344,7 +347,7 @@ def reshape_SVF(data, coords,gridboxsize,azimuth,zenith,reshape,save_CSV,save_Im
     elif (reshape == False) & (SVFs is not None):
         if save_CSV == True:
             np.savetxt("SVFs" + str(gridboxsize) + ".csv", SVFs, delimiter=",")
-            #np.savetxt("SFs.csv", SFs, delimiter=",")
+            #np.savetxt("SFs" + str(gridboxsize) + ".csv", SFs, delimiter=",")
         return SVFs#, SFs
 
 
@@ -399,13 +402,27 @@ def geometricProperties(data,delta_x,gridboxsize):
     H_W = ave_height*delta
     return ave_height, delta, Roof_area, wall_area_med, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac, H_W
 
+def average_svf_surfacetype(SVF_matrix,data, grid_ratio):
+    [x_long, y_long] = SVF_matrix.shape
+    #SVF_ave = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
+    SVF_ave_roof = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
+    SVF_ave_roof = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
+    "We want to take the mean of the SVF values over a gridsize of gridratio"
+    for i in range(int(x_long/grid_ratio)):
+        for j in range(int(y_long/grid_ratio)):
+            data_part = data[int(i*grid_ratio):int((i+1)*grid_ratio), int(j*grid_ratio):int((j+1)*grid_ratio)]
+            part = SVF_matrix[int(i*grid_ratio):int((i+1)*grid_ratio), int(j*grid_ratio):int((j+1)*grid_ratio)]
+            SVF_ave_roof[i,j] = np.mean(part[data_part>0])
+            SVF_ave_road[i,j] = np.mean(part[data_part<=0])
+    return SVF_ave_roof,SVF_ave_road
+
 def average_svf(SVF_matrix, grid_ratio):
     [x_long, y_long] = SVF_matrix.shape
     SVF_ave = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
     "We want to take the mean of the SVF values over a gridsize of gridratio"
-    for i in range(x_long):
-        for j in range(y_long):
-            part = SVF_matrix[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
+    for i in range(int(x_long/grid_ratio)):
+        for j in range(int(y_long/grid_ratio)):
+            part = SVF_matrix[int(i*grid_ratio):int((i+1)*grid_ratio), int(j*grid_ratio):int((j+1)*grid_ratio)]
             SVF_ave[i,j] = np.mean(part)
     return SVF_ave
 
@@ -636,14 +653,17 @@ elif (gridboxsize==0.5):
     data = data[:int(x_long/5),:int(y_long/5)]
     SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
     [x_len,y_len] = SVF_knmi_HN1.shape
+    #
+    SVF_knmi_HN1 = SVF_knmi_HN1[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+
 #     "Filter out water"
-#     KNMI_list = []
-#     for i in range(x_len):
-#         for j in range(y_len):
-#             if (gridboxsize==5) and ((max_radius/gridboxsize)<=i and i<(x_len-max_radius/gridboxsize) and (max_radius/gridboxsize)<=j and j<(y_len-max_radius/gridboxsize)):
-#                 KNMI_list.append(SVF_knmi_HN1[i,j])
-#             if (gridboxsize==0.5) and ((x_len/4)<=i and i<(3*x_len/4) and (y_len/4)<=j and j<(3*y_len/4)):
-#                 KNMI_list.append(SVF_knmi_HN1[i,j])
+# KNMI_list = []
+# for i in range(x_len):
+#     for j in range(y_len):
+#         if (gridboxsize==5) and ((max_radius/gridboxsize)<=i and i<(x_len-max_radius/gridboxsize) and (max_radius/gridboxsize)<=j and j<(y_len-max_radius/gridboxsize)):
+#             KNMI_list.append(SVF_knmi_HN1[i,j])
+#         if (gridboxsize==0.5) and ((x_len/4)<=i and i<(3*x_len/4) and (y_len/4)<=j and j<(3*y_len/4)):
+#             KNMI_list.append(SVF_knmi_HN1[i,j])
 #     "Water elements are -3.4e38"
 #     count = np.count_nonzero(SVF_knmi_HN1 >= 0)
 #     meanSVF = np.mean(SVF_knmi_HN1[SVF_knmi_HN1>=0])
@@ -656,26 +676,42 @@ elif (gridboxsize==0.5):
 # # "Now with filtering out water"
     #SVF_knmi_HN1 = SVF_knmi_HN1[SVF_knmi_HN1>=0]
 coords = coordheight(data,gridboxsize)
-print('coords array is made')
-# print(KNMI_list[50:100])
-# print(SVF_WVF_wall(point,coords,max_radius,type=1))
-SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=True,save_Im=False)
-# SVFs05 = SVFs05m.SVFs
+# print('coords array is made')
+# # print(KNMI_list[50:100])
+# # print(SVF_WVF_wall(point,coords,max_radius,type=1))
+# #SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=True,save_Im=False)
+SVFs05 = SVFs05m.SVFs
+SVF_matrix = np.ndarray([x_len,y_len])
+for i in range(int(x_len/2*y_len/2)):
+    SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVFs05[i]
+
+SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# plt.subplot(1, 2, 1)
+# plt.imshow(SVF_matrix, vmin=0, vmax=1, aspect='auto')
+
+# # plt.subplot(1, 2, 1)
+# # plt.imshow(SVF_knmi_HN1, vmin=0, vmax=1, aspect='auto')
+#
+# plt.subplot(1, 2, 2)
+# plt.imshow(SVF_knmi_HN1,vmin=0, vmax = 1, aspect='auto')
+# #plt.colorbar()
+# plt.show()
 # print(SVFs05[50:100])
 # meanSVFs05 = sum(SVFs05)/len(SVFs05)
 # print('The mean of the SVFs computed on 0.5m is ' + str(meanSVFs05))
 # print('The max of the SVFs computed on 0.5m is ' + str(max(SVFs05)))
 # print('The min of the SVFs computed on 0.5m is ' + str(min(SVFs05)))
-# print(np.sum(((np.array(SVFs05)-meanSVFs05)**2))/(len(SVFs05)))
+
 #
-# SVFs5m = SVF5mPy.SVFs
+#SVFs5m = SVF5mPy.SVFs
 # meanSVFs5m = sum(SVFs5m)/len(SVFs5m)
 # print('The mean of the SVFs computed on 5m is ' + str(meanSVFs5m))
 # print('The max of the SVFs computed on 5m is ' + str(max(SVFs5m)))
 # print('The min of the SVFs computed on 5m is ' + str(min(SVFs5m)))
 # print(np.sum(((np.array(SVFs5m)-meanSVFs5m)**2))/(len(SVFs5m)))
 
-#KNMI_SVF_verification.Verification(SVFs05,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=False)
+#KNMI_SVF_verification.Verification(SVF_matrix,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=True)
 
 "Time elapsed"
 endtime = time.time()
