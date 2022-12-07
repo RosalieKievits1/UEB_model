@@ -1,16 +1,17 @@
 # Constants
 import numpy as np
+import Sunpos
 
 #stephan boltzman constant
 sigma = 5.67e-8
 
 # layers of simulation
-layers = 3
+layers = 6
 
 """layer thickness of road wall and roof [m]"""
-d_roof = [0.05,0.1,0.15] #np.ones([layers]) * 0.05
-d_wall = [0.05,0.1,0.15] #np.ones([layers]) * 0.05
-d_road = [0.05,0.1,0.15] #np.ones([layers]) * 0.05
+d_roof = np.ones([layers]) * 0.05 #[0.05,0.1,0.15, 0.2] #
+d_wall = np.ones([layers]) * 0.05 #[0.05,0.1,0.15, 0.2] #
+d_road = np.ones([layers]) * 0.05 #[0.05,0.1,0.15, 0.2] #
 
 """timestep"""
 timestep = 10*60 #[s]
@@ -97,3 +98,5 @@ long_rd = 4.46
 "Julian day and hour of the day in local mean time"
 julianday = 305 #1 nov
 hour = 10.5 # 10:30 am
+
+

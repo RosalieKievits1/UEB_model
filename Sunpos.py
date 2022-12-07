@@ -54,7 +54,7 @@ def solarpos(julian_day,latitude,longitude,hour,radians=True):
         azimuth = azimuth % 360
         zenith = zenith*180/np.pi
 
-    return azimuth,zenith,hour_sunrise,hour_sunset
+    return azimuth,zenith
 
 
 # df = pd.read_csv('SolarposNov1.csv')

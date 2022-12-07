@@ -5,29 +5,14 @@ import Constants
 import matplotlib.pyplot as plt
 import Functions
 import SVF
-import Sunpos
 
 #plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
 # csfont = {'fontname':'Arial (sans-serif)'}
 # hfont = {'fontname':'Arial (sans-serif)'}
 
-# plt.figure()
-# x = np.linspace(0,100,100)
-# y = x**2
-# plt.title('The built area fraction')
-# plt.xlabel('xlabel')
-# plt.show()
 #
 # nr_steps = Functions.nr_steps
 # T_air = Functions.T_air
-
-"""MASSON"""
-"""Plotting of the layers temperatures for each material"""
-#[map_temperatures_roof,map_temperatures_wall,map_temperatures_road] = Functions.Masson_model(Constants.T_building,Constants.T_ground,Constants.T_air,nr_steps,Constants.H_W)
-#Functions.plotTemp_Masson(map_temperatures_roof)
-#Functions.plotTemp_Masson(map_temperatures_road)
-#Functions.plotTemp_Masson(map_temperatures_wall)
-#Functions.plotTempComparison_Masson(map_temperatures_roof,map_temperatures_wall,map_temperatures_road,1)
 
 """City using SVF and shadow casting"""
 # #print(SVF.geometricProperties(data,SVF.gridboxsize))
@@ -52,6 +37,23 @@ import Sunpos
 #     "Calculate average surface temperatures for roof and road surface types"
 #     [t_roof_ave, t_road_ave, t_ave] = Functions.HeatEvolution(data,Constants.nr_of_steps,Constants.timestep,azimuth,zenith)
 #
+
 # Functions.PlotGreyMap(SVF.data,middle=False,v_max=1)
-[T_r, T_w,T_road] = Functions.HeatEvolution(SVF.data,Constants.nr_of_steps,Constants.timestep,180,40, Functions.T_2m,SVF.SVF_matrix)
-Functions.PlotSurfaceTemp(T_r, T_w,T_road,Constants.nr_of_steps)
+[T_r, T_w,T_road, LW_net_roof, SW_net_roof, LHF_roof, SHF_roof, G_out_surf_roof] = Functions.HeatEvolution(SVF.m5_data,Constants.nr_of_steps,Constants.timestep,180,40, Functions.T_2m)
+Functions.PlotSurfaceTemp(T_r,T_w,T_road,Constants.nr_of_steps)
+
+time = (np.arange(Constants.nr_of_steps))# * Constants.timestep)/3600
+#
+plt.figure()
+plt.plot(time,LW_net_roof, label="LW")
+plt.plot(time,SW_net_roof, label="SW net roof")
+plt.plot(time,Functions.SW_down,label="SW down")
+plt.plot(time,LHF_roof, label="LHF")
+plt.plot(time,SHF_roof, label="SHF")
+plt.plot(time,G_out_surf_roof, label="G")
+#
+plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
+plt.xlabel("Time [h]")
+plt.ylabel("SW down and SW net")
+plt.legend()
+plt.show()

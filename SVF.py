@@ -10,6 +10,7 @@ import KNMI_SVF_verification
 import Constants
 import Sunpos
 import SVFs05m
+import pickle
 
 sttime = time.time()
 
@@ -24,7 +25,7 @@ elif gridboxsize==0.5:
     max_radius = 100
 
 gridboxsize_knmi = 0.5
-"""objects below 1 m we do not look at"""
+"objects below 1 m we do not look at"
 minheight = 1
 
 """DSM's and DTM's"""
@@ -351,7 +352,7 @@ def reshape_SVF(data, coords,gridboxsize,azimuth,zenith,reshape,save_CSV,save_Im
         return SVFs#, SFs
 
 
-def geometricProperties(data,delta_x,gridboxsize):
+def geometricProperties(data,gridratio,gridboxsize):
     """
     Function that determines the average height over width of an area,
     the average height over width, and the built fraction of an area
@@ -361,10 +362,9 @@ def geometricProperties(data,delta_x,gridboxsize):
     ave_height : average height of the area
     delta: fraction of built area
     """
-    grid_ratio = delta_x/gridboxsize
     [x_long, y_long] = data.shape
     [Wall_area, wall_area_total] = wallArea(data,gridboxsize)
-
+    Wall_area_gridcell = np.sum(Wall_area,axis=2)
     delta = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
     ave_height = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
     road_elements = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
@@ -372,10 +372,10 @@ def geometricProperties(data,delta_x,gridboxsize):
     water_elements = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
     wall_area_med = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
     "We want to take the mean of the SVF values over a gridsize of gridratio"
-    for i in range(x_long):
-        for j in range(y_long):
+    for i in range(int(x_long/grid_ratio)):
+        for j in range(int(y_long/grid_ratio)):
             part = data[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
-            part_wall = Wall_area[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
+            part_wall = Wall_area_gridcell[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
             ave_height[i,j] = np.mean(part[part>0])
             road_elements[i,j] = np.count_nonzero(part==0)
             built_elements[i,j] = np.count_nonzero(part>0)
@@ -398,15 +398,14 @@ def geometricProperties(data,delta_x,gridboxsize):
     Wall_frac = np.around(wall_area_med/Total_area,3)
     Road_frac = np.around(Road_area/Total_area,3)
     Water_frac = np.around(Water_area/Total_area,3)
-
+    Road_frac = Road_frac + Water_frac
     H_W = ave_height*delta
-    return ave_height, delta, Roof_area, wall_area_med, Road_area,Water_area, Roof_frac, Wall_frac, Road_frac, Water_frac, H_W
+    return Roof_frac, Wall_frac, Road_frac
 
 def average_svf_surfacetype(SVF_matrix,data, grid_ratio):
     [x_long, y_long] = SVF_matrix.shape
-    #SVF_ave = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
     SVF_ave_roof = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
-    SVF_ave_roof = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
+    SVF_ave_road = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
     "We want to take the mean of the SVF values over a gridsize of gridratio"
     for i in range(int(x_long/grid_ratio)):
         for j in range(int(y_long/grid_ratio)):
@@ -652,9 +651,9 @@ elif (gridboxsize==0.5):
     [x_long, y_long] = data.shape
     data = data[:int(x_long/5),:int(y_long/5)]
     SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
-    [x_len,y_len] = SVF_knmi_HN1.shape
+    [x_len,y_len] = data.shape
     #
-    SVF_knmi_HN1 = SVF_knmi_HN1[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+    #SVF_knmi_HN1 = SVF_knmi_HN1[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 
 #     "Filter out water"
 # KNMI_list = []
@@ -675,18 +674,60 @@ elif (gridboxsize==0.5):
 #     print("The variance of the knmi SVF is " + str(np.around(np.sum(((SVF_knmi_HN1[SVF_knmi_HN1>=0]-meanSVF)**2))/count,2)))
 # # "Now with filtering out water"
     #SVF_knmi_HN1 = SVF_knmi_HN1[SVF_knmi_HN1>=0]
-coords = coordheight(data,gridboxsize)
+
 # print('coords array is made')
 # # print(KNMI_list[50:100])
 # # print(SVF_WVF_wall(point,coords,max_radius,type=1))
 # #SVFs = reshape_SVF(data, coords,gridboxsize,300,20,reshape=False,save_CSV=True,save_Im=False)
-SVFs05 = SVFs05m.SVFs
-SVF_matrix = np.ndarray([x_len,y_len])
-for i in range(int(x_len/2*y_len/2)):
-    SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVFs05[i]
+# coords = coordheight(data,gridboxsize)
+# SVF = SVFs05m.SVFs
+# #
+# SVF_matrix = np.ndarray([x_len,y_len])
+# for i in range(int(x_len/2*y_len/2)):
+#     SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVF[i]
+# SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# KNMI_SVF_verification.Verification(SVF_matrix,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=True)
 
-SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# print(SVF_matrix.shape)
+#print(SVF_matrix.shape)
+# with open('pickles/SVF_matrix05m.pickle', 'rb') as f:
+#     SVF_matrix = pickle.load(f)
+# print(SVF_matrix.shape)
+gridratio = 10
+#
+# [Roof_frac, Wall_frac, Road_frac] = geometricProperties(data,gridratio,gridboxsize)
+# with open('pickles/roofFrac.pickle', 'wb') as f:
+#     pickle.dump(Roof_frac, f)
+# with open('pickles/wallFrac.pickle', 'wb') as f:
+#     pickle.dump(Wall_frac, f)
+# with open('pickles/roadFrac.pickle', 'wb') as f:
+#     pickle.dump(Road_frac, f)
 data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# [SVF_roof,SVF_road] = average_svf_surfacetype(SVF_matrix,data,gridratio)
+# SVF_roof = np.nan_to_num(SVF_roof, nan=np.nanmean(SVF_roof))
+# SVF_road = np.nan_to_num(SVF_road, nan=np.nanmean(SVF_road))
+
+"Height over width ratio"
+h_w = 0.7
+SVF_Roof = 1
+SVF_Wall = 1/2 *(h_w+1-np.sqrt(h_w**2+1))/h_w
+SVF_Road = np.sqrt(h_w**2+1)-h_w
+"zenith angle"
+[azi,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,radians=True)
+zenith = (np.pi/2-el_angle)
+theta_zero = np.arcsin(min(1/h_w*1/np.tan(zenith),1))
+SF_Roof = 1
+SF_Wall = 1/h_w*(1/2-theta_zero/np.pi)+1/np.pi*np.tan(zenith)*(1-np.cos(theta_zero))
+SF_Road = 2*theta_zero/np.pi - 2/np.pi*h_w*np.tan(zenith)*(1-np.cos(theta_zero))
+
+
+#print(SVF_roof[0:5,0:5])
+m5_data = average_svf(data,gridratio)
+Roof_frac = np.ones(m5_data.shape)*0.3
+Wall_frac = np.ones(m5_data.shape)*0.4
+Road_frac = np.ones(m5_data.shape)*0.3
+"Now we have a SVF for roof and road surfaces averaged over 5m gridcells, " \
+"and the data averaged over 5m, surface fractions for now"
 # plt.subplot(1, 2, 1)
 # plt.imshow(SVF_matrix, vmin=0, vmax=1, aspect='auto')
 
@@ -711,7 +752,6 @@ data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 # print('The min of the SVFs computed on 5m is ' + str(min(SVFs5m)))
 # print(np.sum(((np.array(SVFs5m)-meanSVFs5m)**2))/(len(SVFs5m)))
 
-#KNMI_SVF_verification.Verification(SVF_matrix,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=True)
 
 "Time elapsed"
 endtime = time.time()
