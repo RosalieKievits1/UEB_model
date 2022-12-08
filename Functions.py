@@ -11,33 +11,31 @@ from numpy import random
 data = pd.read_csv("cabauw_2018.csv", sep = ';')
 data.head()
 
-
-
-"""upward sensible heat flux"""
-SHF = data.iloc[: , 32]
-"""Relative humidity at 10 m"""
-q_first_layer = data.iloc[: , 30]
-"""Upward Latent Heat flux"""
-LHF = data.iloc[: , 33]
-"""upward longwave heat flux"""
-LW_up = data.iloc[: , 34]
-"""downward longwave heat flux"""
-LW_down = data.iloc[: , 35]
-"""upward shortwave heat flux"""
-SW_up = data.iloc[: , 36]
-"""downward shortwave heat flux"""
-SW_down = data.iloc[: , 37]
+# """upward sensible heat flux"""
+# SHF = data.iloc[: , 32]
+# """Relative humidity at 10 m"""
+# q_first_layer = data.iloc[: , 30]
+# """Upward Latent Heat flux"""
+# LHF = data.iloc[: , 33]
+# """upward longwave heat flux"""
+# LW_up = data.iloc[: , 34]
+# """downward longwave heat flux"""
+# LW_down = data.iloc[: , 35]
+# """upward shortwave heat flux"""
+# SW_up = data.iloc[: , 36]
+# """downward shortwave heat flux"""
+# SW_down = data.iloc[: , 37]
 """solar zenith angle"""
 Zenith = data.iloc[: ,38]
-"""the temperature at 2 m high (use as ic for surface temp)"""
-T_2m = data.iloc[: ,24]
-"""Surface pressure"""
-p_surf = data.iloc[: ,5]
+# """the temperature at 2 m high (use as ic for surface temp)"""
+# T_2m = data.iloc[: ,24]
+# """Surface pressure"""
+# p_surf = data.iloc[: ,5]
 
 time = np.linspace(0,Constants.nr_of_steps,Constants.nr_of_steps)
-SW_down = (np.sin(2*np.pi/24*time)*100)+100
-LW_down = (np.sin(2*np.pi/24*time)*50)+300
-T_2m = np.ones(len(time)) + 275
+SW_down = (np.sin(2*np.pi/(24*60)*time)*100)+100 #np.zeros(len(time)) #
+LW_down = (np.sin(2*np.pi/(24*60)*time)*50)+300 # np.zeros(len(time)) #
+T_2m = (np.sin(2*np.pi/(24*60)*time)*10)+273.15+20 #np.ones(len(time)) + 275
 q_first_layer = np.ones(len(time)) + 5
 T_air = T_2m[0]
 
@@ -70,13 +68,13 @@ def initialize_map(layers,T_surf,data):
     :return: capacities: empty array for capacities of each layer
     """
     [x_len,y_len] = data.shape
-    capacities_roof = np.ones([x_len,y_len,layers]) * Constants.C_bitumen
+    capacities_roof = np.ones([x_len,y_len,layers]) * Constants.C_grass
     capacities_wall = np.ones([x_len,y_len,layers]) * Constants.C_brick
     capacities_road = np.ones([x_len,y_len,layers]) * Constants.C_asphalt
-    lambdas_roof = np.ones([x_len,y_len,layers]) * Constants.lamb_bitumen
+    lambdas_roof = np.ones([x_len,y_len,layers]) * Constants.lamb_grass
     lambdas_wall = np.ones([x_len,y_len,layers]) * Constants.lamb_brick
     lambdas_road = np.ones([x_len,y_len,layers]) * Constants.lamb_asphalt
-    T_inner_bc_roof = np.ones([x_len,y_len]) * Constants.T_building
+    T_inner_bc_roof = np.ones([x_len,y_len]) * Constants.T_ground
     T_inner_bc_wall = np.ones([x_len,y_len]) * Constants.T_building
     T_inner_bc_road = np.ones([x_len,y_len]) * Constants.T_ground
     map_T_roof = np.ones([x_len,y_len,layers])
@@ -87,7 +85,7 @@ def initialize_map(layers,T_surf,data):
     lin_temp_roof = np.linspace(T_air,T_inner_bc_roof,layers)
     lin_temp_roof = np.swapaxes(lin_temp_roof, 0, 2)
     lin_temp_roof = np.swapaxes(lin_temp_roof, 0, 1)
-    map_T_roof[:,:,0:layers] = lin_temp_roof
+    map_T_roof[:,:,0:layers] = T_air #lin_temp_roof
 
     """Roads"""
     lin_temp_wall = np.linspace(T_air,T_inner_bc_wall,layers)
@@ -101,11 +99,11 @@ def initialize_map(layers,T_surf,data):
     map_T_road[:,:,0:layers] = lin_temp_road
 
     """Albedos and emissivities"""
-    emissivity_roof = np.ones([x_len,y_len]) * Constants.e_bitumen
+    emissivity_roof = np.ones([x_len,y_len]) * Constants.e_grass
     emissivity_wall = np.ones([x_len,y_len]) * Constants.e_brick
     emissivity_road = np.ones([x_len,y_len]) * Constants.e_asphalt
 
-    albedos_roof = np.ones([x_len,y_len]) * Constants.a_bitumen
+    albedos_roof = np.ones([x_len,y_len]) * Constants.a_grass
     albedos_wall = np.ones([x_len,y_len]) * Constants.a_brick
     albedos_road = np.ones([x_len,y_len]) * Constants.a_asphalt
 
@@ -126,8 +124,8 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
                    T_old_roof, T_old_wall, T_old_road,
                    T_old_subs_roof, T_old_subs_wall, T_old_subs_road,
                    delta_t,
+                   theta_z,
                    sigma,
-                   theta_z,             # pi/2 - elevation angle: computed by sunpos
                    SW_diff, SW_dir,     # from dales
                    T_firstlayer, q_firstlayer, # from dales
                    LW_down):
@@ -147,14 +145,14 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
     LW_net_road = LW_down * emissivities_road * SVF_road - emissivities_road * T_old_road**4 * sigma + \
                   (LW_down * SVF_wall * (1-emissivities_wall) + emissivities_wall * T_old_wall**4 * sigma) * (1-SVF_road) * emissivities_road
 
-    """ Short wave radiation"""
+    " Short wave radiation"
     SW_net_roof = SW_dir * SF_roof * (1-albedos_roof) + SW_diff * SVF_roof * (1-albedos_roof) + \
-                  (SW_dir * np.tan(theta_z) * SF_wall + SW_diff * SVF_wall) * albedos_wall * (1-albedos_roof) * WVF_roof
-    SW_net_wall = SW_dir * np.tan(theta_z) * SF_wall * (1-albedos_wall) + SW_diff * SVF_wall * (1-albedos_wall) + \
-                  (SW_dir * np.tan(theta_z) * SF_wall + SW_diff * SVF_wall) * albedos_wall * (1-albedos_wall) * WVF_wall + \
+                  (SW_dir * SF_wall + SW_diff * SVF_wall) * albedos_wall * (1-albedos_roof) * WVF_roof
+    SW_net_wall = SW_dir * SF_wall * (1-albedos_wall) + SW_diff * SVF_wall * (1-albedos_wall) + \
+                  (SW_dir * SF_wall + SW_diff * SVF_wall) * albedos_wall * (1-albedos_wall) * WVF_wall + \
                   (SW_dir * SF_road + SW_diff * SVF_road) * albedos_road * (1-albedos_wall) * GVF_wall
     SW_net_road = SW_dir * SF_road * (1-albedos_road) + SW_diff * SVF_road * (1-albedos_road) + \
-                  (SW_dir * np.tan(theta_z) * SF_wall + SW_diff * SVF_wall) * albedos_wall * (1-albedos_road) * (1-SVF_road)
+                  (SW_dir * SF_wall + SW_diff * SVF_wall) * albedos_wall * (1-albedos_road) * (1-SVF_road)
 
     " Latent and Sensible Heat fluxes "
     SHF_roof = Constants.C_pd * Constants.rho_air * (1/Constants.res_roof) * (T_pot(T_old_roof,Constants.p_atm) - T_pot(T_firstlayer,Constants.p_atm))
@@ -165,10 +163,6 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
     LHF_wall = 0
     LHF_road = Constants.L_v * Constants.rho_air * (1/Constants.res_road) * (q_sat(T_old_road,Constants.p_atm) - q_sat(T_firstlayer,Constants.p_atm))
 
-    # SHF_roof = 0
-    # SHF_road = 0
-    # LHF_roof = 0
-    # LHF_road = 0
     # print("SHF = " + str(SHF_roof))
     # print("LHF = " + str(LHF_roof))
     " conduction"
@@ -238,13 +232,12 @@ def layer_balance(d_roof, d_wall, d_road,
 
     return map_T_roof[:,:,1:layers], map_T_wall[:,:,1:layers], map_T_road[:,:,1:layers]
 
-def HeatEvolution(data,time_steps,delta_t,azimuth,elevation_angle, T_surf):
+def HeatEvolution(data,time_steps,delta_t):
 
     "Arrays that store average surface temperatures"
-    T_ave_roof = np.empty((time_steps))
-    T_ave_wall = np.empty((time_steps))
-    T_ave_road = np.empty((time_steps))
-    T_ave_surf = np.empty((time_steps))
+    T_ave_roof = np.empty((time_steps,Constants.layers))
+    T_ave_wall = np.empty((time_steps,Constants.layers))
+    T_ave_road = np.empty((time_steps,Constants.layers))
     LW_ave = np.empty((time_steps))
     SW_ave = np.empty((time_steps))
     G_ave = np.empty((time_steps))
@@ -261,12 +254,6 @@ def HeatEvolution(data,time_steps,delta_t,azimuth,elevation_angle, T_surf):
     "Now we need to separate the roof, wall and road SVF and SF"
     [x_len,y_len] = data.shape
     "All roofs receive sunlight, 30% of the ground and 40% of the walls receive sunlight"
-    SF_roof = np.ones([x_len,y_len])*SVF.SF_Roof
-    SF_road = np.ones([x_len,y_len])*SVF.SF_Wall
-    SF_wall = np.ones([x_len,y_len])*SVF.SF_Road
-    SVF_Roof = np.ones([x_len,y_len])*SVF.SVF_Roof
-    SVF_Wall = np.ones([x_len,y_len])*SVF.SVF_Wall
-    SVF_Road = np.ones([x_len,y_len])*SVF.SVF_Road
 
     """We evaluate the middle block only, but after the SVF and Shadowfactor are calculated"""
     #[x_len,y_len] = data.shape
@@ -277,13 +264,31 @@ def HeatEvolution(data,time_steps,delta_t,azimuth,elevation_angle, T_surf):
            emissivity_roof,emissivity_wall,emissivity_road, \
            albedos_roof,albedos_wall,albedos_road, \
            lambdas_roof, lambdas_wall, lambdas_road, \
-           T_inner_bc_roof, T_inner_bc_wall, T_inner_bc_road = initialize_map(Constants.layers,T_surf,data)
+           T_inner_bc_roof, T_inner_bc_wall, T_inner_bc_road = initialize_map(Constants.layers,T_air,data)
 
     map_T_old_roof = map_T_roof
     map_T_old_wall = map_T_wall
     map_T_old_road = map_T_road
 
+    "Height over width ratio"
+    h_w = 0.7
+    SVF_Roof = 1
+    SVF_Wall = 1/2 *(h_w+1-np.sqrt(h_w**2+1))/h_w
+    SVF_Road = np.sqrt(h_w**2+1)-h_w
+    "zenith angle"
+
     for t in tqdm(range(time_steps)):
+        zenith = Zenith[t]/180*np.pi
+        theta_zero = np.arcsin(min(1/h_w*1/np.tan(zenith),1))
+        SF_Roof = 1
+        SF_Wall = 1/h_w*(1/2-theta_zero/np.pi)+1/np.pi*np.tan(zenith)*(1-np.cos(theta_zero))
+        SF_Road = 2*theta_zero/np.pi - 2/np.pi*h_w*np.tan(zenith)*(1-np.cos(theta_zero))
+        SF_roof = np.ones([x_len,y_len])*SF_Roof
+        SF_wall = np.ones([x_len,y_len])*SF_Wall
+        SF_road = np.ones([x_len,y_len])*SF_Road
+        SVF_Roof = np.ones([x_len,y_len])*SVF_Roof
+        SVF_Wall = np.ones([x_len,y_len])*SVF_Wall
+        SVF_Road = np.ones([x_len,y_len])*SVF_Road
         SW_dir = SW_down[t]*0.3
         SW_dif = SW_down[t]*0.7
         LW_d = LW_down[t]
@@ -300,8 +305,8 @@ def HeatEvolution(data,time_steps,delta_t,azimuth,elevation_angle, T_surf):
             map_T_old_roof[:,:,0], map_T_old_wall[:,:,0], map_T_old_road[:,:,0], \
             map_T_roof[:,:,1], map_T_wall[:,:,1], map_T_road[:,:,1], \
             delta_t, \
+            zenith, \
             Constants.sigma, \
-            (1-elevation_angle), \
             SW_dif, SW_dir, \
             T_firstlayer, q_firstlayer,\
             LW_d)
@@ -319,25 +324,51 @@ def HeatEvolution(data,time_steps,delta_t,azimuth,elevation_angle, T_surf):
         map_T_old_road = map_T_road
 
         "Average SURFACE temperatures"
-        T_surf_roof = map_T_roof[:,:,0]
-        T_surf_wall = map_T_wall[:,:,0]
-        T_surf_road = map_T_road[:,:,0]
-        T_ave_roof[t] = np.mean(T_surf_roof)
-        T_ave_wall[t] = np.mean(T_surf_wall)
-        T_ave_road[t] = np.mean(T_surf_road)
+        for l in range(Constants.layers):
+            T_ave_roof[t,l] = np.mean(map_T_roof[:,:,l])
+            T_ave_wall[t,l] = np.mean(map_T_wall[:,:,l])
+            T_ave_road[t,l] = np.mean(map_T_road[:,:,l])
         #T_ave_surf[t] = np.mean(T_surf_roof*Roof_frac + T_surf_wall*Wall_frac + T_surf_road*Road_frac)
         LW_ave[t] = np.mean(LW_net_roof)
         SW_ave[t] = np.mean(SW_net_roof)
         LHF_ave[t] = np.mean(LHF_roof)
         SHF_ave[t] = np.mean(SHF_roof)
         G_ave[t] = np.mean(G_out_surf_roof)
-    # print(LW_ave[470:475])
-    # print(SW_ave[470:475])
-    # print(LHF_ave[470:475])
-    # print(SHF_ave[470:475])
-    # print(G_ave[470:475])
 
     return T_ave_roof, T_ave_wall, T_ave_road, LW_ave, SW_ave, LHF_ave, SHF_ave, G_ave
+
+def AnalyticalSoil(t,z,lamb,C):
+    k = lamb/C
+    period = 24
+    omega = 2*np.pi/(period*3600)
+    d = (2*k/omega)**(1/2) # Damping depth
+    phi_z = -z/d
+    T = 273.15+20+10*np.exp(phi_z)*np.sin(omega*t*Constants.timestep+phi_z)
+    return T
+
+def NumericalSoil(time,delta_t,delta_d,lambd,Cap,layers,T_in):
+    C = np.ones((layers))*Cap
+    lamb = np.ones((layers))*lambd
+    T = np.ones([len(time),layers])
+    T_old = np.ones((layers))*T_in[0]
+    T[0,:] = T_old
+    for t in range(len(time)):
+        for l in range(layers):
+            if l>0:
+                lamb_ave_in = 2*delta_d/((delta_d/lamb[l-1])+(delta_d/lamb[l]))
+                G_in = lamb_ave_in*(T_old[l-1]-T_old[l])/delta_d
+            elif l == 0:
+                lamb_ave_in = lamb[0]
+                G_in = lamb_ave_in*(T_in[t]-T_old[l])/(1/2*delta_d)
+            if l<layers-1:
+                lamb_ave_out = 2*delta_d/((delta_d/lamb[l])+(delta_d/lamb[l+1]))
+                G_out = lamb_ave_out*(T_old[l]-T_old[l+1])/delta_d
+            elif l==layers-1:
+                G_out=0
+            dT = ((G_in-G_out)*delta_t)/(C[l]*delta_d)
+            T[t,l] = T_old[l] + dT
+        T_old = T[t,:]
+    return T
 
 """PLOTFUNCTIONS"""
 def PlotGreyMap(data,middle,v_max):
@@ -351,16 +382,32 @@ def PlotGreyMap(data,middle,v_max):
     plt.show()
 
 def PlotSurfaceTemp(T_ave_roof,T_ave_wall,T_ave_road, time_steps):
-    time = (np.arange(time_steps))# * Constants.timestep)#/3600
+    time = (np.arange(time_steps))#* Constants.timestep/3600)
 
     plt.figure()
-    plt.plot(time,T_ave_roof, label="roof")
-    plt.plot(time,T_ave_wall, label="wall")
-    plt.plot(time,T_ave_road, label="road")
-    #plt.plot(time,T_ave_surf, label="total")
+    plt.plot(time,T_ave_roof[:,0], label="roof")
+    plt.plot(time,T_ave_wall[:,0], label="wall")
+    plt.plot(time,T_ave_road[:,0], label="road")
+    plt.plot(time,T_2m[:Constants.nr_of_steps], label="Temp at 2m alititude")
     plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
     plt.xlabel("Time [h]")
     plt.ylabel("Average surface temperature for roof layers [K]")
     plt.legend()
     plt.show()
 
+def PlotTempLayers(T_ave,time_steps):
+    time = (np.arange(time_steps))#* Constants.timestep/3600)
+
+    plt.figure()
+    for l in range(Constants.layers):
+        plt.plot(time,T_ave[:,l], label="layer " + str(l))
+    plt.plot(time,T_2m[:Constants.nr_of_steps], label="Forcing Temp")
+    for l in range(Constants.layers):
+        d = np.sum(Constants.d_roof[:l])
+        T_soil = AnalyticalSoil(time,d,Constants.lamb_grass,Constants.C_grass)
+        plt.plot(time,T_soil,label="Analytical, layer " + str(l))
+    plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
+    plt.xlabel("Time [h]")
+    plt.ylabel("Average temperature for layers [K]")
+    plt.legend()
+    plt.show()

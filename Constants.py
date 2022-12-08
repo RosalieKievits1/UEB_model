@@ -6,7 +6,7 @@ import Sunpos
 sigma = 5.67e-8
 
 # layers of simulation
-layers = 6
+layers = 16
 
 """layer thickness of road wall and roof [m]"""
 d_roof = np.ones([layers]) * 0.05 #[0.05,0.1,0.15, 0.2] #
@@ -14,11 +14,11 @@ d_wall = np.ones([layers]) * 0.05 #[0.05,0.1,0.15, 0.2] #
 d_road = np.ones([layers]) * 0.05 #[0.05,0.1,0.15, 0.2] #
 
 """timestep"""
-timestep = 10*60 #[s]
-nr_of_steps = 200
+timestep = 1*60 #[s]
+nr_of_steps = 3000
 
 """albedos"""
-a_bitumen = 0.08
+a_bitumen = 0.12
 a_asphalt = 0.12
 a_grass = 0.3
 a_glass = 0.21
@@ -28,8 +28,8 @@ a_water = 0.009
 """emissivities"""
 e_asphalt = 0.88
 e_grass = 0.98
-e_bitumen = 0.95
-e_grass = 0.956
+e_bitumen = 0.97
+e_grass = 0.94 # from cabau
 e_glass = 0.9
 e_brick = 0.9
 e_water = 0.95
@@ -53,6 +53,7 @@ T_building = 20+273.15
 C_asphalt = 2251e3
 C_bitumen = 2000e3
 C_brick = 2018e3
+C_grass = 2000e3
 C_fiber = 148e3
 C_water = 4200e3
 

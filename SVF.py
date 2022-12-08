@@ -617,18 +617,18 @@ print("part is 1st up, 1st left")
 print("Data block is HN1")
 # #
 "Switch for 0.5 or 5 m"
-download_directory = config.input_dir_knmi
-SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.tif'])
-SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
-
-grid_ratio = int(gridboxsize/gridboxsize_knmi)
-if (gridboxsize==5):
-    dtm_HN1 = "".join([input_dir, '/M5_37HN1.TIF'])
-    dsm_HN1 = "".join([input_dir, '/R5_37HN1.TIF'])
-    data = readdata(minheight,dsm_HN1,dtm_HN1)
-    [x_long, y_long] = data.shape
-    x_long = int(x_long/grid_ratio)
-    y_long = int(y_long/grid_ratio)
+# download_directory = config.input_dir_knmi
+# SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.tif'])
+# SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
+#
+# grid_ratio = int(gridboxsize/gridboxsize_knmi)
+# if (gridboxsize==5):
+#     dtm_HN1 = "".join([input_dir, '/M5_37HN1.TIF'])
+#     dsm_HN1 = "".join([input_dir, '/R5_37HN1.TIF'])
+#     data = readdata(minheight,dsm_HN1,dtm_HN1)
+#     [x_long, y_long] = data.shape
+#     x_long = int(x_long/grid_ratio)
+#     y_long = int(y_long/grid_ratio)
     # SVF_means = np.ndarray([x_long,y_long])
     # #SVF_knmi_HN1[SVF_knmi_HN1<0] = 0
     # "We want to take the mean of the SVF values over a gridsize of gridratio"
@@ -644,14 +644,14 @@ if (gridboxsize==5):
     # print('The min of the SVFs from KNMI averaged over 5m is ' + str(np.min(SVF_knmi_HN1)))
     # print(np.sum(((SVF_knmi_HN1-np.mean(SVF_knmi_HN1))**2))/(count/(grid_ratio**2)))
 
-elif (gridboxsize==0.5):
-    dtm_HN1 = "".join([input_dir, '/M_37HN1.TIF'])
-    dsm_HN1 = "".join([input_dir, '/R_37HN1.TIF'])
-    data = readdata(minheight,dsm_HN1,dtm_HN1)
-    [x_long, y_long] = data.shape
-    data = data[:int(x_long/5),:int(y_long/5)]
-    SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
-    [x_len,y_len] = data.shape
+# elif (gridboxsize==0.5):
+#     dtm_HN1 = "".join([input_dir, '/M_37HN1.TIF'])
+#     dsm_HN1 = "".join([input_dir, '/R_37HN1.TIF'])
+#     data = readdata(minheight,dsm_HN1,dtm_HN1)
+#     [x_long, y_long] = data.shape
+#     data = data[:int(x_long/5),:int(y_long/5)]
+#     SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
+#     [x_len,y_len] = data.shape
     #
     #SVF_knmi_HN1 = SVF_knmi_HN1[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 
@@ -702,30 +702,17 @@ gridratio = 10
 #     pickle.dump(Wall_frac, f)
 # with open('pickles/roadFrac.pickle', 'wb') as f:
 #     pickle.dump(Road_frac, f)
-data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-# [SVF_roof,SVF_road] = average_svf_surfacetype(SVF_matrix,data,gridratio)
-# SVF_roof = np.nan_to_num(SVF_roof, nan=np.nanmean(SVF_roof))
-# SVF_road = np.nan_to_num(SVF_road, nan=np.nanmean(SVF_road))
-
-"Height over width ratio"
-h_w = 0.7
-SVF_Roof = 1
-SVF_Wall = 1/2 *(h_w+1-np.sqrt(h_w**2+1))/h_w
-SVF_Road = np.sqrt(h_w**2+1)-h_w
-"zenith angle"
-[azi,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,radians=True)
-zenith = (np.pi/2-el_angle)
-theta_zero = np.arcsin(min(1/h_w*1/np.tan(zenith),1))
-SF_Roof = 1
-SF_Wall = 1/h_w*(1/2-theta_zero/np.pi)+1/np.pi*np.tan(zenith)*(1-np.cos(theta_zero))
-SF_Road = 2*theta_zero/np.pi - 2/np.pi*h_w*np.tan(zenith)*(1-np.cos(theta_zero))
-
-
-#print(SVF_roof[0:5,0:5])
-m5_data = average_svf(data,gridratio)
-Roof_frac = np.ones(m5_data.shape)*0.3
-Wall_frac = np.ones(m5_data.shape)*0.4
-Road_frac = np.ones(m5_data.shape)*0.3
+# data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# # [SVF_roof,SVF_road] = average_svf_surfacetype(SVF_matrix,data,gridratio)
+# # SVF_roof = np.nan_to_num(SVF_roof, nan=np.nanmean(SVF_roof))
+# # SVF_road = np.nan_to_num(SVF_road, nan=np.nanmean(SVF_road))
+#
+#
+# #print(SVF_roof[0:5,0:5])
+# m5_data = average_svf(data,gridratio)
+# Roof_frac = np.ones(m5_data.shape)*0.3
+# Wall_frac = np.ones(m5_data.shape)*0.4
+# Road_frac = np.ones(m5_data.shape)*0.3
 "Now we have a SVF for roof and road surfaces averaged over 5m gridcells, " \
 "and the data averaged over 5m, surface fractions for now"
 # plt.subplot(1, 2, 1)

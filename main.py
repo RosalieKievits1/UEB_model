@@ -39,21 +39,57 @@ import SVF
 #
 
 # Functions.PlotGreyMap(SVF.data,middle=False,v_max=1)
-[T_r, T_w,T_road, LW_net_roof, SW_net_roof, LHF_roof, SHF_roof, G_out_surf_roof] = Functions.HeatEvolution(SVF.m5_data,Constants.nr_of_steps,Constants.timestep,180,40, Functions.T_2m)
-Functions.PlotSurfaceTemp(T_r,T_w,T_road,Constants.nr_of_steps)
+#[T_roof, T_wall,T_road, LW_net_roof, SW_net_roof, LHF_roof, SHF_roof, G_out_surf_roof] = Functions.HeatEvolution(SVF.m5_data,Constants.nr_of_steps,Constants.timestep)
+#Functions.PlotSurfaceTemp(T_roof,T_wall,T_road,Constants.nr_of_steps)
+#Functions.PlotTempLayers(T_roof,Constants.nr_of_steps)
 
-time = (np.arange(Constants.nr_of_steps))# * Constants.timestep)/3600
-#
+time = (np.arange(Constants.nr_of_steps)) #in hours
+thickness = 0.05
 plt.figure()
-plt.plot(time,LW_net_roof, label="LW")
-plt.plot(time,SW_net_roof, label="SW net roof")
-plt.plot(time,Functions.SW_down,label="SW down")
-plt.plot(time,LHF_roof, label="LHF")
-plt.plot(time,SHF_roof, label="SHF")
-plt.plot(time,G_out_surf_roof, label="G")
-#
+#plt.plot(time,Functions.T_2m)
+T_soil_num = Functions.NumericalSoil(time,Constants.timestep,thickness,Constants.lamb_grass,Constants.C_grass,Constants.layers,Functions.T_2m)
+
+# for z in range(Constants.layers):
+#     d = thickness*(z)
+#     T_soil = Functions.AnalyticalSoil(time,d,Constants.lamb_grass,Constants.C_grass)
+#     plt.plot(time,T_soil_num[:,z], label="Numerical layer " + str(z))
+#     plt.plot(time,T_soil,'-', label="Analytical layer " + str(z))
+d = thickness*(Constants.layers-1)
+T_soil = Functions.AnalyticalSoil(time,d,Constants.lamb_grass,Constants.C_grass)
+#plt.plot(time,T_roof[:,-1], label="Numerical")
+plt.plot(time,T_soil_num[:,-1], label="Numerical")
+plt.plot(time,T_soil,'-', label="Analytical")
+
+#plt.plot(time,Functions.T_2m[:Constants.nr_of_steps], label="Forcing Temp")
+# d = np.sum(Constants.d_roof[:])
+# T_soil = Functions.AnalyticalSoil(time,d,Constants.lamb_grass,Constants.C_grass)
 plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
 plt.xlabel("Time [h]")
-plt.ylabel("SW down and SW net")
+plt.ylabel("Temperature for layer [K]")
 plt.legend()
 plt.show()
+
+# time = (np.arange(Constants.nr_of_steps))# * Constants.timestep/3600)
+# plt.figure()
+#
+# plt.show()
+# plt.plot(time,LW_net_roof, label="LW")
+# # plt.plot(time,(Functions.LW_down[:Constants.nr_of_steps]-Functions.LW_up[:Constants.nr_of_steps]), label="LW up cabau")
+# plt.plot(time,SW_net_roof, label="SW net roof")
+# # plt.plot(time,(Functions.SW_down[:Constants.nr_of_steps]-Functions.SW_up[:Constants.nr_of_steps]), label="SW up cabau")
+# plt.plot(time,Functions.SW_down[:Constants.nr_of_steps],label="SW down")
+# # LHF_cabau = Functions.LHF[:Constants.nr_of_steps]
+# # LHF_cabau[LHF_cabau<-1000] = 0
+# # SHF_cabau = Functions.SHF[:Constants.nr_of_steps]
+# # SHF_cabau[SHF_cabau<-1000] = 0
+# # plt.plot(time,LHF_cabau,label="LHF_cabau")
+# # plt.plot(time,SHF_cabau,label="SHF_cabau")
+# # plt.plot(time,LHF_roof, label="LHF")
+# # plt.plot(time,SHF_roof, label="SHF")
+# plt.plot(time,G_out_surf_roof, label="G")
+# #
+# plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
+# plt.xlabel("Time [h]")
+# plt.ylabel("SW down and SW net")
+# plt.legend()
+# plt.show()
