@@ -6,7 +6,7 @@ import Sunpos
 sigma = 5.67e-8
 
 # layers of simulation
-layers = 16
+layers = 5
 
 """layer thickness of road wall and roof [m]"""
 d_roof = np.ones([layers]) * 0.05 #[0.05,0.1,0.15, 0.2] #
@@ -14,8 +14,8 @@ d_wall = np.ones([layers]) * 0.05 #[0.05,0.1,0.15, 0.2] #
 d_road = np.ones([layers]) * 0.05 #[0.05,0.1,0.15, 0.2] #
 
 """timestep"""
-timestep = 1*60 #[s]
-nr_of_steps = 3000
+timestep = 10*60 #[s]
+nr_of_steps = 600
 
 """albedos"""
 a_bitumen = 0.12
@@ -56,6 +56,7 @@ C_brick = 2018e3
 C_grass = 2000e3
 C_fiber = 148e3
 C_water = 4200e3
+C_soil = 1900e3 # https://open.library.okstate.edu/rainorshine/chapter/13-2-soil-thermal-properties/
 
 """thermal conductivities"""
 # [W/mK]
@@ -65,6 +66,7 @@ lamb_bitumen = 0.8
 lamb_brick = 1.31
 lamb_fiber = 0.08
 lamb_water = 0.598
+lamb_soil = 0.3
 
 """Geometric properties:"""
 # Hight over width ratio
