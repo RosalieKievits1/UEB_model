@@ -1,6 +1,5 @@
 # Constants
 import numpy as np
-import Sunpos
 
 #stephan boltzman constant
 sigma = 5.67e-8
@@ -99,7 +98,9 @@ eps = 0.622 # ratio of molar masses of vapor and dry air
 latitude = 51.9
 long_rd = 4.46
 "Julian day and hour of the day in local mean time"
-julianday = 305 #1 nov
+#julianday = 305 #1 nov
+julianday = 121 #1 may
+
 hour = 10.5 # 10:30 am
 
 

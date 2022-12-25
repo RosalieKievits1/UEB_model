@@ -9,7 +9,7 @@ import time
 import KNMI_SVF_verification
 import Constants
 import Sunpos
-import SVFs05m
+#import SVFs05m
 import pickle
 
 sttime = time.time()
@@ -297,8 +297,8 @@ def shadowfactor(point, coords, azimuth,elevation_angle):
     :return: the shadowfactor of that point:
     """
     radii, angles = dist(point,coords,gridboxsize)
-    beta_min = np.asarray(- np.arcsin(np.sqrt(2*gridboxsize**2)/2/radii) + azimuth)
-    beta_max = np.asarray(np.arcsin(np.sqrt(2*gridboxsize**2)/2/radii) + azimuth)
+    beta_min = np.asarray(- np.arcsin(gridboxsize/2/radii) + azimuth)
+    beta_max = np.asarray(np.arcsin(gridboxsize/2/radii) + azimuth)
     if np.count_nonzero(coords[np.logical_and((np.logical_and((angles > beta_min), (angles < beta_max))), ((np.tan(elevation_angle)*radii)<(coords[:,2]-point[2]))),:])>0:
         Shadowfactor = 0
     else:
@@ -323,33 +323,33 @@ def reshape_SVF(data, coords,gridboxsize,azimuth,zenith,reshape,save_CSV,save_Im
     blocklength = int(x_len/2*y_len/2)
     #blocklength = int((x_len-2*max_radius/gridboxsize)*(y_len-2*max_radius/gridboxsize))
     "Compute SVF and SF and Reshape the shadow factors and SVF back to nd array"
-    SVFs = calc_SVF(coords, max_radius, blocklength, gridboxsize)
-    print(SVFs)
-    #SFs = calc_SF(coords,azimuth,zenith,blocklength)
+    #SVFs = calc_SVF(coords, max_radius, blocklength, gridboxsize)
+    #print(SVFs)
+    SFs = calc_SF(coords,azimuth,zenith,blocklength)
     "If reshape is true we reshape the arrays to the original data matrix"
-    if (reshape == True) & (SVFs is not None):
+    if (reshape == True) & (SFs is not None):
         #SVF_matrix = np.ndarray([x_len-2*max_radius/gridboxsize,y_len-2*max_radius/gridboxsize])
-        SVF_matrix = np.ndarray([x_len,y_len])
-        #SF_matrix = np.ndarray([x_len,y_len])
+        #SVF_matrix = np.ndarray([x_len,y_len])
+        SF_matrix = np.ndarray([x_len,y_len])
         for i in range(blocklength):
             #SVF_matrix[coords[i,0]-max_radius/gridboxsize,coords[i,1]-max_radius/gridboxsize] = SVFs[i]
-            SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVFs05[i]
-            #SF_matrix[int(coords[i,0]),int(coords[i,1])] = SFs[i]
-        SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-        #SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+            #SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVFs[i]
+            SF_matrix[int(coords[i,0]),int(coords[i,1])] = SFs[i]
+        #SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+        SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
         if save_CSV == True:
-            np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
-            #np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
+            #np.savetxt("SVFmatrix.csv", SVF_matrix, delimiter=",")
+            np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
         if save_Im == True:
-            tf.imwrite('SVF_matrix.tif', SVF_matrix, photometric='minisblack')
-            #tf.imwrite('SF_matrix.tif', SF_matrix, photometric='minisblack')
-        return SVF_matrix#,SF_matrix
+            #tf.imwrite('SVF_matrix.tif', SVF_matrix, photometric='minisblack')
+            tf.imwrite('SF_matrix.tif', SF_matrix, photometric='minisblack')
+        return SF_matrix #,SVF_matrix
     #
-    elif (reshape == False) & (SVFs is not None):
+    elif (reshape == False) & (SFs is not None):
         if save_CSV == True:
-            np.savetxt("SVFs" + str(gridboxsize) + ".csv", SVFs, delimiter=",")
-            #np.savetxt("SFs" + str(gridboxsize) + ".csv", SFs, delimiter=",")
-        return SVFs#, SFs
+            #np.savetxt("SVFs" + str(gridboxsize) + ".csv", SVFs, delimiter=",")
+            np.savetxt("SFs" + str(gridboxsize) + ".csv", SFs, delimiter=",")
+        return SFs #,SVFs#,
 
 
 def geometricProperties(data,gridratio,gridboxsize):
@@ -653,7 +653,7 @@ elif (gridboxsize==0.5):
     #SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
     [x_len,y_len] = data.shape
     #
-    SVF_knmi_HN1 = SVF_knmi_HN1[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+    #SVF_knmi_HN1 = SVF_knmi_HN1[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 
 #     "Filter out water"
 # KNMI_list = []
@@ -677,12 +677,20 @@ elif (gridboxsize==0.5):
 
 #
 coords = coordheight(data,gridboxsize)
-SVF = SVFs05m.SVFs
-# #
-SVF_matrix = np.ndarray([x_len,y_len])
-for i in range(int(x_len/2*y_len/2)):
-    SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVF[i]
-SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+hours = np.linspace(8,23,16)
+SF_matrix = np.ndarray([int(x_len),int(y_len),int(len(hours))])
+for h in range(len(hours)):
+    [azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hours[h],radians=True)
+    SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=True,save_Im=False)
+    for i in range(int(x_len/2*y_len/2)):
+        SF_matrix[int(coords[i,0]),int(coords[i,1]),h] = SF[i]
+SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4),:]
+
+# SVFs = SVFs05m.SVF
+# SVF_matrix = np.ndarray([x_len,y_len])
+# for i in range(int(x_len/2*y_len/2)):
+#     SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVF[i]
+# SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 # plt.figure()
 # plt.subplot(1, 2, 1)
 # plt.imshow(SVF_matrix, vmin=0, vmax=1, aspect='auto')
@@ -699,7 +707,7 @@ SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 # with open('pickles/SVF_matrix05m.pickle', 'rb') as f:
 #     SVF_matrix = pickle.load(f)
 # print(SVF_matrix.shape)
-gridratio = 10
+#gridratio = 10
 # #
 # [Roof_frac, Wall_frac, Road_frac] = geometricProperties(data,gridratio,gridboxsize)
 # with open('pickles/roofFrac.pickle', 'wb') as f:
@@ -708,15 +716,15 @@ gridratio = 10
 #     pickle.dump(Wall_frac, f)
 # with open('pickles/roadFrac.pickle', 'wb') as f:
 #     pickle.dump(Road_frac, f)
-data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-[SVF_roof,SVF_road] = average_svf_surfacetype(SVF_matrix,data,gridratio)
-SVF_roof = np.nan_to_num(SVF_roof, nan=np.nanmean(SVF_roof))
-SVF_road = np.nan_to_num(SVF_road, nan=np.nanmean(SVF_road))
-
-m5_data = average_svf(data,gridratio)
-Roof_frac = np.ones(m5_data.shape)*0.3
-Wall_frac = np.ones(m5_data.shape)*0.4
-Road_frac = np.ones(m5_data.shape)*0.3
+#data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# [SVF_roof,SVF_road] = average_svf_surfacetype(SVF_matrix,data,gridratio)
+# SVF_roof = np.nan_to_num(SVF_roof, nan=np.nanmean(SVF_roof))
+# SVF_road = np.nan_to_num(SVF_road, nan=np.nanmean(SVF_road))
+#
+# m5_data = average_svf(data,gridratio)
+# Roof_frac = np.ones(m5_data.shape)*0.3
+# Wall_frac = np.ones(m5_data.shape)*0.4
+# Road_frac = np.ones(m5_data.shape)*0.3
 "Now we have a SVF for roof and road surfaces averaged over 5m gridcells, " \
 "and the data averaged over 5m, surface fractions for now"
 
