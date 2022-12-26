@@ -681,10 +681,13 @@ hours = np.linspace(8,23,16)
 SF_matrix = np.ndarray([int(x_len),int(y_len),int(len(hours))])
 for h in range(len(hours)):
     [azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hours[h],radians=True)
-    SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=True,save_Im=False)
+    SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
+    print(SF)
     for i in range(int(x_len/2*y_len/2)):
         SF_matrix[int(coords[i,0]),int(coords[i,1]),h] = SF[i]
 SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4),:]
+np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
+
 
 # SVFs = SVFs05m.SVF
 # SVF_matrix = np.ndarray([x_len,y_len])
