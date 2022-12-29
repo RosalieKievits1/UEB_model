@@ -617,9 +617,9 @@ print("part is 1st up, 1st left")
 print("Data block is HN1")
 # #
 "Switch for 0.5 or 5 m"
-download_directory = config.input_dir_knmi
-SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.tif'])
-SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
+# download_directory = config.input_dir_knmi
+# SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.tif'])
+# SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
 #
 # grid_ratio = int(gridboxsize/gridboxsize_knmi)
 if (gridboxsize==5):
@@ -677,16 +677,19 @@ elif (gridboxsize==0.5):
 
 #
 coords = coordheight(data,gridboxsize)
-hours = np.linspace(8,23,16)
-SF_matrix = np.ndarray([int(x_len),int(y_len),int(len(hours))])
+hours = np.linspace(8,15,8)
+SF_matrix = np.ndarray([int(x_len),int(y_len)])
 for h in range(len(hours)):
     [azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hours[h],radians=True)
     SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
     print(SF)
     for i in range(int(x_len/2*y_len/2)):
-        SF_matrix[int(coords[i,0]),int(coords[i,1]),h] = SF[i]
-SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4),:]
-np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
+        SF_matrix[int(coords[i,0]),int(coords[i,1])] = SF[i]
+    SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+    np.savetxt("SFmatrix" + str(hours[h]) + ".csv", SF_matrix, delimiter=",")
+
+
+#np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
 
 
 # SVFs = SVFs05m.SVF
