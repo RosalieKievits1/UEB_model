@@ -14,7 +14,7 @@ d_road = np.ones([layers]) * 0.05 #[0.05,0.1,0.15, 0.2] #
 
 """timestep"""
 timestep = 10*60 #[s]
-nr_of_steps = 600
+nr_of_steps = 800
 
 """albedos"""
 a_bitumen = 0.12
@@ -101,6 +101,6 @@ long_rd = 4.46
 #julianday = 305 #1 nov
 julianday = 121 #1 may
 
-hour = 10.5 # 10:30 am
+hour = 12 # 10:30 am
 
 

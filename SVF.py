@@ -352,7 +352,7 @@ def reshape_SVF(data, coords,gridboxsize,azimuth,zenith,reshape,save_CSV,save_Im
         return SFs #,SVFs#,
 
 
-def geometricProperties(data,gridratio,gridboxsize):
+def geometricProperties(data,grid_ratio,gridboxsize):
     """
     Function that determines the average height over width of an area,
     the average height over width, and the built fraction of an area
@@ -363,14 +363,16 @@ def geometricProperties(data,gridratio,gridboxsize):
     delta: fraction of built area
     """
     [x_long, y_long] = data.shape
+    x_long = int(x_long/2)
+    y_long = int(y_long/2)
     [Wall_area, wall_area_total] = wallArea(data,gridboxsize)
     Wall_area_gridcell = np.sum(Wall_area,axis=2)
-    delta = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
-    ave_height = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
-    road_elements = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
-    built_elements = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
-    water_elements = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
-    wall_area_med = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
+    delta = np.zeros([int(x_long/grid_ratio),int(y_long/grid_ratio)])
+    ave_height = np.zeros([int(x_long/grid_ratio),int(y_long/grid_ratio)])
+    road_elements = np.zeros([int(x_long/grid_ratio),int(y_long/grid_ratio)])
+    built_elements = np.zeros([int(x_long/grid_ratio),int(y_long/grid_ratio)])
+    water_elements = np.zeros([int(x_long/grid_ratio),int(y_long/grid_ratio)])
+    wall_area_med = np.zeros([int(x_long/grid_ratio),int(y_long/grid_ratio)])
     "We want to take the mean of the SVF values over a gridsize of gridratio"
     for i in range(int(x_long/grid_ratio)):
         for j in range(int(y_long/grid_ratio)):
@@ -393,14 +395,15 @@ def geometricProperties(data,gridratio,gridboxsize):
     Water_area = water_elements*gridboxsize**2
 
     Total_area = Roof_area + wall_area_med + Road_area + Water_area
+    Roof_area = Roof_area + Water_area
     """Fractions of the area of the total surface"""
     Roof_frac = np.around(Roof_area/Total_area,3)
     Wall_frac = np.around(wall_area_med/Total_area,3)
     Road_frac = np.around(Road_area/Total_area,3)
     Water_frac = np.around(Water_area/Total_area,3)
-    Road_frac = Road_frac + Water_frac
-    H_W = ave_height*delta
-    return Roof_frac, Wall_frac, Road_frac
+    #Road_frac = Road_frac + Water_frac
+    H_W = ave_height * delta
+    return Roof_frac, Wall_frac, Road_frac #Roof_area, wall_area_med, Road_area#
 
 def average_svf_surfacetype(SVF_matrix,data, grid_ratio):
     [x_long, y_long] = SVF_matrix.shape
@@ -534,26 +537,28 @@ def wallArea(data,gridboxsize):
     if gridboxsize==5:
         wall_area = np.ndarray([int(x_len-2*max_radius/gridboxsize),int(y_len-2*max_radius/gridboxsize),4])
     elif gridboxsize==0.5:
-        wall_area = np.ndarray([int(x_len/2),int(y_len/2),4])
+        #wall_area = np.ndarray([int(x_len/2),int(y_len/2),4])
+        wall_area = np.zeros([int(x_len),int(y_len),4])
+
     if (gridboxsize == 0.5):
-        i = int(x_len/4)
-        j = int(y_len/4)
-        while i < int(3*x_len/4):
-            while j < int(3*y_len/4):
+        for i in range(int(x_len/4),int(3*x_len/4)):
+            for j in range(int(y_len/4),int(3*y_len/4)):
                 if (data[i,j]>0):
                     """We check for all the points surrounding the building if they are also buildings, 
                     if the building next to it is higher the wall belongs to the building next to it,
                     if the current building is higher, the exterior wall is the difference in height * gridboxsize"""
-                    wall_area[int(i-x_len/4),int(j-y_len/4),0] = max(data[i,j]-data[i-1,j],0)*gridboxsize
-                    wall_area[int(i-x_len/4),int(j-y_len/4),1] = max(data[i,j]-data[i,j+1],0)*gridboxsize
-                    wall_area[int(i-x_len/4),int(j-y_len/4),2] = max(data[i,j]-data[i+1,j],0)*gridboxsize
-                    wall_area[int(i-x_len/4),int(j-y_len/4),3] = max(data[i,j]-data[i,j-1],0)*gridboxsize
+                    # wall_area[int(i-x_len/4),int(j-y_len/4),0] = max(data[i,j]-data[i-1,j],0)*gridboxsize
+                    # wall_area[int(i-x_len/4),int(j-y_len/4),1] = max(data[i,j]-data[i,j+1],0)*gridboxsize
+                    # wall_area[int(i-x_len/4),int(j-y_len/4),2] = max(data[i,j]-data[i+1,j],0)*gridboxsize
+                    # wall_area[int(i-x_len/4),int(j-y_len/4),3] = max(data[i,j]-data[i,j-1],0)*gridboxsize
+                    wall_area[i,j,0] = max(data[i,j]-data[i-1,j],0)*gridboxsize
+                    wall_area[i,j,1] = max(data[i,j]-data[i,j+1],0)*gridboxsize
+                    wall_area[i,j,2] = max(data[i,j]-data[i+1,j],0)*gridboxsize
+                    wall_area[i,j,3] = max(data[i,j]-data[i,j-1],0)*gridboxsize
                     """The wall area corresponding to that building is"""
                     #wall_area[int(i-x_len/4),int(j-y_len/4)] = wall1+wall2+wall3+wall4
                 elif (data[i,j]==0):
                     wall_area[int(i-x_len/4),int(j-x_len/4),:] = 0
-                i+=1
-                j+=1
     elif (gridboxsize==5):
         i = int(max_radius/gridboxsize)
         j = int(max_radius/gridboxsize)
@@ -571,11 +576,12 @@ def wallArea(data,gridboxsize):
                     #wall_area[int(i-max_radius/gridboxsize),int(j-max_radius/gridboxsize)] = np.sum(wall,axis=2)
                 elif (data[i,j]==0):
                     wall_area[int(i-max_radius/gridboxsize),int(j-max_radius/gridboxsize),:] = 0
-                i+=1
                 j+=1
+            i+=1
     """wall_area is a matrix of the size of center block of data, 
     with each point storing the exterior wall for that building,
     wall_area_total is the total exterior wall area of the dataset"""
+    wall_area = wall_area[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4),:]
     wall_area_total = np.sum(wall_area)
     return wall_area, wall_area_total
 
@@ -615,6 +621,7 @@ print("gridboxsize is " + str(gridboxsize))
 print("max radius is " + str(max_radius))
 print("part is 1st up, 1st left")
 print("Data block is HN1")
+print("The Date is " + str(Constants.julianday) + " and time is " + str(Constants.hour))
 # #
 "Switch for 0.5 or 5 m"
 # download_directory = config.input_dir_knmi
@@ -675,19 +682,30 @@ elif (gridboxsize==0.5):
 # # "Now with filtering out water"
     #SVF_knmi_HN1 = SVF_knmi_HN1[SVF_knmi_HN1>=0]
 
-#
+"Shadowfactor"
 coords = coordheight(data,gridboxsize)
-hours = np.linspace(8,15,8)
-SF_matrix = np.ndarray([int(x_len),int(y_len)])
-for h in range(len(hours)):
-    [azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hours[h],radians=True)
-    SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
-    print(SF)
-    for i in range(int(x_len/2*y_len/2)):
-        SF_matrix[int(coords[i,0]),int(coords[i,1])] = SF[i]
-    SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-    np.savetxt("SFmatrix" + str(hours[h]) + ".csv", SF_matrix, delimiter=",")
+[azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,radians=True)
+SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
+SF_matrix = np.ndarray([x_len,y_len])
+for i in range(int(x_len/2*y_len/2)):
+    SF_matrix[int(coords[i,0]),int(coords[i,1])] = SF[i]
+SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+print(SF_matrix)
 
+"Shadowfactor for 24 hours"
+"Don't forget to comment out import SVFs05 !! and change hours"
+# coords = coordheight(data,gridboxsize)
+# hours = np.linspace(8,15,8)
+# SF_matrix = np.ndarray([int(x_len),int(y_len)])
+# for h in range(len(hours)):
+#     [azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hours[h],radians=True)
+#     SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
+#     print(SF)
+#     for i in range(int(x_len/2*y_len/2)):
+#         SF_matrix[int(coords[i,0]),int(coords[i,1])] = SF[i]
+#     SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+#     np.savetxt("SFmatrix" + str(hours[h]) + ".csv", SF_matrix, delimiter=",")
+"end of Shadowfactor for 24 hours"
 
 #np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
 
@@ -722,15 +740,75 @@ for h in range(len(hours)):
 #     pickle.dump(Wall_frac, f)
 # with open('pickles/roadFrac.pickle', 'wb') as f:
 #     pickle.dump(Road_frac, f)
-#data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+
+"RUN"
+# SVF = SVFs05m.SVFs
+# gridratio = 25
+# coords = coordheight(data,gridboxsize)
+# SVF_matrix = np.ndarray([x_len,y_len])
+# for i in range(int(x_len/2*y_len/2)):
+#     SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVF[i]
+# SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# Roof_frac, Wall_frac, Road_frac = geometricProperties(data,gridratio,gridboxsize)
+#
+# data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 # [SVF_roof,SVF_road] = average_svf_surfacetype(SVF_matrix,data,gridratio)
 # SVF_roof = np.nan_to_num(SVF_roof, nan=np.nanmean(SVF_roof))
 # SVF_road = np.nan_to_num(SVF_road, nan=np.nanmean(SVF_road))
+# SVF_wall = (1-SVF_road)*Wall_frac/(Road_frac+Wall_frac+Roof_frac)/2
+"END RUN"
+
+# SVF_roof[Roof_frac == 0] = 0 #nan=np.nanmean(SVF_roof))
+# SVF_road[Road_frac == 0] = 0 #nan=np.nanmean(SVF_road))
+
+
+# Roof_frac = np.ones(SVF_roof.shape)*0.3
+# Road_frac = np.ones(SVF_roof.shape)*0.3
+# Wall_frac = np.ones(SVF_roof.shape)*0.4
+# SVF_wall = ((1-Roof_frac)*SVF_roof-SVF_road)*(Road_frac/Wall_frac)
+#SVF_wall = SVF_roof-SVF_road*Road_area/Wall_area
+
+# SVF_wall[SVF_wall < 0] = 0
+# SVF_wall[Wall_area == 0] = 0
 #
-# m5_data = average_svf(data,gridratio)
-# Roof_frac = np.ones(m5_data.shape)*0.3
-# Wall_frac = np.ones(m5_data.shape)*0.4
-# Road_frac = np.ones(m5_data.shape)*0.3
+# SVF_wall = np.nan_to_num(SVF_wall, nan=np.nanmean(SVF_wall))
+
+# SVF_wall = np.nan_to_num(SVF_wall, nan=0)
+
+# print(SVF_wall)
+# print(Road_frac)
+# print(Roof_frac)
+# WVF_roof = 1-SVF_roof
+# WVF_road = 1-SVF_road
+# GVF_wall = WVF_road*(Road_area/(Road_area+Wall_area))
+# RVF_wall = (WVF_roof)*(Roof_area/(Roof_area+Wall_area))
+# RVF_wall = np.nan_to_num(RVF_wall, nan=0) #nan=np.nanmean(RVF_wall))
+# WVF_wall = 1-SVF_wall-GVF_wall-RVF_wall
+# WVF_wall[WVF_wall<0] =0
+# print("GVF_wall")
+# print(np.mean(GVF_wall))
+# print(np.max(GVF_wall))
+# print(np.min(GVF_wall))
+#
+# #GVF_wall = np.nan_to_num(GVF_wall, nan=np.nanmean(GVF_wall))
+#
+# print("RVF")
+# #WVF_wall = np.nan_to_num(WVF_wall, nan=np.nanmean(WVF_wall))
+# print(np.count_nonzero(np.logical_and(Roof_area==0,Wall_area==0)))
+# # Since the wall reflects on the roof, the roof should also reflect on the wall??
+#
+# #RVF_wall = np.nan_to_num(RVF_wall, nan=np.nanmean(RVF_wall))
+# print(np.mean(RVF_wall))
+# #WVF_wall[WVF_wall<0] = 0
+# # print(Wall_frac)
+# # print(np.max(Wall_frac))
+# # print(np.min(Wall_frac))
+# print(np.max(RVF_wall))
+# print(np.min(RVF_wall))
+# print("WVF_wall")
+# print(np.mean(WVF_wall))
+# print(np.max(WVF_wall))
+# print(np.min(WVF_wall))
 "Now we have a SVF for roof and road surfaces averaged over 5m gridcells, " \
 "and the data averaged over 5m, surface fractions for now"
 

@@ -4,7 +4,7 @@ import pandas as pd
 import Constants
 import matplotlib.pyplot as plt
 import Functions
-import SVF
+#import SVF
 
 #plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
 # csfont = {'fontname':'Arial (sans-serif)'}
@@ -81,9 +81,9 @@ time = (np.arange(Constants.nr_of_steps)) #in hours
 
 # time = (np.arange(Constants.nr_of_steps))# * Constants.timestep/3600)
 
-[T_roof, T_wall,T_road, LW_net_roof, SW_net_roof, LHF_roof, SHF_roof, G_out_surf_roof] = Functions.HeatEvolution(SVF.m5_data,Constants.nr_of_steps,Constants.timestep)
+[T_roof, T_wall,T_road, LW_net_roof, SW_net_roof, LHF_roof, SHF_roof, G_out_surf_roof] = Functions.HeatEvolution(Constants.nr_of_steps,Constants.timestep)
 Functions.PlotSurfaceTemp(T_roof,T_wall,T_road,Constants.nr_of_steps)
-Functions.PlotTempLayers(T_roof,Constants.nr_of_steps)
+Functions.PlotTempLayers(T_wall,Constants.nr_of_steps)
 Functions.PlotSurfaceFluxes(LW_net_roof, SW_net_roof, G_out_surf_roof, LHF_roof, SHF_roof)
 # Functions.PlotSurfaceTemp(T_roof_g,T_wall_g,T_road_g,Constants.nr_of_steps)
 # Functions.PlotTempLayers(T_roof_g,Constants.nr_of_steps)
