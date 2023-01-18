@@ -6,11 +6,10 @@ from tqdm import tqdm
 import config
 from functools import partial
 import time
-import KNMI_SVF_verification
+#import KNMI_SVF_verification
 import Constants
 import Sunpos
 #import SVFs05m
-import pickle
 
 sttime = time.time()
 
@@ -205,8 +204,6 @@ def d_area(psi,steps_beta,maxR):
 def SkyViewFactor(point, coords, max_radius,gridboxsize):
     betas_lin = np.linspace(0,2*np.pi,steps_beta, endpoint=False)
 
-    "this is the analytical dome area"
-    dome_area = max_radius**2*2*np.pi
     "we throw away all point outside the dome"
     # dome is now a 5 column array of points:
     # the 5 columns: x,y,z,radius,angle theta"""
@@ -225,9 +222,8 @@ def SkyViewFactor(point, coords, max_radius,gridboxsize):
         betas[np.nonzero(np.logical_and((betas < psi), np.logical_and((beta_min <= betas_lin), (betas_lin < beta_max))))] = psi
         d += 1
     """The SVF is the fraction of area of the dome that is not blocked"""
-    #SVF = np.around((np.sum(1-np.sin(betas))/steps_beta),3)
-    SVF_2 = np.around((np.sum(np.cos(betas)**2)/steps_beta),3)
-    return SVF_2
+    SVF = np.around((np.sum(np.cos(betas)**2)/steps_beta),3)
+    return SVF
 
 def calc_SVF(coords, max_radius, blocklength, gridboxsize):
     """
@@ -686,11 +682,12 @@ elif (gridboxsize==0.5):
 coords = coordheight(data,gridboxsize)
 [azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,radians=True)
 SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
-SF_matrix = np.ndarray([x_len,y_len])
-for i in range(int(x_len/2*y_len/2)):
-    SF_matrix[int(coords[i,0]),int(coords[i,1])] = SF[i]
-SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-print(SF_matrix)
+print(SF)
+# SF_matrix = np.ndarray([x_len,y_len])
+# for i in range(int(x_len/2*y_len/2)):
+#     SF_matrix[int(coords[i,0]),int(coords[i,1])] = SF[i]
+# SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# print(SF_matrix)
 
 "Shadowfactor for 24 hours"
 "Don't forget to comment out import SVFs05 !! and change hours"
