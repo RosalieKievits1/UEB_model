@@ -9,7 +9,8 @@ import time
 #import KNMI_SVF_verification
 import Constants
 import Sunpos
-#import SVFs05m
+# import SVFs05m
+# import SF05mHN1
 
 sttime = time.time()
 
@@ -448,76 +449,6 @@ def SF_wall(point,coords,type,wall_area,azimuth,elevation_angle):
     so the shadowfactor is 1: the point receives radiation"""
     return Shadowfactor
 
-def SVF_WVF_wall(point,coords,maxR,type,wall_area):
-    "For a wall point determine whether it is north, south east or west faced."
-    "Retrieve all points inside a max radius"
-    "Point is a point on the dataset that is either north, west, east or south facing"
-    "wall area is point []"
-
-    point_zero = np.copy(point)
-    point_zero[2] = 0
-    dome_zero = dome(point_zero,coords,maxR,gridboxsize)
-
-    "We have a point on data that is elevated: " \
-    "for this point we have wallmatrix that has dimensions [data.shape[0],data.shape[1],4]" \
-    "So for the SVF for wallmatrix[i,j,0] (north facing)"
-    "Use this function in a loop where we loop over all data points in coords > 0 (all buildings), " \
-    "then call this function while looping over all 4 sides with w in wall" \
-    "SVF_WVF_wall(point,coords,maxR,type=w,wall_area[point[0],point[1],w])"
-
-    if (type==0): #Northern facing wall
-        dome_zero = dome_zero[dome_zero[:,0]<point[0]] #so only northern points
-        dome_zero[:,4] = (dome_zero[:,4]+np.pi)%(2*np.pi)
-        beta_lin = np.linspace(np.pi/2,3*np.pi/2,int(steps_beta/2),endpoint=False)
-    elif (type==1): #east facing wall
-        dome_zero = dome_zero[dome_zero[:,1]>point[1]] #so only eastern points
-        beta_lin = np.linspace(0,np.pi,int(steps_beta/2),endpoint=False)
-    elif (type==2): #south facing wall
-        dome_zero = dome_zero[dome_zero[:,0]>point[0]] #so only southern points
-        beta_lin = np.linspace(np.pi/2,3*np.pi/2,int(steps_beta/2),endpoint=False)
-    elif (type==3): #west facing wall
-        dome_zero = dome_zero[dome_zero[:,1]<point[1]] #so only western points
-        beta_lin = np.linspace(np.pi,2*np.pi,int(steps_beta/2),endpoint=False)
-    "Now we have all the points that possibly block the view"
-    betas = np.zeros(int(steps_beta/2))
-    betas_zero = np.zeros(int(steps_beta/2))
-    # store the radii of closest blockings
-    closest = np.zeros(int(steps_beta/2))
-    # maximum skydome
-    dome_max = 2*np.pi*maxR**2
-
-    "Loop over beta to find the largest blocking in every direction"
-    for d in range(dome_zero.shape[0]):
-        "The Angle between the height of the blocking and the height of the point on the wall with the horizontal axis"
-        psi = np.arctan((dome_zero[d,2]-point[2])/dome_zero[d,3])
-        psi_zero = np.arctan((dome_zero[d,2]-(point[2]-wall_area[2]))/dome_zero[d,3])
-        """The angles of the min and max horizontal angle of the building"""
-        beta_min = - np.arcsin(gridboxsize/2/dome_zero[d,3]) + dome_zero[d,4]
-        beta_max = np.arcsin(gridboxsize/2/dome_zero[d,3]) + dome_zero[d,4]
-
-        """Where the index of betas fall within the min and max beta, and there is not already a larger psi blocking"""
-        betas[np.nonzero(np.logical_and(betas<psi,(np.logical_and((beta_min <= beta_lin),(beta_lin < beta_max)))))] = psi
-        betas_zero[np.nonzero(np.logical_and(betas_zero<psi_zero,(np.logical_and((beta_min <= beta_lin),(beta_lin < beta_max)))))] = psi_zero
-
-        if dome_zero[d,2]==0:
-            closest[np.nonzero(np.logical_and((closest > dome_zero[d,3]), np.logical_and((beta_min <= beta_lin), (beta_lin < beta_max))))] = dome_zero[d,3]
-
-    areas = sum(np.cos(betas)**2)/(steps_beta/2)
-    areas_zero = sum(np.cos(betas_zero)**2)/(steps_beta/2)
-
-    "We take the SVF of the wall surface as the average between the SVF at the top and the SVF at the bottom"
-    SVF_wall_high = (dome_max/2 - sum(areas))/(dome_max)
-    SVF_wall_zero = (dome_max/2 - sum(areas_zero))/(dome_max)
-    SVF_wall = (SVF_wall_zero+SVF_wall_high)/2
-
-    closest_angles = np.arctan(closest/point[2])
-    ground_areas = d_area(closest_angles,steps_beta/2,maxR)
-    GVF_wall = ((sum(ground_areas)/(dome_max))+1/2)/2
-
-    WVF_wall = (1-SVF_wall-GVF_wall)
-
-    return SVF_wall, WVF_wall, GVF_wall, SF_wall
-
 def wallArea(data,gridboxsize):
     """
     :param data: Dataset to compute the wall area over
@@ -609,6 +540,179 @@ def fisheye():
         bar.set_alpha(0.8)
 
     plt.show()
+
+
+"""CHAT GPT WVF Algorithm"""
+def svf_wall_chatGPT(point, dsm, max_distance, num_divisions):
+    """
+    Compute the sky view factor (SVF) for a point on the wall.
+
+    Parameters:
+    - point (tuple): (x, y, z) coordinates of the point on the wall
+    - dsm (2D numpy array): digital surface model
+    - max_distance (float): maximum distance to consider for the calculations
+    - num_divisions (int): number of divisions in the azimuth angle
+
+    Returns:
+    - float: sky view factor (SVF) for the point
+    """
+    svf = 0
+    for i in range(num_divisions):
+        # calculate the azimuth angle
+        azimuth = i * (180/num_divisions)
+        # find the intersection point of the ray and the DSM
+        intersection_point = find_intersection(point, azimuth, dsm, max_distance)
+        # check if the intersection point is within the max_distance
+        if intersection_point is not None:
+            distance = np.linalg.norm(np.array(intersection_point) - np.array(point))
+            if distance <= max_distance:
+                # calculate the angle between the point and the intersection point
+                angle = calculate_angle(point, intersection_point)
+                svf += angle
+    # normalize the svf
+    svf /= (np.pi)
+    return svf
+
+
+def SVF_WVF_wall(point,coords,maxR,type,wall_len,num_slices):
+    "For a wall point determine whether it is north, south east or west faced."
+    "Retrieve all points inside a max radius"
+    "Point is a point on the dataset that is either north, west, east or south facing"
+    "wall area is point []"
+
+    point_zero = np.copy(point)
+    point_zero[2] = 0
+    dome_zero = dome(point_zero,coords,maxR,gridboxsize)
+
+    "We have a point on data that is elevated: " \
+    "for this point we have wallmatrix that has dimensions [data.shape[0],data.shape[1],4]" \
+    "So for the SVF for wallmatrix[i,j,0] (north facing)"
+    "Use this function in a loop where we loop over all data points in coords > 0 (all buildings), " \
+    "then call this function while looping over all 4 sides with w in wall" \
+    "SVF_WVF_wall(point,coords,maxR,type=w,wall_area[point[0],point[1],w])"
+
+    if (type==0): #Northern facing wall
+        dome_zero = dome_zero[dome_zero[:,0]<point[0]] #so only northern points
+        dome_zero[:,4] = (dome_zero[:,4]+np.pi)%(2*np.pi)
+        beta_lin = np.linspace(np.pi/2,3*np.pi/2,int(steps_beta/2),endpoint=False)
+    elif (type==1): #east facing wall
+        dome_zero = dome_zero[dome_zero[:,1]>point[1]] #so only eastern points
+        beta_lin = np.linspace(0,np.pi,int(steps_beta/2),endpoint=False)
+    elif (type==2): #south facing wall
+        dome_zero = dome_zero[dome_zero[:,0]>point[0]] #so only southern points
+        beta_lin = np.linspace(np.pi/2,3*np.pi/2,int(steps_beta/2),endpoint=False)
+    elif (type==3): #west facing wall
+        dome_zero = dome_zero[dome_zero[:,1]<point[1]] #so only western points
+        beta_lin = np.linspace(np.pi,2*np.pi,int(steps_beta/2),endpoint=False)
+    "Now we have all the points that possibly block the view"
+    betas = np.zeros(int(steps_beta/2))
+    betas_zero = np.zeros(int(steps_beta/2))
+    # store the radii of closest blockings
+    closest = np.zeros(int(steps_beta/2))
+    psi = np.array([num_slices])
+    len_d = (point[2]-wall_len)/num_slices
+    # maximum skydome
+    #dome_max = 2*np.pi*maxR**2
+
+    "Loop over beta to find the largest blocking in every direction"
+    for d in range(dome_zero.shape[0]):
+        "The Angle between the height of the blocking and the height of the point on the wall with the horizontal axis"
+
+        #psi_zero = np.arctan((dome_zero[d,2]-(point[2]-wall_area[2]))/dome_zero[d,3])
+        """The angles of the min and max horizontal angle of the building"""
+        beta_min = - np.arcsin(gridboxsize/2/dome_zero[d,3]) + dome_zero[d,4]
+        beta_max = np.arcsin(gridboxsize/2/dome_zero[d,3]) + dome_zero[d,4]
+
+        for p in range(len(psi)):
+            psi[p] = np.arctan((dome_zero[d,2]-(point[2]-wall_len+p*len_d))/dome_zero[d,3])
+        psi_ave = np.mean(psi)
+        """Where the index of betas fall within the min and max beta, and there is not already a larger psi blocking"""
+        betas[np.nonzero(np.logical_and(betas<psi[-1],(np.logical_and((beta_min <= beta_lin),(beta_lin < beta_max)))))] = psi_ave
+        #betas_zero[np.nonzero(np.logical_and(betas_zero<psi_zero,(np.logical_and((beta_min <= beta_lin),(beta_lin < beta_max)))))] = psi_zero
+
+        if dome_zero[d,2]==0:
+            closest[np.nonzero(np.logical_and((closest > dome_zero[d,3]), np.logical_and((beta_min <= beta_lin), (beta_lin < beta_max))))] = dome_zero[d,3]
+
+    # areas = sum(np.cos(betas)**2)/(steps_beta/2)
+    # areas_zero = sum(np.cos(betas_zero)**2)/(steps_beta/2)
+    SVF_wall = np.sum(betas)/(np.pi*steps_beta/2)
+    "We take the SVF of the wall surface as the average between the SVF at the top and the SVF at the bottom"
+    # SVF_wall_high = (dome_max/2 - sum(areas))/(dome_max)
+    # SVF_wall_zero = (dome_max/2 - sum(areas_zero))/(dome_max)
+    # SVF_wall = (SVF_wall_zero+SVF_wall_high)/2
+
+    #ground_areas = d_area(closest_angles,steps_beta/2,maxR)
+    # GVF_wall = ((sum(ground_areas)/(dome_max))+1/2)/2
+    #WVF_wall = (1-SVF_wall-GVF_wall)
+    return SVF_wall
+
+#
+# def WVF_chat_GPT(point, dsm, max_distance, num_divisions):
+#     """
+#     Compute the sky view factor (SVF) for a point on the wall.
+#
+#     Parameters:
+#     - point (tuple): (x, y, z) coordinates of the point on the wall
+#     - dsm (2D numpy array): digital surface model
+#     - max_distance (float): maximum distance to consider for the calculations
+#     - num_divisions (int): number of divisions in the azimuth angle
+#
+#     Returns:
+#     - float: sky view factor (SVF) for the point
+#     """
+#     svf = 0
+#     for i in range(num_divisions):
+#         # calculate the azimuth angle
+#         azimuth = i * (180/num_divisions)
+#         # find the intersection point of the ray and the DSM
+#         intersection_point = find_intersection(point, azimuth, dsm, max_distance)
+#         # check if the intersection point is within the max_distance
+#         if intersection_point is not None:
+#             distance = np.linalg.norm(np.array(intersection_point) - np.array(point))
+#             if distance <= max_distance:
+#                 # calculate the angle between the point and the intersection point
+#                 #angle = calculate_angle(point, intersection_point)
+#                 angle = np.arctan((intersection_point[2]-point[2])/distance)
+#                 svf += angle
+#     # normalize the svf
+#     svf /= (np.pi)
+#     return svf
+
+def compute_wvf(data, max_distance, num_divisions, num_slices, num_workers):
+    """
+    Compute the wall view factors (WVF) for all points on the DSM with external walls.
+
+    Parameters:
+    - dsm (2D numpy array): digital surface model
+    - max_distance (float): maximum distance to consider for the calculations
+    - num_divisions (int): number of divisions in the azimuth angle
+    - num_slices (int): number of slices along the wall height to consider
+    - num_workers (int): number of worker processes to use for multiprocessing
+
+    Returns:
+    - 2D numpy array: wall view factors (WVF) for each point
+    """
+    [x_len,y_len] = data.shape
+    [walls_matrix,total_wall_area] = wallArea(data,gridboxsize)
+    WVF = np.zeros([walls_matrix.shape])
+
+    with Pool(num_workers) as p:
+        results = []
+        for i in range(x_len):
+            for j in range(y_len):
+                if data[i, j] > 0:
+                    walls = walls_matrix[i,j,:]
+                    for k, wall in enumerate(walls):
+                        results.append(p.apply_async(SVF_WVF_wall, (point,coords,max_radius,k,wall,10)))
+        for i, result in enumerate(results):
+            x = i // (4 * x_len)
+            y = (i // 4) % y_len
+            k = i % 4
+            WVF[x, y, k] = result.get()
+    return WVF
+
+""""""
+
 
 "The block is divided into 25 blocks, this is still oke with the max radius but it does not take to much memory"
 
@@ -705,19 +809,42 @@ print(SF)
 "end of Shadowfactor for 24 hours"
 
 #np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
-
-
-# SVFs = SVFs05m.SVF
-# SVF_matrix = np.ndarray([x_len,y_len])
+"SF wall start"
+# gridratio = 25
+# SFs = SF05mHN1.SF
+# SF_matrix = np.ndarray([x_len,y_len])
 # for i in range(int(x_len/2*y_len/2)):
-#     SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVF[i]
-# SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-# plt.figure()
-# plt.subplot(1, 2, 1)
-# plt.imshow(SVF_matrix, vmin=0, vmax=1, aspect='auto')
+#     SF_matrix[int(coords[i,0]),int(coords[i,1])] = SFs[i]
+# SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# # plt.figure()
+# # #plt.subplot(1, 2, 1)
+# # plt.imshow(SF_matrix, vmin=0, vmax=1, aspect='auto')
+# # plt.show()
+# [SF_roof,SF_road] = average_svf_surfacetype(SF_matrix,data,gridratio)
+# # print(SF_roof)
+# # print(SF_road)
+# error = 0.01
+# Roof_frac, Wall_frac, Road_frac = geometricProperties(data,gridratio,gridboxsize)
+# SF_road[Road_frac<error] = 0
+# SF_roof[Roof_frac<error] = 0
+# SF_wall = (1-SF_roof)*(1-Roof_frac)-SF_road*Road_frac)/Wall_frac
 #
+# SF_wall[Wall_frac<error] = 0
+# print("roof")
+# print(np.mean(SF_roof))
+# print(np.max(SF_roof))
+# print(np.min(SF_roof))
+# print("road")
+# print(np.mean(SF_road))
+# print(np.max(SF_road))
+# print(np.min(SF_road))
+# print("wall")
+# print(np.mean(SF_wall))
+# print(np.max(SF_wall))
+# print(np.min(SF_wall))
+"SF wall"
 # plt.subplot(1, 2, 2)
-# plt.imshow(SVF_knmi_HN1, vmin=0, vmax=1, aspect='auto')
+# plt.imshow(SF_knmi_HN1, vmin=0, vmax=1, aspect='auto')
 # #
 # plt.show()
 
@@ -737,6 +864,10 @@ print(SF)
 #     pickle.dump(Wall_frac, f)
 # with open('pickles/roadFrac.pickle', 'wb') as f:
 #     pickle.dump(Road_frac, f)
+
+# [wall_matrix,totalwall] = wallArea(data,gridboxsize)
+# wall = wall_matrix[int(x_len/4),int(y_len/4),2]
+# print(SVF_WVF_wall(point,coords,max_radius,2,wall,10))
 
 "RUN"
 # SVF = SVFs05m.SVFs
