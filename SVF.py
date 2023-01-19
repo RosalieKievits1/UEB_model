@@ -573,7 +573,6 @@ def svf_wall_chatGPT(point, dsm, max_distance, num_divisions):
     svf /= (np.pi)
     return svf
 
-
 def SVF_WVF_wall(point,coords,maxR,type,wall_len,num_slices):
     "For a wall point determine whether it is north, south east or west faced."
     "Retrieve all points inside a max radius"
@@ -645,38 +644,6 @@ def SVF_WVF_wall(point,coords,maxR,type,wall_len,num_slices):
     # GVF_wall = ((sum(ground_areas)/(dome_max))+1/2)/2
     #WVF_wall = (1-SVF_wall-GVF_wall)
     return SVF_wall
-
-#
-# def WVF_chat_GPT(point, dsm, max_distance, num_divisions):
-#     """
-#     Compute the sky view factor (SVF) for a point on the wall.
-#
-#     Parameters:
-#     - point (tuple): (x, y, z) coordinates of the point on the wall
-#     - dsm (2D numpy array): digital surface model
-#     - max_distance (float): maximum distance to consider for the calculations
-#     - num_divisions (int): number of divisions in the azimuth angle
-#
-#     Returns:
-#     - float: sky view factor (SVF) for the point
-#     """
-#     svf = 0
-#     for i in range(num_divisions):
-#         # calculate the azimuth angle
-#         azimuth = i * (180/num_divisions)
-#         # find the intersection point of the ray and the DSM
-#         intersection_point = find_intersection(point, azimuth, dsm, max_distance)
-#         # check if the intersection point is within the max_distance
-#         if intersection_point is not None:
-#             distance = np.linalg.norm(np.array(intersection_point) - np.array(point))
-#             if distance <= max_distance:
-#                 # calculate the angle between the point and the intersection point
-#                 #angle = calculate_angle(point, intersection_point)
-#                 angle = np.arctan((intersection_point[2]-point[2])/distance)
-#                 svf += angle
-#     # normalize the svf
-#     svf /= (np.pi)
-#     return svf
 
 def compute_wvf(data, max_distance, num_divisions, num_slices, num_workers):
     """
@@ -811,25 +778,26 @@ print(SF)
 #np.savetxt("SFmatrix.csv", SF_matrix, delimiter=",")
 "SF wall start"
 # gridratio = 25
+# coords = coordheight(data,gridboxsize)
 # SFs = SF05mHN1.SF
 # SF_matrix = np.ndarray([x_len,y_len])
 # for i in range(int(x_len/2*y_len/2)):
 #     SF_matrix[int(coords[i,0]),int(coords[i,1])] = SFs[i]
 # SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# [SF_roof,SF_road] = average_svf_surfacetype(SF_matrix,data,gridratio)
+# SF_wall = 1-average_svf(SF_matrix,gridratio)
+# Roof_frac, Wall_frac, Road_frac = geometricProperties(data,gridratio,gridboxsize)
+# SF_road[Road_frac==0] = 0
+# SF_roof[Roof_frac==0] = 0
+#
 # # plt.figure()
 # # #plt.subplot(1, 2, 1)
 # # plt.imshow(SF_matrix, vmin=0, vmax=1, aspect='auto')
 # # plt.show()
-# [SF_roof,SF_road] = average_svf_surfacetype(SF_matrix,data,gridratio)
+#
 # # print(SF_roof)
 # # print(SF_road)
-# error = 0.01
-# Roof_frac, Wall_frac, Road_frac = geometricProperties(data,gridratio,gridboxsize)
-# SF_road[Road_frac<error] = 0
-# SF_roof[Roof_frac<error] = 0
-# SF_wall = (1-SF_roof)*(1-Roof_frac)-SF_road*Road_frac)/Wall_frac
 #
-# SF_wall[Wall_frac<error] = 0
 # print("roof")
 # print(np.mean(SF_roof))
 # print(np.max(SF_roof))
@@ -871,23 +839,27 @@ print(SF)
 
 "RUN"
 # SVF = SVFs05m.SVFs
-# gridratio = 25
-# coords = coordheight(data,gridboxsize)
+# # gridratio = 25
+# # coords = coordheight(data,gridboxsize)
 # SVF_matrix = np.ndarray([x_len,y_len])
 # for i in range(int(x_len/2*y_len/2)):
 #     SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVF[i]
 # SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-# Roof_frac, Wall_frac, Road_frac = geometricProperties(data,gridratio,gridboxsize)
-#
-# data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# #Roof_frac, Wall_frac, Road_frac = geometricProperties(data,gridratio,gridboxsize)
 # [SVF_roof,SVF_road] = average_svf_surfacetype(SVF_matrix,data,gridratio)
-# SVF_roof = np.nan_to_num(SVF_roof, nan=np.nanmean(SVF_roof))
-# SVF_road = np.nan_to_num(SVF_road, nan=np.nanmean(SVF_road))
-# SVF_wall = (1-SVF_road)*Wall_frac/(Road_frac+Wall_frac+Roof_frac)/2
-"END RUN"
-
+# data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# SVF_wall = 1-average_svf(SVF_matrix,gridratio)
 # SVF_roof[Roof_frac == 0] = 0 #nan=np.nanmean(SVF_roof))
 # SVF_road[Road_frac == 0] = 0 #nan=np.nanmean(SVF_road))
+# print(np.mean(SVF_wall))
+# print(np.min(SVF_wall))
+# print(np.max(SVF_wall))
+#
+# SVF_roof = np.nan_to_num(SVF_roof, nan=np.nanmean(SVF_roof))
+# SVF_road = np.nan_to_num(SVF_road, nan=np.nanmean(SVF_road))
+"END RUN"
+
+
 
 
 # Roof_frac = np.ones(SVF_roof.shape)*0.3
@@ -908,9 +880,12 @@ print(SF)
 # print(Roof_frac)
 # WVF_roof = 1-SVF_roof
 # WVF_road = 1-SVF_road
-# GVF_wall = WVF_road*(Road_area/(Road_area+Wall_area))
-# RVF_wall = (WVF_roof)*(Roof_area/(Roof_area+Wall_area))
-# RVF_wall = np.nan_to_num(RVF_wall, nan=0) #nan=np.nanmean(RVF_wall))
+# GVF_wall = WVF_road*(Road_frac/(Wall_frac+Road_frac+Roof_frac))
+# RVF_wall = WVF_roof*(Roof_frac/(Wall_frac+Roof_frac+Road_frac))
+# RVF_wall = np.nan_to_num(RVF_wall, nan=0)
+# #GVF_wall = np.nan_to_num(GVF_wall, nan=0)
+#
+# #RVF_wall = np.nan_to_num(RVF_wall, nan=0) #nan=np.nanmean(RVF_wall))
 # WVF_wall = 1-SVF_wall-GVF_wall-RVF_wall
 # WVF_wall[WVF_wall<0] =0
 # print("GVF_wall")
@@ -921,11 +896,11 @@ print(SF)
 # #GVF_wall = np.nan_to_num(GVF_wall, nan=np.nanmean(GVF_wall))
 #
 # print("RVF")
-# #WVF_wall = np.nan_to_num(WVF_wall, nan=np.nanmean(WVF_wall))
-# print(np.count_nonzero(np.logical_and(Roof_area==0,Wall_area==0)))
-# # Since the wall reflects on the roof, the roof should also reflect on the wall??
-#
-# #RVF_wall = np.nan_to_num(RVF_wall, nan=np.nanmean(RVF_wall))
+#WVF_wall = np.nan_to_num(WVF_wall, nan=np.nanmean(WVF_wall))
+#print(np.count_nonzero(np.logical_and(Roof_area==0,Wall_area==0)))
+# Since the wall reflects on the roof, the roof should also reflect on the wall??
+
+#RVF_wall = np.nan_to_num(RVF_wall, nan=np.nanmean(RVF_wall))
 # print(np.mean(RVF_wall))
 # #WVF_wall[WVF_wall<0] = 0
 # # print(Wall_frac)

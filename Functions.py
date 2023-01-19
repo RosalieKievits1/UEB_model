@@ -138,11 +138,6 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
     """
     Returns a map of the surface temperatures for all three surface types
     """
-    # WVF_roof = 1-SVF_roof
-    # GVF_wall = SVF_wall
-    # WVF_wall = 1-2*SVF_wall
-    # WVF_road = 1-SVF_road
-    # SVF_wall = (1-frac_roof*SVF_roof-frac_road*SVF_road)/frac_wall
     WVF_roof = 1-SVF_roof
     WVF_road = 1-SVF_road
     GVF_wall = WVF_road*(frac_road/(frac_road+frac_wall))
@@ -264,17 +259,10 @@ def HeatEvolution(time_steps,delta_t):
     # [wallArea_matrix, wallArea_total] = SVF.wallArea(data)
     # wall_layers = np.ndarray([wallArea_matrix.shape[0],wallArea_matrix.shape[1],Constants.layers])
 
-    "Compute the shadowfactor and SVF"
-    #coords = SVF.coordheight(data)
-    #[svf,Shadowfactor] = SVF.reshape_SVF(data, coords,azimuth,elevation_angle,reshape=True,save_CSV=False,save_Im=False)
-    #[SVF_roof, SVF_road] = SVF.average_svf_surfacetype(svf,data,10)
     "Now we need to separate the roof, wall and road SVF and SF"
     [x_len,y_len] = SVF.SVF_roof.shape
     "All roofs receive sunlight, 30% of the ground and 40% of the walls receive sunlight"
 
-    """We evaluate the middle block only, but after the SVF and Shadowfactor are calculated"""
-    #[x_len,y_len] = data.shape
-    #data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 
     map_T_roof,map_T_wall,map_T_road, \
            capacities_roof,capacities_wall,capacities_road, \
@@ -287,29 +275,12 @@ def HeatEvolution(time_steps,delta_t):
     map_T_old_wall = map_T_wall
     map_T_old_road = map_T_road
 
-    "Height over width ratio"
-    # h_w = 0.7
-    # SVF_Roof = 1
-    # SVF_Wall = 1/2 *(h_w+1-np.sqrt(h_w**2+1))/h_w
-    # SVF_Road = np.sqrt(h_w**2+1)-h_w
-    "zenith angle"
 
     for t in tqdm(range(time_steps)):
-        # zenith = Zenith[t]/180*np.pi
-        # theta_zero = np.arcsin(min(1/h_w*1/np.tan(zenith),1))
-        # SF_Roof = 1
-        # SF_Wall = 1/h_w*(1/2-theta_zero/np.pi)+1/np.pi*np.tan(zenith)*(1-np.cos(theta_zero))
-        # SF_Road = 2*theta_zero/np.pi - 2/np.pi*h_w*np.tan(zenith)*(1-np.cos(theta_zero))
-        # SF_roof = np.ones([x_len,y_len])*SF_Roof
-        # SF_wall = np.ones([x_len,y_len])*SF_Wall
-        # SF_road = np.ones([x_len,y_len])*SF_Road
-        # SVF_Roof = np.ones([x_len,y_len])*SVF_Roof
-        # SVF_Wall = np.ones([x_len,y_len])*SVF_Wall
-        # SVF_Road = np.ones([x_len,y_len])*SVF_Road
         "for now"
-        SF_roof = 1
-        SF_wall = 1
-        SF_road = 1
+        SF_roof = SVF.SF_roof
+        SF_wall = SVF.SF_wall
+        SF_road = SVF.SF_road
 
         SW_dir = SW_down[t]*0.3
         SW_dif = SW_down[t]*0.7
