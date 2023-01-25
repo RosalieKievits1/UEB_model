@@ -774,11 +774,11 @@ print(SF)
 # with open('pickles/roadFrac25_HN1.pickle', 'wb') as f:
 #     pickle.dump(Road_frac, f)
 # "Pickle the shadow factors"
-# with open('pickles/RoofSF_may1_13_25_HN1.pickle', 'wb') as f:
+# with open('pickles/RoofSF_may1_' +str(Constants.hour) + '_25_HN1.pickle', 'wb') as f:
 #     pickle.dump(SF_roof, f)
-# with open('pickles/WallSF_may1_13_25_HN1.pickle', 'wb') as f:
+# with open('pickles/WallSF_may1_' +str(Constants.hour) + '_25_HN1.pickle', 'wb') as f:
 #     pickle.dump(SF_wall, f)
-# with open('pickles/RoadSF_may1_13_25_HN1.pickle', 'wb') as f:
+# with open('pickles/RoadSF_may1_' +str(Constants.hour) + '_25_HN1.pickle', 'wb') as f:
 #     pickle.dump(SF_road, f)
 # "Pickle the Sky view factors"
 # with open('pickles/RoofSVF_25_HN1.pickle', 'wb') as f:
