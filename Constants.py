@@ -101,6 +101,6 @@ long_rd = 4.46
 #julianday = 305 #1 nov
 julianday = 121 #1 may
 
-hour = 16 # 10:30 am
+hour = 17 # 10:30 am
 
 

@@ -83,14 +83,14 @@ Julianday = np.linspace(121,128,7,dtype=int) # may 1
 
 # plt.figure()
 #
-[azis_o, zens_0,T_sunrise,T_sunset] = solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,1,radians=False)
-
-hour = np.linspace(T_sunrise,T_sunset,100)
-hour_r = np.linspace(0,24,25)
-print(T_sunrise)
-print(T_sunset)
-azis = np.zeros([len(hour)])
-zens = np.zeros([len(hour)])
+# [azis_o, zens_0,T_sunrise,T_sunset] = solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,1,radians=False)
+#
+# hour = np.linspace(T_sunrise,T_sunset,100)
+# hour_r = np.linspace(0,24,25)
+# print(T_sunrise)
+# print(T_sunset)
+# azis = np.zeros([len(hour)])
+# zens = np.zeros([len(hour)])
 #for d in range(len(Julianday)):
 #print(solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,T_sunrise,radians=False))
 # for t in range(len(hour)):
@@ -104,23 +104,23 @@ zens = np.zeros([len(hour)])
 # plt.ylabel('Elevation angle [degrees]')
 # plt.show()
 
-hour = np.linspace(T_sunrise,T_sunset,50)
-#Julianday = np.linspace(305,312,8,dtype=int)
-Julianday = np.linspace(121,128,8,dtype=int)
-
-plt.figure()
-azis_0 = np.zeros([len(hour)])
-zens_0 = np.zeros([len(hour)])
-azis = np.zeros([len(hour)])
-zens = np.zeros([len(hour)])
-
-for d in range(len(Julianday)):
-    for t in range(len(hour)):
-        [azis_0[t], zens_0[t],T_sr,T_ss] = solarpos(121,Constants.latitude,Constants.long_rd,hour[t],radians=False)
-        [azis[t], zens[t],T_sr,T_ss] = solarpos(Julianday[d],Constants.latitude,Constants.long_rd,hour[t],radians=False)
-    plt.plot(hour,zens-zens_0,label='May ' + str(Julianday[d]-120))
-plt.xlabel('time [h]')
-plt.legend(loc='upper right')
-plt.ylabel('difference in elevation angle [degrees]')
-plt.show()
+# hour = np.linspace(T_sunrise,T_sunset,50)
+# #Julianday = np.linspace(305,312,8,dtype=int)
+# Julianday = np.linspace(121,128,8,dtype=int)
+#
+# plt.figure()
+# azis_0 = np.zeros([len(hour)])
+# zens_0 = np.zeros([len(hour)])
+# azis = np.zeros([len(hour)])
+# zens = np.zeros([len(hour)])
+#
+# for d in range(len(Julianday)):
+#     for t in range(len(hour)):
+#         [azis_0[t], zens_0[t],T_sr,T_ss] = solarpos(121,Constants.latitude,Constants.long_rd,hour[t],radians=False)
+#         [azis[t], zens[t],T_sr,T_ss] = solarpos(Julianday[d],Constants.latitude,Constants.long_rd,hour[t],radians=False)
+#     plt.plot(hour,zens-zens_0,label='May ' + str(Julianday[d]-120))
+# plt.xlabel('time [h]')
+# plt.legend(loc='upper right')
+# plt.ylabel('difference in elevation angle [degrees]')
+# plt.show()
 

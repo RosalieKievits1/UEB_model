@@ -741,8 +741,69 @@ print(SF)
 "end of Shadowfactor for 24 hours"
 
 "Save all SF, areafractions and SVF to pickles"
-# gridratio = 25
+#
 # coords = coordheight(data,gridboxsize)
+# #gridratio = 25
+# SF = SF05mHN1.SFs
+# # SVF_matrix = np.ndarray([x_len,y_len])
+# # for i in range(int(x_len/2*y_len/2)):
+# #     SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVF[i]
+# # SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# SF_matrix = np.ndarray([x_len,y_len])
+# for i in range(int(x_len/2*y_len/2)):
+#     SF_matrix[int(coords[i,0]),int(coords[i,1])] = SF[i]
+# SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# "SVF loop for different grid ratios"
+# gridratio = [5,10,25,50,125,250]
+# mean_roof = np.ndarray((len(gridratio),1))
+# roof_p1 = np.ndarray((len(gridratio),1))
+# roof_p2 = np.ndarray((len(gridratio),1))
+# mean_wall = np.ndarray((len(gridratio),1))
+# wall_p1 = np.ndarray((len(gridratio),1))
+# wall_p2 = np.ndarray((len(gridratio),1))
+# mean_road = np.ndarray((len(gridratio),1))
+# road_p1 = np.ndarray((len(gridratio),1))
+# road_p2 = np.ndarray((len(gridratio),1))
+# # frac_roof_min = np.ndarray((len(gridratio),1))
+# # frac_roof_max = np.ndarray((len(gridratio),1))
+# # frac_roof_mean = np.ndarray((len(gridratio),1))
+
+# plt.figure()
+# for i in range(len(gridratio)):
+#     Roof_frac, Wall_frac, Road_frac = geometricProperties(data,gridratio[i],gridboxsize)
+#     [SF_roof,SF_road] = average_svf_surfacetype(SF_matrix,data,gridratio[i])
+#     #data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+#     SF_wall = 1-average_svf(SF_matrix,gridratio[i])
+#     #SVF_roof[Roof_frac == 0] = 0 #nan=np.nanmean(SVF_roof))
+#     #SVF_road[Road_frac == 0] = 0 #nan=np.nanmean(SVF_road))
+#     mean_roof[i] = np.nanmean(SF_roof)#*np.mean(Roof_frac)
+#     roof_p1[i] = SF_roof[0,-1]#np.nanmin(SF_wall)
+#     roof_p2[i] = SF_roof[-1,-1]#np.nanmax(SF_wall)
+#     mean_wall[i] = np.nanmean(SF_wall)#*np.mean(Roof_frac)
+#     wall_p1[i] = SF_wall[0,-1]#np.nanmin(SF_wall)
+#     wall_p2[i] = SF_wall[-1,-1]#np.nanmax(SF_wall)
+#     mean_road[i] = np.nanmean(SF_road)#*np.mean(Roof_frac)
+#     road_p1[i] = SF_road[0,-1]#np.nanmin(SF_wall)
+#     road_p2[i] = SF_road[-1,-1]#np.nanmax(SF_wall)
+#     # frac_roof_min[i] = np.nanmin(Wall_frac)
+#     # frac_roof_max[i] = np.nanmax(Wall_frac)
+#     # frac_roof_mean[i] = np.nanmean(Wall_frac)
+#
+# plt.plot(gridratio, mean_roof,'r',label='Mean SF roof')
+# plt.plot(gridratio, roof_p1,'r--',label='Roof p1')
+# plt.plot(gridratio, roof_p2,'r',linestyle='dotted',label='Roof p2')
+# plt.plot(gridratio, mean_road,'b',label='Mean SF road')
+# plt.plot(gridratio, road_p1,'b--',label='Road p1')
+# plt.plot(gridratio, road_p2,'b',linestyle='dotted',label='Road p2')
+# plt.plot(gridratio, mean_wall,'y',label='Mean SF wall')
+# plt.plot(gridratio, wall_p1,'y--',label='Wall p1')
+# plt.plot(gridratio, wall_p2,'y',linestyle='dotted',label='Wall p2')
+# #plt.plot(gridratio, mean_road,label='Mean Road SVF')
+# plt.xlabel('gridratio')
+# plt.legend(loc='upper right')
+# plt.ylabel('SF [0-1]')
+# plt.show()
+
 # SFs = SF05mHN1.SFs
 # SF_matrix = np.ndarray([x_len,y_len])
 # for i in range(int(x_len/2*y_len/2)):
@@ -821,6 +882,32 @@ print(SF)
 # with open('pickles/SVF_matrix05m.pickle', 'rb') as f:
 #     SVF_matrix = pickle.load(f)
 
+"Shadowfactor for 1 day in may for different surfaces"
+# plt.figure()
+# gridratio = 25
+# hours = np.linspace(8,15,8)
+# meanSFroof = np.ndarray((len(hours),1))
+# meanSFroad = np.ndarray((len(hours),1))
+# meanSFwall = np.ndarray((len(hours),1))
+# for h in range(len(hours)):
+#     with open('pickles/RoofSF_may1_' + str(hours[h]) +'_25_HN1.pickle', 'rb') as f:
+#         SF_matrix_roof = pickle.load(f)
+#     with open('pickles/WallSF_may1_' + str(hours[h]) +'_25_HN1.pickle', 'rb') as f:
+#         SF_matrix_wall = pickle.load(f)
+#     with open('pickles/RoadSF_may1_' + str(hours[h]) +'_25_HN1.pickle', 'rb') as f:
+#         SF_matrix_road = pickle.load(f)
+#     meanSFroof[h] = np.nanmean(SF_matrix_roof)
+#     meanSFwall[h] = np.nanmean(SF_matrix_wall)
+#     meanSFroad[h] = np.nanmean(SF_matrix_road)
+#
+# plt.plot(hours, meanSFroof,'r',label='Roof')
+# plt.plot(hours, meanSFwall,'b',label='Wall')
+# plt.plot(hours, meanSFroad,'y',label='Road')
+# plt.xlabel('time [GMT, hour]')
+# plt.legend(loc='upper right')
+# plt.ylabel('Mean SF [0-1]')
+# plt.show()
+"End of Mean SF per surface type"
 
 # [wall_matrix,totalwall] = wallArea(data,gridboxsize)
 # wall = wall_matrix[int(x_len/4),int(y_len/4),2]
