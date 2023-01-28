@@ -9,9 +9,9 @@ import time
 #import KNMI_SVF_verification
 import Constants
 import Sunpos
-# import SVFs05m
-# import SF05mHN1
-# import pickle
+import SVFs05m
+import SF05mHN1
+import pickle
 
 sttime = time.time()
 
@@ -716,6 +716,8 @@ elif (gridboxsize==0.5):
 "Shadowfactor"
 coords = coordheight(data,gridboxsize)
 [azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,radians=True)
+print(azimuth)
+print(el_angle)
 SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
 print(SF)
 "The sun rise and sunset time for 1 may are 6 and 20 o clock (GMT)"
@@ -743,7 +745,7 @@ print(SF)
 "Save all SF, areafractions and SVF to pickles"
 #
 # coords = coordheight(data,gridboxsize)
-# #gridratio = 25
+# gridratio = 25
 # SF = SF05mHN1.SFs
 # # SVF_matrix = np.ndarray([x_len,y_len])
 # # for i in range(int(x_len/2*y_len/2)):
@@ -804,7 +806,9 @@ print(SF)
 # plt.ylabel('SF [0-1]')
 # plt.show()
 
+# gridratio = 25
 # SFs = SF05mHN1.SFs
+# coords = coordheight(data,gridboxsize)
 # SF_matrix = np.ndarray([x_len,y_len])
 # for i in range(int(x_len/2*y_len/2)):
 #     SF_matrix[int(coords[i,0]),int(coords[i,1])] = SFs[i]
