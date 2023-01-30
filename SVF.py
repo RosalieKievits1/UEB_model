@@ -9,9 +9,9 @@ import time
 #import KNMI_SVF_verification
 import Constants
 import Sunpos
-import SVFs05m
-import SF05mHN1
-import pickle
+# import SVFs05m
+# import SF05mHN1
+# import pickle
 
 sttime = time.time()
 
@@ -178,7 +178,7 @@ def dist(point, coord,gridboxsize):
     dy = (coord[:,0]-point[0])*gridboxsize
     dist = np.sqrt(abs(dx)**2 + abs(dy)**2)
     """angle is 0 north direction"""
-    angle = (np.pi - np.arctan2(dy,dx))
+    angle = (np.pi/2 - np.arctan2(dy,dx))
     return dist,angle
 
 def dome(point, coords, maxR,gridboxsize):
@@ -204,8 +204,7 @@ def d_area(psi,steps_beta,maxR):
     return d_area
 
 def SkyViewFactor(point, coords, max_radius,gridboxsize):
-    betas_lin = np.linspace(0,2*np.pi,steps_beta, endpoint=False)
-
+    betas_lin = np.linspace(-np.pi/2,3*np.pi/2,steps_beta, endpoint=False)
     "we throw away all point outside the dome"
     # dome is now a 5 column array of points:
     # the 5 columns: x,y,z,radius,angle theta"""
@@ -223,6 +222,7 @@ def SkyViewFactor(point, coords, max_radius,gridboxsize):
         """Where the index of betas fall within the min and max beta, and there is not already a larger psi blocking"""
         betas[np.nonzero(np.logical_and((betas < psi), np.logical_and((beta_min <= betas_lin), (betas_lin < beta_max))))] = psi
         d += 1
+
     """The SVF is the fraction of area of the dome that is not blocked"""
     SVF = np.around((np.sum(np.cos(betas)**2)/steps_beta),3)
     return SVF
@@ -295,6 +295,7 @@ def shadowfactor(point, coords, azimuth,elevation_angle):
     :return: the shadowfactor of that point:
     """
     radii, angles = dist(point,coords,gridboxsize)
+    angles = (angles + 2*np.pi) % (2*np.pi)
     beta_min = np.asarray(- np.arcsin(gridboxsize/2/radii) + azimuth)
     beta_max = np.asarray(np.arcsin(gridboxsize/2/radii) + azimuth)
     if np.count_nonzero(coords[np.logical_and((np.logical_and((angles > beta_min), (angles < beta_max))), ((np.tan(elevation_angle)*radii)<(coords[:,2]-point[2]))),:])>0:
@@ -574,7 +575,7 @@ def svf_wall_chatGPT(point, dsm, max_distance, num_divisions):
     svf /= (np.pi)
     return svf
 
-def SVF_WVF_wall(point,coords,maxR,type,wall_len,num_slices):
+def SVF_wall(point,coords,maxR,type,wall_len,num_slices):
     "For a wall point determine whether it is north, south east or west faced."
     "Retrieve all points inside a max radius"
     "Point is a point on the dataset that is either north, west, east or south facing"
@@ -583,7 +584,6 @@ def SVF_WVF_wall(point,coords,maxR,type,wall_len,num_slices):
     point_zero = np.copy(point)
     point_zero[2] = 0
     dome_zero = dome(point_zero,coords,maxR,gridboxsize)
-
     "We have a point on data that is elevated: " \
     "for this point we have wallmatrix that has dimensions [data.shape[0],data.shape[1],4]" \
     "So for the SVF for wallmatrix[i,j,0] (north facing)"
@@ -593,8 +593,7 @@ def SVF_WVF_wall(point,coords,maxR,type,wall_len,num_slices):
 
     if (type==0): #Northern facing wall
         dome_zero = dome_zero[dome_zero[:,0]<point[0]] #so only northern points
-        dome_zero[:,4] = (dome_zero[:,4]+np.pi)%(2*np.pi)
-        beta_lin = np.linspace(np.pi/2,3*np.pi/2,int(steps_beta/2),endpoint=False)
+        beta_lin = np.linspace(-np.pi/2,np.pi/2,int(steps_beta/2),endpoint=False)
     elif (type==1): #east facing wall
         dome_zero = dome_zero[dome_zero[:,1]>point[1]] #so only eastern points
         beta_lin = np.linspace(0,np.pi,int(steps_beta/2),endpoint=False)
@@ -603,17 +602,18 @@ def SVF_WVF_wall(point,coords,maxR,type,wall_len,num_slices):
         beta_lin = np.linspace(np.pi/2,3*np.pi/2,int(steps_beta/2),endpoint=False)
     elif (type==3): #west facing wall
         dome_zero = dome_zero[dome_zero[:,1]<point[1]] #so only western points
+        dome_zero[:,4] = (dome_zero[:,4]+(2*np.pi))%(2*np.pi)
         beta_lin = np.linspace(np.pi,2*np.pi,int(steps_beta/2),endpoint=False)
     "Now we have all the points that possibly block the view"
     betas = np.zeros(int(steps_beta/2))
     betas_zero = np.zeros(int(steps_beta/2))
     # store the radii of closest blockings
     closest = np.zeros(int(steps_beta/2))
-    psi = np.array([num_slices])
-    len_d = (point[2]-wall_len)/num_slices
+    psi = np.ndarray((num_slices,1))
+    len_d = wall_len/num_slices
     # maximum skydome
     #dome_max = 2*np.pi*maxR**2
-
+    #print(dome_zero[0:5,:])
     "Loop over beta to find the largest blocking in every direction"
     for d in range(dome_zero.shape[0]):
         "The Angle between the height of the blocking and the height of the point on the wall with the horizontal axis"
@@ -624,26 +624,18 @@ def SVF_WVF_wall(point,coords,maxR,type,wall_len,num_slices):
         beta_max = np.arcsin(gridboxsize/2/dome_zero[d,3]) + dome_zero[d,4]
 
         for p in range(len(psi)):
-            psi[p] = np.arctan((dome_zero[d,2]-(point[2]-wall_len+p*len_d))/dome_zero[d,3])
+            psi[p] = np.arctan((dome_zero[d,2] - (point[2] - wall_len + p*len_d))/dome_zero[d,3])
         psi_ave = np.mean(psi)
+        # if psi_ave>0:
+        #     print(psi_ave)
         """Where the index of betas fall within the min and max beta, and there is not already a larger psi blocking"""
-        betas[np.nonzero(np.logical_and(betas<psi[-1],(np.logical_and((beta_min <= beta_lin),(beta_lin < beta_max)))))] = psi_ave
+        betas[np.nonzero(np.logical_and(betas<psi_ave,(np.logical_and((beta_min <= beta_lin),(beta_lin < beta_max)))))] = psi_ave
         #betas_zero[np.nonzero(np.logical_and(betas_zero<psi_zero,(np.logical_and((beta_min <= beta_lin),(beta_lin < beta_max)))))] = psi_zero
 
         if dome_zero[d,2]==0:
             closest[np.nonzero(np.logical_and((closest > dome_zero[d,3]), np.logical_and((beta_min <= beta_lin), (beta_lin < beta_max))))] = dome_zero[d,3]
 
-    # areas = sum(np.cos(betas)**2)/(steps_beta/2)
-    # areas_zero = sum(np.cos(betas_zero)**2)/(steps_beta/2)
-    SVF_wall = np.sum(betas)/(np.pi*steps_beta/2)
-    "We take the SVF of the wall surface as the average between the SVF at the top and the SVF at the bottom"
-    # SVF_wall_high = (dome_max/2 - sum(areas))/(dome_max)
-    # SVF_wall_zero = (dome_max/2 - sum(areas_zero))/(dome_max)
-    # SVF_wall = (SVF_wall_zero+SVF_wall_high)/2
-
-    #ground_areas = d_area(closest_angles,steps_beta/2,maxR)
-    # GVF_wall = ((sum(ground_areas)/(dome_max))+1/2)/2
-    #WVF_wall = (1-SVF_wall-GVF_wall)
+    SVF_wall = np.around((np.sum(np.cos(betas)**2)/(steps_beta)),3)
     return SVF_wall
 
 def compute_wvf(data, max_distance, num_divisions, num_slices, num_workers):
@@ -743,14 +735,13 @@ print(SF)
 "end of Shadowfactor for 24 hours"
 
 "Save all SF, areafractions and SVF to pickles"
-#
 # coords = coordheight(data,gridboxsize)
-# gridratio = 25
+# #gridratio = 25
 # SF = SF05mHN1.SFs
-# # SVF_matrix = np.ndarray([x_len,y_len])
-# # for i in range(int(x_len/2*y_len/2)):
-# #     SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVF[i]
-# # SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# # # SVF_matrix = np.ndarray([x_len,y_len])
+# # # for i in range(int(x_len/2*y_len/2)):
+# # #     SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVF[i]
+# # # SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 # SF_matrix = np.ndarray([x_len,y_len])
 # for i in range(int(x_len/2*y_len/2)):
 #     SF_matrix[int(coords[i,0]),int(coords[i,1])] = SF[i]
@@ -760,46 +751,30 @@ print(SF)
 # mean_roof = np.ndarray((len(gridratio),1))
 # roof_p1 = np.ndarray((len(gridratio),1))
 # roof_p2 = np.ndarray((len(gridratio),1))
-# mean_wall = np.ndarray((len(gridratio),1))
-# wall_p1 = np.ndarray((len(gridratio),1))
-# wall_p2 = np.ndarray((len(gridratio),1))
-# mean_road = np.ndarray((len(gridratio),1))
-# road_p1 = np.ndarray((len(gridratio),1))
-# road_p2 = np.ndarray((len(gridratio),1))
-# # frac_roof_min = np.ndarray((len(gridratio),1))
-# # frac_roof_max = np.ndarray((len(gridratio),1))
-# # frac_roof_mean = np.ndarray((len(gridratio),1))
-
+# frac_roof_p1 = np.ndarray((len(gridratio),1))
+# frac_roof_p2 = np.ndarray((len(gridratio),1))
+# frac_roof_mean = np.ndarray((len(gridratio),1))
+#
+#
 # plt.figure()
 # for i in range(len(gridratio)):
 #     Roof_frac, Wall_frac, Road_frac = geometricProperties(data,gridratio[i],gridboxsize)
 #     [SF_roof,SF_road] = average_svf_surfacetype(SF_matrix,data,gridratio[i])
 #     #data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 #     SF_wall = 1-average_svf(SF_matrix,gridratio[i])
-#     #SVF_roof[Roof_frac == 0] = 0 #nan=np.nanmean(SVF_roof))
-#     #SVF_road[Road_frac == 0] = 0 #nan=np.nanmean(SVF_road))
 #     mean_roof[i] = np.nanmean(SF_roof)#*np.mean(Roof_frac)
 #     roof_p1[i] = SF_roof[0,-1]#np.nanmin(SF_wall)
 #     roof_p2[i] = SF_roof[-1,-1]#np.nanmax(SF_wall)
-#     mean_wall[i] = np.nanmean(SF_wall)#*np.mean(Roof_frac)
-#     wall_p1[i] = SF_wall[0,-1]#np.nanmin(SF_wall)
-#     wall_p2[i] = SF_wall[-1,-1]#np.nanmax(SF_wall)
-#     mean_road[i] = np.nanmean(SF_road)#*np.mean(Roof_frac)
-#     road_p1[i] = SF_road[0,-1]#np.nanmin(SF_wall)
-#     road_p2[i] = SF_road[-1,-1]#np.nanmax(SF_wall)
-#     # frac_roof_min[i] = np.nanmin(Wall_frac)
-#     # frac_roof_max[i] = np.nanmax(Wall_frac)
-#     # frac_roof_mean[i] = np.nanmean(Wall_frac)
+#     frac_roof_p2[i] = Roof_frac[0,-1]
+#     frac_roof_p1[i] = Roof_frac[0,-1]
+#     frac_roof_mean[i] = np.nanmean(Roof_frac)
 #
-# plt.plot(gridratio, mean_roof,'r',label='Mean SF roof')
-# plt.plot(gridratio, roof_p1,'r--',label='Roof p1')
-# plt.plot(gridratio, roof_p2,'r',linestyle='dotted',label='Roof p2')
-# plt.plot(gridratio, mean_road,'b',label='Mean SF road')
-# plt.plot(gridratio, road_p1,'b--',label='Road p1')
-# plt.plot(gridratio, road_p2,'b',linestyle='dotted',label='Road p2')
-# plt.plot(gridratio, mean_wall,'y',label='Mean SF wall')
-# plt.plot(gridratio, wall_p1,'y--',label='Wall p1')
-# plt.plot(gridratio, wall_p2,'y',linestyle='dotted',label='Wall p2')
+# plt.plot(gridratio, mean_wall,'r',label='Mean SF')
+# plt.plot(gridratio, wall_p1,'b',label='SF p1')
+# plt.plot(gridratio, wall_p2,'y',label='SF p2')
+# plt.plot(gridratio, frac_wall_mean,'r',linestyle='dotted',label='Mean Area Fraction')
+# plt.plot(gridratio, frac_wall_p1,'b',linestyle='dotted',label='Area Fraction')
+# plt.plot(gridratio, frac_wall_p2,'y',linestyle='dotted',label='Area Fraction p2')
 # #plt.plot(gridratio, mean_road,label='Mean Road SVF')
 # plt.xlabel('gridratio')
 # plt.legend(loc='upper right')
@@ -861,28 +836,82 @@ print(SF)
 #
 # # print(SF_roof)
 # # print(SF_road)
+
+"Compare the Sky view factor of masson for an urban geometry"
+"the road is 10 data points wide, " \
 #
-# print("roof")
-# print(np.mean(SF_roof))
-# print(np.max(SF_roof))
-# print(np.min(SF_roof))
-# print("road")
-# print(np.mean(SF_road))
-# print(np.max(SF_road))
-# print(np.min(SF_road))
-# print("wall")
-# print(np.mean(SF_wall))
-# print(np.max(SF_wall))
-# print(np.min(SF_wall))
-"SF wall"
-# plt.subplot(1, 2, 2)
-# plt.imshow(SF_knmi_HN1, vmin=0, vmax=1, aspect='auto')
-# #
+# widths = np.linspace(5,10,6)/gridboxsize
+# SFs = np.ndarray((len(widths),1))
+# SVFs = np.ndarray((len(widths),1))
+# SVFs_w = np.ndarray((len(widths),1))
+# SVFs_w_2 = np.ndarray((len(widths),1))
+#
+# H_w = np.ndarray((len(widths),1))
+# sf_masson_roads = np.ndarray((len(widths),1))
+# phi_masson_roads = np.ndarray((len(widths),1))
+# phi_masson_walls = np.ndarray((len(widths),1))
+#
+# sf_masson_walls= np.ndarray((len(widths),1))
+# height = 5
+# len_mat = 500 # shape of the matrix
+#
+# for i in range(len(widths)):
+#     int(widths[i])
+#     elevation_angle = np.pi/3
+#     h_w = height/(widths[i]*gridboxsize)
+#     zenith = np.pi/2-elevation_angle
+#     lamb_zero = np.arctan(1/h_w)
+#     H_w[i] = h_w
+#     ucm_matrix = np.ones((len_mat,len_mat))*height
+#     ucm_matrix[:,int(len_mat/2-widths[i]/2):int(len_mat/2+widths[i]/2)] = 0
+#     coords = coordheight(ucm_matrix,gridboxsize)
+#     phi_masson_roads[i] = np.sqrt((h_w**2+1))-h_w
+#     phi_masson_walls[i] = 1/2*(h_w+1-np.sqrt(h_w**2+1))/h_w
+#     SF = np.ndarray((int(widths[i]),1))
+#     SVF_w = np.ndarray((int(widths[i]),1))
+#     SVF = np.ndarray((int(widths[i]),1))
+#     if (zenith > lamb_zero):
+#         sf_masson_walls[i] = 1/2/h_w
+#         sf_masson_roads[i] = 0
+#     elif (zenith < lamb_zero):
+#         sf_masson_walls[i] = 1/2*np.tan(zenith)
+#         sf_masson_roads[i] = 1-h_w*np.tan(zenith)
+#     for j in range(int(widths[i])):
+#         point = [len_mat/2,len_mat/2-widths[i]/2+j,0]
+#         SF[j] = shadowfactor(point,coords,np.pi/2,elevation_angle)
+#         SVF[j] = SkyViewFactor(point,coords,max_radius,gridboxsize)
+#     SFs[i] = np.mean(SF)
+#     p_wall_2 = [len_mat/2,len_mat/2+widths[i]/2,height]
+#     p_wall = [len_mat/2,len_mat/2-widths[i]/2-1,height]
+#     num_slices = height
+#     SVFs_w[i] = SVF_wall(p_wall,coords,max_radius,1,height,num_slices)
+#     SVFs_w_2[i] = SVF_wall(p_wall_2,coords,max_radius,3,height,num_slices)
+#
+#     SVFs[i] = np.mean(SVF)
+# print(SFs)
+# print(sf_masson_roads)
+# # print(SVFs)
+# # print(phi_masson_roads)
+# print(SVFs_w)
+# print(SVFs_w_2)
+# print(phi_masson_walls)
+# plt.figure()
+# plt.plot(H_w,SVFs,label='Numerical Roads')
+# plt.plot(H_w,phi_masson_roads,label='Analytic for Roads')
+# # plt.ylim((0,1))
+# # plt.legend()
+# # plt.xlim((0.5,1))
+# # plt.figure()
+# plt.plot(H_w,SVFs_w,label='Numerical left wall')
+# plt.plot(H_w,SVFs_w_2,label='Numerical right wall')
+# plt.plot(H_w,phi_masson_walls,label='Analytic walls')
+# plt.ylim((0,1))
+# plt.legend()
 # plt.show()
+"end"
 
-# #KNMI_SVF_verification.Verification(SVF_matrix,SVF_knmi_HN1,gridboxsize,max_radius,gridboxsize_knmi,matrix=True)
 
-#print(SVF_matrix.shape)
+
 # with open('pickles/SVF_matrix05m.pickle', 'rb') as f:
 #     SVF_matrix = pickle.load(f)
 
@@ -917,24 +946,6 @@ print(SF)
 # wall = wall_matrix[int(x_len/4),int(y_len/4),2]
 # print(SVF_WVF_wall(point,coords,max_radius,2,wall,10))
 
-"RUN"
-
-# print(np.mean(SVF_wall))
-# print(np.min(SVF_wall))
-# print(np.max(SVF_wall))
-#
-# SVF_roof = np.nan_to_num(SVF_roof, nan=np.nanmean(SVF_roof))
-# SVF_road = np.nan_to_num(SVF_road, nan=np.nanmean(SVF_road))
-"END RUN"
-
-
-
-
-# Roof_frac = np.ones(SVF_roof.shape)*0.3
-# Road_frac = np.ones(SVF_roof.shape)*0.3
-# Wall_frac = np.ones(SVF_roof.shape)*0.4
-# SVF_wall = ((1-Roof_frac)*SVF_roof-SVF_road)*(Road_frac/Wall_frac)
-#SVF_wall = SVF_roof-SVF_road*Road_area/Wall_area
 
 # SVF_wall[SVF_wall < 0] = 0
 # SVF_wall[Wall_area == 0] = 0
