@@ -706,12 +706,10 @@ elif (gridboxsize==0.5):
 
 
 "Shadowfactor"
-coords = coordheight(data,gridboxsize)
-[azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,radians=True)
-print(azimuth)
-print(el_angle)
-SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
-print(SF)
+# coords = coordheight(data,gridboxsize)
+# [azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,radians=True)
+# SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
+# print(SF)
 "The sun rise and sunset time for 1 may are 6 and 20 o clock (GMT)"
 # SF_matrix = np.ndarray([x_len,y_len])
 # for i in range(int(x_len/2*y_len/2)):
@@ -721,22 +719,25 @@ print(SF)
 
 "Shadowfactor for 24 hours"
 "Don't forget to comment out import SVFs05 !! and change hours"
-# coords = coordheight(data,gridboxsize)
-# hours = np.linspace(8,15,8)
-# SF_matrix = np.ndarray([int(x_len),int(y_len)])
-# for h in range(len(hours)):
-#     [azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hours[h],radians=True)
-#     SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
-#     print(SF)
-#     for i in range(int(x_len/2*y_len/2)):
-#         SF_matrix[int(coords[i,0]),int(coords[i,1])] = SF[i]
-#     SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-#     np.savetxt("SFmatrix" + str(hours[h]) + ".csv", SF_matrix, delimiter=",")
+coords = coordheight(data,gridboxsize)
+hours = np.linspace(8,12,5)
+SF_matrix = np.ndarray([int(x_len),int(y_len)])
+for h in range(len(hours)):
+    [azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hours[h],radians=True)
+    SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
+    #print(SF)
+    print("The Date is " + str(Constants.julianday) + " and time is " + str(hours[h]))
+    np.array(SF)
+    for i in range(int(x_len/2*y_len/2)):
+        SF_matrix[int(coords[i,0]),int(coords[i,1])] = SF[i]
+    SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+    print(SF_matrix)
+    #np.savetxt("SFmatrix" + str(hours[h]) + ".csv", SF_matrix, delimiter=",")
 "end of Shadowfactor for 24 hours"
 
 "Save all SF, areafractions and SVF to pickles"
 # coords = coordheight(data,gridboxsize)
-# #gridratio = 25
+# gridratio = 25
 # SF = SF05mHN1.SFs
 # # # SVF_matrix = np.ndarray([x_len,y_len])
 # # # for i in range(int(x_len/2*y_len/2)):
@@ -814,13 +815,13 @@ print(SF)
 #     pickle.dump(Wall_frac, f)
 # with open('pickles/roadFrac25_HN1.pickle', 'wb') as f:
 #     pickle.dump(Road_frac, f)
-# "Pickle the shadow factors"
-# with open('pickles/RoofSF_may1_' +str(Constants.hour) + '_25_HN1.pickle', 'wb') as f:
-#     pickle.dump(SF_roof, f)
-# with open('pickles/WallSF_may1_' +str(Constants.hour) + '_25_HN1.pickle', 'wb') as f:
-#     pickle.dump(SF_wall, f)
-# with open('pickles/RoadSF_may1_' +str(Constants.hour) + '_25_HN1.pickle', 'wb') as f:
-#     pickle.dump(SF_road, f)
+"Pickle the shadow factors"
+with open('pickles/RoofSF_may1_' +str(Constants.hour) + '_25_HN1.pickle', 'wb') as f:
+    pickle.dump(SF_roof, f)
+with open('pickles/WallSF_may1_' +str(Constants.hour) + '_25_HN1.pickle', 'wb') as f:
+    pickle.dump(SF_wall, f)
+with open('pickles/RoadSF_may1_' +str(Constants.hour) + '_25_HN1.pickle', 'wb') as f:
+    pickle.dump(SF_road, f)
 # "Pickle the Sky view factors"
 # with open('pickles/RoofSVF_25_HN1.pickle', 'wb') as f:
 #     pickle.dump(SVF_roof, f)
