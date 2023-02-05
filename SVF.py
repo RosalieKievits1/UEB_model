@@ -24,11 +24,9 @@ if gridboxsize==5:
     max_radius = 500
 elif gridboxsize==0.5:
     max_radius = 100
-
 gridboxsize_knmi = 0.5
 "objects below 1 m we do not look at"
 minheight = 1
-
 """DSM's and DTM's"""
 """we need 4 databoxes to account for the SVF's on the side"""
 # # linksboven
@@ -362,8 +360,8 @@ def geometricProperties(data,grid_ratio,gridboxsize):
     delta: fraction of built area
     """
     [x_long, y_long] = data.shape
-    # x_long = int(x_long/2)
-    # y_long = int(y_long/2)
+    x_long = int(x_long/2)
+    y_long = int(y_long/2)
     [Wall_area, wall_area_total] = wallArea(data,gridboxsize)
     Wall_area_gridcell = np.sum(Wall_area,axis=2)
     delta = np.zeros([int(x_long/grid_ratio),int(y_long/grid_ratio)])
@@ -427,7 +425,7 @@ def average_svf(SVF_matrix, grid_ratio):
             SVF_ave[i,j] = np.mean(part)
     return SVF_ave
 
-def SF_wall(point,coords,type,wall_area,azimuth,elevation_angle):
+def SF_wall(point,coords,type,wall_len,azimuth,elevation_angle):
     "Now the shadowfactor is 0 if the top of the wall surface does not receive radiation. "
     " But sometimes (most of the times) part of the wall is blocked from sunlight, how to solve this??"
     if type==0:
@@ -440,16 +438,28 @@ def SF_wall(point,coords,type,wall_area,azimuth,elevation_angle):
         coords = coords[(coords[:,1]<point[1]),:]
 
     radii, angles = dist(point,coords,gridboxsize)
+
+    if type==3:
+        angles = (angles + 2*np.pi) % (2*np.pi)
+
     beta_min = np.asarray(- np.arcsin(np.sqrt(2*gridboxsize**2)/2/radii) + azimuth)
     beta_max = np.asarray(np.arcsin(np.sqrt(2*gridboxsize**2)/2/radii) + azimuth)
 
-    if np.logical_or((np.count_nonzero(coords[np.logical_and((np.logical_and((angles > beta_min), (angles < beta_max))), ((np.tan(elevation_angle)*radii)<(coords[:,2]-point[2]))),:])>0),type==0):
-        Shadowfactor = 0
-    else:
-        Shadowfactor = 1
+    num_slices = int(np.rint(wall_len))
+    psi = np.ndarray((num_slices,1))
+    d_h = wall_len/num_slices
+    Shadowfactor = np.ndarray((num_slices,1))
+
+    for p in range(len(psi)):
+        h = point[2] - wall_len + p*d_h
+        if np.logical_and((np.logical_or((np.count_nonzero(coords[np.logical_and((np.logical_and((angles > beta_min), (angles < beta_max))), ((np.tan(elevation_angle)*radii)<(coords[:,2]-h))),:])>0),type==0)),np.min(angles)<=azimuth<=np.max(angles)):
+            Shadowfactor[p] = 0
+        else:
+            Shadowfactor[p] = 1
     """in all other cases there is no point in the same direction as the sun that is higher
     so the shadowfactor is 1: the point receives radiation"""
-    return Shadowfactor
+    SF = np.mean(Shadowfactor)
+    return SF
 
 def wallArea(data,gridboxsize):
     """
@@ -476,10 +486,6 @@ def wallArea(data,gridboxsize):
                     """We check for all the points surrounding the building if they are also buildings, 
                     if the building next to it is higher the wall belongs to the building next to it,
                     if the current building is higher, the exterior wall is the difference in height * gridboxsize"""
-                    # wall_area[int(i-x_len/4),int(j-y_len/4),0] = max(data[i,j]-data[i-1,j],0)*gridboxsize
-                    # wall_area[int(i-x_len/4),int(j-y_len/4),1] = max(data[i,j]-data[i,j+1],0)*gridboxsize
-                    # wall_area[int(i-x_len/4),int(j-y_len/4),2] = max(data[i,j]-data[i+1,j],0)*gridboxsize
-                    # wall_area[int(i-x_len/4),int(j-y_len/4),3] = max(data[i,j]-data[i,j-1],0)*gridboxsize
                     wall_area[i,j,0] = max(data[i,j]-data[i-1,j],0)*gridboxsize
                     wall_area[i,j,1] = max(data[i,j]-data[i,j+1],0)*gridboxsize
                     wall_area[i,j,2] = max(data[i,j]-data[i+1,j],0)*gridboxsize
@@ -549,7 +555,6 @@ def SVF_wall(point,coords,maxR,type,wall_len):
     "Retrieve all points inside a max radius"
     "Point is a point on the dataset that is either north, west, east or south facing"
     "wall area is point []"
-
     point_zero = np.copy(point)
     point_zero[2] = point[2]-wall_len
     dome_zero = dome(point_zero,coords,maxR,gridboxsize)
@@ -592,7 +597,7 @@ def SVF_wall(point,coords,maxR,type,wall_len):
 
         for p in range(len(psi)):
             psi[p] = np.arctan((dome_zero[d,2] - (point_zero[2] + p*len_d))/dome_zero[d,3])
-        psi_ave = np.mean(psi)
+        psi_ave = np.max(np.mean(psi),0)
         """Where the index of betas fall within the min and max beta, and there is not already a larger psi blocking"""
         betas[np.nonzero(np.logical_and(betas<psi_ave,(np.logical_and((beta_min <= beta_lin),(beta_lin < beta_max)))))] = psi_ave
         #betas_zero[np.nonzero(np.logical_and(betas_zero<psi_zero,(np.logical_and((beta_min <= beta_lin),(beta_lin < beta_max)))))] = psi_zero
@@ -702,7 +707,7 @@ elif (gridboxsize==0.5):
 "Shadowfactor for 24 hours"
 "Don't forget to comment out import SVFs05 !! and change hours"
 coords = coordheight(data,gridboxsize)
-hours = np.linspace(8,12,5)
+hours = np.linspace(13,17,5)
 SF_matrix = np.ndarray([int(x_len),int(y_len)])
 for h in range(len(hours)):
     [azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hours[h],radians=True)
@@ -765,20 +770,26 @@ for h in range(len(hours)):
 
 # gridratio = 25
 # SFs = SF05mHN1.SFs
+# eps = 0.2
 # coords = coordheight(data,gridboxsize)
 # SF_matrix = np.ndarray([x_len,y_len])
 # for i in range(int(x_len/2*y_len/2)):
 #     SF_matrix[int(coords[i,0]),int(coords[i,1])] = SFs[i]
 # SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-# plt.figure()
-# plt.imshow(SF_matrix, vmin=0, vmax=1, aspect='auto')
-# plt.show()
+# # plt.figure()
+# # plt.imshow(SF_matrix, vmin=0, vmax=1, aspect='auto')
+# # plt.show()
 # [SF_roof,SF_road] = average_svf_surfacetype(SF_matrix,data,gridratio)
 # Roof_frac, Wall_frac, Road_frac = geometricProperties(data,gridratio,gridboxsize)
 # SF_wall = (1-average_svf(SF_matrix,gridratio))/Wall_frac
-# SF_wall[Wall_frac<eps] = 0
-# SF_road[Road_frac==0] = 0
-# SF_roof[Roof_frac==0] = 0
+# # SF_wall[Wall_frac<eps] = 0
+# # SF_road[Road_frac==0] = 0
+# # SF_roof[Roof_frac==0] = 0
+# print(np.min(SF_wall))
+# print(np.max(SF_wall))
+# print(np.mean(SF_wall))
+
+
 # SVF = SVFs05m.SVFs
 # SVF_matrix = np.ndarray([x_len,y_len])
 # for i in range(int(x_len/2*y_len/2)):
@@ -826,9 +837,9 @@ for h in range(len(hours)):
 # SFs = np.ndarray((len(widths),1))
 # SF_w = np.ndarray((len(widths),1))
 # H_w = np.ndarray((len(widths),1))
-# #sf_masson_roads = np.ndarray((len(widths),1))
+# # sf_masson_roads = np.ndarray((len(widths),1))
 # phi_masson_roads = np.ndarray((len(widths),1))
-# #sf_masson_walls= np.ndarray((len(widths),1))
+# # sf_masson_walls= np.ndarray((len(widths),1))
 # height_r = 15
 # height_l = 15
 # len_mat = 500 # shape of the matrix
@@ -838,15 +849,17 @@ for h in range(len(hours)):
 # SVFs = np.ndarray((len(widths),1))
 # SVF_roofs = np.ndarray((len(widths),1))
 # SVFs_w = np.ndarray((len(widths),1))
+# SFs_w_alg = np.ndarray((len(widths),1))
+# SFs_w_alg_2 = np.ndarray((len(widths),1))
 # SVFs_w_2 = np.ndarray((len(widths),1))
-# #el_angles = [5*np.pi/12,5*np.pi/15,5*np.pi/18]
+# # el_angles = [5*np.pi/12,5*np.pi/15,5*np.pi/18]
 # colours = ['r','b','y']
 # # for e in range(len(el_angles)):
 # #     elevation_angle = el_angles[e]
 # for i in range(len(widths)):
 #     int(widths[i])
 #     elevation_angle = np.pi/3
-#     h_w = height_l/(widths[i]*gridboxsize)#*gridboxsize)
+#     h_w = height_l/(widths[i]*gridboxsize)
 #     zenith = np.pi/2-elevation_angle
 #     lamb_zero = np.arctan(1/h_w)
 #     H_w[i] = h_w
@@ -858,51 +871,52 @@ for h in range(len(hours)):
 #     # SF_matrix = np.ones((ucm_matrix.shape))
 #     phi_masson_roads[i] = np.sqrt((h_w**2+1))-h_w
 #     phi_masson_walls[i] = 1/2*(h_w+1-np.sqrt(h_w**2+1))/h_w
-#     #SF = np.ndarray((int(widths[i]),1))
-#     #SVF_w = np.ndarray((int(widths[i]),1))
+#     # SF = np.ndarray((int(widths[i]),1))
+#     # SVF_w = np.ndarray((int(widths[i]),1))
 #     SVF = np.ndarray((int(widths[i]),1))
-#         # if (zenith > lamb_zero):
-#         #     sf_masson_walls[i] = 1/2/h_w
-#         #     sf_masson_roads[i] = 0
-#         # elif (zenith < lamb_zero):
-#         #     sf_masson_walls[i] = 1/2*np.tan(zenith)
-#         #     sf_masson_roads[i] = 1-h_w*np.tan(zenith)
+#     # if (zenith > lamb_zero):
+#     #     sf_masson_walls[i] = 1/2/h_w
+#     #     sf_masson_roads[i] = 0
+#     # elif (zenith < lamb_zero):
+#     #     sf_masson_walls[i] = 1/2*np.tan(zenith)
+#     #     sf_masson_roads[i] = 1-h_w*np.tan(zenith)
 #     # for j in range(int(widths[i])):
 #     #     point = [len_mat/2,len_mat/2-widths[i]/2+j,0]
 #         # SF[j] = shadowfactor(point,coords,np.pi/2,elevation_angle)
 #         # SF_matrix[:,int(len_mat/2-widths[i]/2+j)] = SF[j]
-#         #SVF[j] = SkyViewFactor(point,coords,max_radius,gridboxsize)
-#         #print(Wall_frac)
+#         # SVF[j] = SkyViewFactor(point,coords,max_radius,gridboxsize)
+#         # print(Wall_frac)
 #         # SFs[i] = np.mean(SF)
 #         # SF_w[i] = (1-np.mean(SF_matrix))/np.mean(2*Wall_frac)
-#     #point_roof_l = [len_mat/2,len_mat/2-widths[i]/2-1,height_l]
-#     p_wall_2 = [len_mat/2,len_mat/2+widths[i]//2,height_r]
+#     # point_roof_l = [len_mat/2,len_mat/2-widths[i]/2-1,height_l]
+#     p_wall_2 = [len_mat/2,len_mat/2+widths[i]/2,height_r]
 #     p_wall = [len_mat/2,len_mat/2-widths[i]/2-1,height_l]
-#     #SVF_roofs[i] = SkyViewFactor(point_roof_l,coords,max_radius,gridboxsize)
-#     SVFs_w[i] = SVF_wall(p_wall,coords,max_radius,1,height_l)
-#     SVFs_w_2[i] = SVF_wall(p_wall_2,coords,max_radius,3,height_r)
-#     #SVFs[i] = np.mean(SVF)
+#     # SVF_roofs[i] = SkyViewFactor(point_roof_l,coords,max_radius,gridboxsize)
+#     # SVFs_w[i] = SVF_wall(p_wall,coords,max_radius,1,height_l)
+#     # SVFs_w_2[i] = SVF_wall(p_wall_2,coords,max_radius,3,height_r)
+#     # SFs_w_alg[i] =  SF_wall(p_wall,coords,1,height_l,np.pi/2,elevation_angle)
+#     # SFs_w_alg_2[i] = SF_wall(p_wall_2,coords,3,height_r,np.pi/2,elevation_angle)
+#
+#     # SVFs[i] = np.mean(SVF)
 #     # plt.plot(H_w,SF_w,colours[e],label='Numerical, elevation angle = ' + str(np.round(elevation_angle*180/np.pi)) + 'degrees')
 #     # plt.plot(H_w,sf_masson_walls,colours[e],linestyle='dotted',label='Analytical, elevation angle = ' + str(np.round(elevation_angle*180/np.pi)) + 'degrees')
 #     # print(SF_w)
 #     # print(sf_masson_walls)
-# print(SVFs_w)
-# print(SVFs_w_2)
-# print(phi_masson_walls)
-# plt.plot(H_w,phi_masson_walls,'blue',linestyle='dotted',label='Analytical')
-# plt.plot(H_w,SVFs_w,'blue',label='Left Wall')
-# plt.plot(H_w,SVFs_w_2,'lightblue',label='Right Wall ')
+# # print(SFs_w_alg)
+# # print(SFs_w_alg_2)
+# # print(phi_masson_walls)
+# # plt.plot(H_w,phi_masson_walls,'blue',linestyle='dotted',label='Analytical')
+# # plt.plot(H_w,SVFs_w,'blue',label='Left Wall')
+# # plt.plot(H_w,SVFs_w_2,'lightblue',label='Right Wall ')
 # #plt.plot(widths,SVFs,'red',label='Analytical, elevation angle = ' + str(np.round(elevation_angle*180/np.pi)) + 'degrees')
 # #plt.plot(widths,SVFs,'red',label='Analytical, elevation angle = ' + str(np.round(elevation_angle*180/np.pi)) + 'degrees')
 #
-# plt.xlabel('Width ratio')
-# plt.ylabel('SVF [0-1]')
-# plt.ylim((0,1))
-# plt.legend(loc='upper right')
-# plt.show()
+# # plt.xlabel('Width ratio')
+# # plt.ylabel('SVF [0-1]')
+# # plt.ylim((0,1))
+# # plt.legend(loc='upper right')
+# # plt.show()
 "end"
-
-
 
 # with open('pickles/SVF_matrix05m.pickle', 'rb') as f:
 #     SVF_matrix = pickle.load(f)
