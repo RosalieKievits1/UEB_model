@@ -360,8 +360,8 @@ def geometricProperties(data,grid_ratio,gridboxsize):
     delta: fraction of built area
     """
     [x_long, y_long] = data.shape
-    x_long = int(x_long/2)
-    y_long = int(y_long/2)
+    # x_long = int(x_long/2)
+    # y_long = int(y_long/2)
     [Wall_area, wall_area_total] = wallArea(data,gridboxsize)
     Wall_area_gridcell = np.sum(Wall_area,axis=2)
     delta = np.zeros([int(x_long/grid_ratio),int(y_long/grid_ratio)])
@@ -376,12 +376,12 @@ def geometricProperties(data,grid_ratio,gridboxsize):
             part = data[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
             part_wall = Wall_area_gridcell[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
             ave_height[i,j] = np.mean(part[part>0])
-            road_elements[i,j] = np.count_nonzero(part==0)
-            built_elements[i,j] = np.count_nonzero(part>0)
+            road_elements[i,j] = max(np.count_nonzero(part==0),0)
+            built_elements[i,j] = max(np.count_nonzero(part>0),0)
             "The road elements are actually also water elements"
-            water_elements[i,j] = np.count_nonzero(part==-1)
+            water_elements[i,j] = max(np.count_nonzero(part==-1),0)
             delta[i,j] = built_elements[i,j]/(road_elements[i,j]+built_elements[i,j]+water_elements[i,j])
-            wall_area_med[i,j] = np.sum(part_wall)
+            wall_area_med[i,j] = max(np.sum(part_wall),0)
 
     """We want to determine the wall area from the height and delta
     Say each block is a separate building: then the wall area would be 4*sum(builtarea), 
@@ -707,7 +707,7 @@ elif (gridboxsize==0.5):
 "Shadowfactor for 24 hours"
 "Don't forget to comment out import SVFs05 !! and change hours"
 coords = coordheight(data,gridboxsize)
-hours = np.linspace(13,17,5)
+hours = np.array([7, 19, 20]) #np.linspace(13,17,5)
 SF_matrix = np.ndarray([int(x_len),int(y_len)])
 for h in range(len(hours)):
     [azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hours[h],radians=True)
@@ -723,16 +723,21 @@ for h in range(len(hours)):
 
 "Save all SF, areafractions and SVF to pickles"
 # coords = coordheight(data,gridboxsize)
-# gridratio = 25
+#gridratio = 25
 # SF = SF05mHN1.SFs
-# # # SVF_matrix = np.ndarray([x_len,y_len])
-# # # for i in range(int(x_len/2*y_len/2)):
-# # #     SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVF[i]
-# # # SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# # SVF_matrix = np.ndarray([x_len,y_len])
+# # for i in range(int(x_len/2*y_len/2)):
+# #     SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVF[i]
+# # SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 # SF_matrix = np.ndarray([x_len,y_len])
 # for i in range(int(x_len/2*y_len/2)):
 #     SF_matrix[int(coords[i,0]),int(coords[i,1])] = SF[i]
 # SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# with open('pickles/1MaySF/SF_may1_12am_25_HN1.pickle', 'wb') as f:
+#     pickle.dump(SF_matrix, f)
+# plt.figure()
+# plt.imshow(SF_matrix, vmin=0, vmax=1, aspect='auto')
+# plt.show()
 # "SVF loop for different grid ratios"
 # gridratio = [5,10,25,50,125,250]
 # mean_roof = np.ndarray((len(gridratio),1))
@@ -837,9 +842,9 @@ for h in range(len(hours)):
 # SFs = np.ndarray((len(widths),1))
 # SF_w = np.ndarray((len(widths),1))
 # H_w = np.ndarray((len(widths),1))
-# # sf_masson_roads = np.ndarray((len(widths),1))
+# sf_masson_roads = np.ndarray((len(widths),1))
 # phi_masson_roads = np.ndarray((len(widths),1))
-# # sf_masson_walls= np.ndarray((len(widths),1))
+# sf_masson_walls= np.ndarray((len(widths),1))
 # height_r = 15
 # height_l = 15
 # len_mat = 500 # shape of the matrix
@@ -852,70 +857,76 @@ for h in range(len(hours)):
 # SFs_w_alg = np.ndarray((len(widths),1))
 # SFs_w_alg_2 = np.ndarray((len(widths),1))
 # SVFs_w_2 = np.ndarray((len(widths),1))
-# # el_angles = [5*np.pi/12,5*np.pi/15,5*np.pi/18]
-# colours = ['r','b','y']
-# # for e in range(len(el_angles)):
-# #     elevation_angle = el_angles[e]
-# for i in range(len(widths)):
-#     int(widths[i])
-#     elevation_angle = np.pi/3
-#     h_w = height_l/(widths[i]*gridboxsize)
-#     zenith = np.pi/2-elevation_angle
-#     lamb_zero = np.arctan(1/h_w)
-#     H_w[i] = h_w
-#     ucm_matrix = np.ones((len_mat,len_mat))*height_l
-#     ucm_matrix[:,int(len_mat/2-widths[i]/2):int(len_mat/2+widths[i]/2)] = 0
-#     ucm_matrix[:,int(len_mat/2+widths[i]/2)+1::] = height_r
-#     coords = coordheight(ucm_matrix,gridboxsize)
-#     # [Roof_frac, Wall_frac, Road_frac] = geometricProperties(ucm_matrix,gridratio,gridboxsize)
-#     # SF_matrix = np.ones((ucm_matrix.shape))
-#     phi_masson_roads[i] = np.sqrt((h_w**2+1))-h_w
-#     phi_masson_walls[i] = 1/2*(h_w+1-np.sqrt(h_w**2+1))/h_w
-#     # SF = np.ndarray((int(widths[i]),1))
-#     # SVF_w = np.ndarray((int(widths[i]),1))
-#     SVF = np.ndarray((int(widths[i]),1))
-#     # if (zenith > lamb_zero):
-#     #     sf_masson_walls[i] = 1/2/h_w
-#     #     sf_masson_roads[i] = 0
-#     # elif (zenith < lamb_zero):
-#     #     sf_masson_walls[i] = 1/2*np.tan(zenith)
-#     #     sf_masson_roads[i] = 1-h_w*np.tan(zenith)
-#     # for j in range(int(widths[i])):
-#     #     point = [len_mat/2,len_mat/2-widths[i]/2+j,0]
-#         # SF[j] = shadowfactor(point,coords,np.pi/2,elevation_angle)
-#         # SF_matrix[:,int(len_mat/2-widths[i]/2+j)] = SF[j]
-#         # SVF[j] = SkyViewFactor(point,coords,max_radius,gridboxsize)
-#         # print(Wall_frac)
-#         # SFs[i] = np.mean(SF)
-#         # SF_w[i] = (1-np.mean(SF_matrix))/np.mean(2*Wall_frac)
-#     # point_roof_l = [len_mat/2,len_mat/2-widths[i]/2-1,height_l]
-#     p_wall_2 = [len_mat/2,len_mat/2+widths[i]/2,height_r]
-#     p_wall = [len_mat/2,len_mat/2-widths[i]/2-1,height_l]
-#     # SVF_roofs[i] = SkyViewFactor(point_roof_l,coords,max_radius,gridboxsize)
-#     # SVFs_w[i] = SVF_wall(p_wall,coords,max_radius,1,height_l)
-#     # SVFs_w_2[i] = SVF_wall(p_wall_2,coords,max_radius,3,height_r)
-#     # SFs_w_alg[i] =  SF_wall(p_wall,coords,1,height_l,np.pi/2,elevation_angle)
-#     # SFs_w_alg_2[i] = SF_wall(p_wall_2,coords,3,height_r,np.pi/2,elevation_angle)
-#
+# el_angles = [5*np.pi/12,5*np.pi/15,5*np.pi/18,4*np.pi/21]
+# colours = ['r','b','y','g']
+# for e in range(len(el_angles)):
+#     elevation_angle = el_angles[e]
+#     for i in range(len(widths)):
+#         int(widths[i])
+#         h_w = height_l/(widths[i]*gridboxsize)
+#         zenith = np.pi/2-elevation_angle
+#         lamb_zero = np.arctan(1/h_w)
+#         H_w[i] = h_w
+#         ucm_matrix = np.ones((len_mat,len_mat))*height_l
+#         ucm_matrix[:,int(len_mat/2-widths[i]/2):int(len_mat/2+widths[i]/2)] = 0
+#         ucm_matrix[:,int(len_mat/2+widths[i]/2)+1::] = height_r
+#         coords = coordheight(ucm_matrix,gridboxsize)
+#         [Roof_frac, Wall_frac, Road_frac] = geometricProperties(ucm_matrix,gridratio,gridboxsize)
+#         SF_matrix = np.ones((ucm_matrix.shape))
+#         # phi_masson_roads[i] = np.sqrt((h_w**2+1))-h_w
+#         # phi_masson_walls[i] = 1/2*(h_w+1-np.sqrt(h_w**2+1))/h_w
+#         SF_canyon = np.ndarray((int(widths[i]),1))
+#         SF_roof = np.ndarray((int(widths[i]),1))
+#         # SVF_w = np.ndarray((int(widths[i]),1))
+#         SVF = np.ndarray((int(widths[i]),1))
+#         if (zenith > lamb_zero):
+#             sf_masson_walls[i] = 1/2/h_w
+#             sf_masson_roads[i] = 0
+#         elif (zenith < lamb_zero):
+#             sf_masson_walls[i] = 1/2*np.tan(zenith)
+#             sf_masson_roads[i] = 1-h_w*np.tan(zenith)
+#         for j in range(int(widths[i])):
+#             point_canyon = [len_mat/2,len_mat/2-widths[i]/2+j,0]
+#             point_roof = [len_mat/2,len_mat/2-widths[i]/2-1-j,height_l]
+#             SF_canyon[j] = shadowfactor(point_canyon,coords,np.pi/2,elevation_angle)
+#             SF_roof[j] = shadowfactor(point_roof,coords,np.pi/2,elevation_angle)
+#             #print(SF_roof)
+#             SF_matrix[:,int(len_mat/2-widths[i]/2+j)] = SF_canyon[j]
+#             SF_matrix[:,int(len_mat/2-widths[i]/2-1-j)] = SF_roof[j]
+#             #SVF[j] = SkyViewFactor(point,coords,max_radius,gridboxsize)
+#             #print("The wall fraction is " + str(np.mean(Wall_frac)))
+#             #SFs[i] = np.mean(SF)
+#         [SF_ave_roof,SF_ave_road] = average_svf_surfacetype(SF_matrix,ucm_matrix,gridratio)
+#         #SF_w[i] = (1-(SF_ave_roof/Roof_frac-SF_ave_road/Road_frac))*Wall_frac
+#         SF_w[i] = ((1-np.mean(SF_matrix)))/(2*Wall_frac)
+#         # point_roof_l = [len_mat/2,len_mat/2-widths[i]/2-1,height_l]
+#         # p_wall_2 = [len_mat/2,len_mat/2+widths[i]/2,height_r]
+#         # p_wall = [len_mat/2,len_mat/2-widths[i]/2-1,height_l]
+#         # SVF_roofs[i] = SkyViewFactor(point_roof_l,coords,max_radius,gridboxsize)
+#         # SVFs_w[i] = SVF_wall(p_wall,coords,max_radius,1,height_l)
+#         # SVFs_w_2[i] = SVF_wall(p_wall_2,coords,max_radius,3,height_r)
+#         # SFs_w_alg[i] =  SF_wall(p_wall,coords,1,height_l,np.pi/2,elevation_angle)
+#         # SFs_w_alg_2[i] = SF_wall(p_wall_2,coords,3,height_r,np.pi/2,elevation_angle)
+#     #print(SF_roof)
 #     # SVFs[i] = np.mean(SVF)
-#     # plt.plot(H_w,SF_w,colours[e],label='Numerical, elevation angle = ' + str(np.round(elevation_angle*180/np.pi)) + 'degrees')
-#     # plt.plot(H_w,sf_masson_walls,colours[e],linestyle='dotted',label='Analytical, elevation angle = ' + str(np.round(elevation_angle*180/np.pi)) + 'degrees')
-#     # print(SF_w)
-#     # print(sf_masson_walls)
+#     plt.plot(widths,SF_w,colours[e],label='Numerical, elevation angle = ' + str(np.round(elevation_angle*180/np.pi)) + 'degrees')
+#     plt.plot(widths,sf_masson_walls,colours[e],linestyle='dotted',label='Analytical, elevation angle = ' + str(np.round(elevation_angle*180/np.pi)) + 'degrees')
+#     print(SF_w)
+#     print(sf_masson_walls)
 # # print(SFs_w_alg)
 # # print(SFs_w_alg_2)
 # # print(phi_masson_walls)
 # # plt.plot(H_w,phi_masson_walls,'blue',linestyle='dotted',label='Analytical')
-# # plt.plot(H_w,SVFs_w,'blue',label='Left Wall')
-# # plt.plot(H_w,SVFs_w_2,'lightblue',label='Right Wall ')
+# # plt.plot(H_w,SF_w,'blue',label='Alg')
+# # plt.plot(H_w,sf_masson_walls,'lightblue',label='Masson')
 # #plt.plot(widths,SVFs,'red',label='Analytical, elevation angle = ' + str(np.round(elevation_angle*180/np.pi)) + 'degrees')
 # #plt.plot(widths,SVFs,'red',label='Analytical, elevation angle = ' + str(np.round(elevation_angle*180/np.pi)) + 'degrees')
 #
-# # plt.xlabel('Width ratio')
-# # plt.ylabel('SVF [0-1]')
-# # plt.ylim((0,1))
-# # plt.legend(loc='upper right')
-# # plt.show()
+# plt.xlabel('Width ratio')
+# plt.ylabel('SF [0-1]')
+# plt.ylim((0,1))
+# plt.legend(loc='upper right')
+# plt.show()
 "end"
 
 # with open('pickles/SVF_matrix05m.pickle', 'rb') as f:
