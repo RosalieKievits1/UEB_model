@@ -7,6 +7,8 @@ import SVF
 from tqdm import tqdm
 from numpy import random
 
+import Sunpos
+
 """Read in data"""
 data = pd.read_csv("cabauw_2018.csv", sep = ';')
 data.head()
@@ -25,21 +27,38 @@ LW_down = data.iloc[: , 35]
 SW_up = data.iloc[: , 36]
 """downward shortwave heat flux"""
 SW_down = data.iloc[: , 37]
-"""solar zenith angle"""
-Zenith = data.iloc[: ,38]
+# """solar zenith angle"""
+#Zenith = data.iloc[: ,38]*np.pi/180
 """the temperature at 2 m high (use as ic for surface temp)"""
 T_2m = data.iloc[: ,24]
 T_air = T_2m[0]
 """Surface pressure"""
 p_surf = data.iloc[: ,5]
 
+nr_of_steps = 24*6
+#print(np.polyfit(Zenith, SW_down, deg=1))
+"Azimuth and zenith angle based on the day of the year"
+Azi = np.empty((nr_of_steps))
+El = np.empty((nr_of_steps))
+for t in range(nr_of_steps):
+    hour = (t+1)*(Constants.timestep/3600)
+    Azi[t],El[t] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hour,radians=True)
+Zenith = np.pi/2-El
 
-"Sinusoidal input"
-# time = np.linspace(0,Constants.nr_of_steps,Constants.nr_of_steps)
-# SW_down = (np.sin(2*np.pi/(24*60)*time)*100)+100 #np.zeros(len(time)) #
-# LW_down = (np.sin(2*np.pi/(24*60)*time)*50)+300 # np.zeros(len(time)) #
-# T_2m = (np.sin(2*np.pi/(24*60)*time)*10)+273.15+20 #np.ones(len(time)) + 275
-# q_first_layer = np.ones(len(time)) + 5
+"A first degree fit of all short wave radiation versus zenith angles are computed," \
+"this results in the following SW vs Zenith angle distribution:"
+a = 1005.792
+b = -644.159
+SW_down = a + b*Zenith
+SW_down[SW_down<0] = 0
+
+"LW radiation is based on Air temperature forcing"
+eps = 0.8
+sigma = Constants.sigma
+time = np.linspace(0,nr_of_steps,nr_of_steps)
+T_2m = (np.sin(-np.pi/2 + 2*np.pi/(24*(3600/Constants.timestep))*time)*5)+273.15+10 #np.ones(len(time)) + 275
+LW_down = sigma*eps*T_2m**4
+q_first_layer = np.ones(len(time)) + 5
 
 def exner(pressure):
     p_zero = 10e5
@@ -56,6 +75,21 @@ def T_pot(T,p):
     p_zero = 10e5
     T_pot = T * (p_zero/p)**0.286
     return T_pot
+
+def SF_masson(h_w,Zenith):
+    lamb_zero = np.arctan(1/h_w)
+    SF_roof = 1
+    if (Zenith > lamb_zero):
+        SF_wall = (1/2/h_w)
+        SF_road = 0
+    elif (Zenith < lamb_zero):
+        SF_wall = (1/2*np.tan(Zenith))
+        SF_road = 1-h_w*np.tan(Zenith)
+    if Zenith>np.pi/2:
+        SF_wall = 0
+        SF_road = 0
+        SF_roof = 0
+    return SF_roof, SF_wall, SF_road
 
 """Equations for map model"""
 def initialize_map(layers,shape):
@@ -129,7 +163,7 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
                    lambdas_roof, lambdas_wall, lambdas_road,
                    T_old_roof, T_old_wall, T_old_road,
                    T_old_subs_roof, T_old_subs_wall, T_old_subs_road,
-                   frac_roof, frac_road, frac_wall,
+                   #frac_roof, frac_road, frac_wall,
                    delta_t,
                    sigma,
                    SW_diff, SW_dir,     # from dales
@@ -140,11 +174,15 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
     """
     WVF_roof = 1-SVF_roof
     WVF_road = 1-SVF_road
-    GVF_wall = WVF_road*(frac_road/(frac_road+frac_wall))
-    RVF_wall = (WVF_roof)*(frac_roof/(frac_roof+frac_wall))
-    RVF_wall = np.nan_to_num(RVF_wall, nan=0) #nan=np.nanmean(RVF_wall))
-    WVF_wall = 1-SVF_wall-GVF_wall-RVF_wall
-    WVF_wall[WVF_wall<0] =0
+    GVF_wall = SVF_wall
+    RVF_wall = 0
+    WVF_wall = 1-SVF_wall-GVF_wall
+    # GVF_wall = WVF_road*(frac_road/(frac_road+frac_wall))
+    # RVF_wall = (WVF_roof)*(frac_roof/(frac_roof+frac_wall))
+    # RVF_wall = np.nan_to_num(RVF_wall, nan=0) #nan=np.nanmean(RVF_wall))
+    # WVF_wall = 1-SVF_wall-GVF_wall-RVF_wall
+    # WVF_wall[WVF_wall<0] =0
+
 
     """Longwave radiation"""
     LW_net_roof = LW_down * emissivities_roof * SVF_roof - emissivities_roof * T_old_roof**4 * sigma + \
@@ -255,14 +293,11 @@ def HeatEvolution(time_steps,delta_t):
     G_ave = np.empty((time_steps))
     SHF_ave = np.empty((time_steps))
     LHF_ave = np.empty((time_steps))
-    "Compute the surface fractions"
-    # [wallArea_matrix, wallArea_total] = SVF.wallArea(data)
-    # wall_layers = np.ndarray([wallArea_matrix.shape[0],wallArea_matrix.shape[1],Constants.layers])
+    SF_road_m = np.empty((time_steps))
+    SF_wall_m = np.empty((time_steps))
 
     "Now we need to separate the roof, wall and road SVF and SF"
     [x_len,y_len] = SVF.SVF_roof.shape
-    "All roofs receive sunlight, 30% of the ground and 40% of the walls receive sunlight"
-
 
     map_T_roof,map_T_wall,map_T_road, \
            capacities_roof,capacities_wall,capacities_road, \
@@ -275,12 +310,19 @@ def HeatEvolution(time_steps,delta_t):
     map_T_old_wall = map_T_wall
     map_T_old_road = map_T_road
 
-
+    SF_Roof = 1
+    SF_Road = SVF.SF_r
+    SF_Wall = SVF.SF_w
     for t in tqdm(range(time_steps)):
         "for now"
-        SF_roof = SVF.SF_roof
-        SF_wall = SVF.SF_wall
-        SF_road = SVF.SF_road
+        h_w = SVF.h_w
+        #[SF_roof, SF_wall, SF_road] = SF_masson(h_w,Zenith[t])
+
+        SF_roof = SF_Roof*np.ones([2,2])
+        SF_wall = SF_Wall[t]*np.ones([2,2])
+        SF_road = SF_Road[t]*np.ones([2,2])
+        SF_road_m[t] = np.mean(SF_road)
+        SF_wall_m[t] = np.mean(SF_wall)
 
         SW_dir = SW_down[t]*0.3
         SW_dif = SW_down[t]*0.7
@@ -297,7 +339,7 @@ def HeatEvolution(time_steps,delta_t):
             lambdas_roof, lambdas_wall, lambdas_road, \
             map_T_old_roof[:,:,0], map_T_old_wall[:,:,0], map_T_old_road[:,:,0], \
             map_T_roof[:,:,1], map_T_wall[:,:,1], map_T_road[:,:,1], \
-            SVF.Roof_frac, SVF.Road_frac, SVF.Wall_frac, \
+            #SVF.Roof_frac, SVF.Road_frac, SVF.Wall_frac, \
             delta_t, \
             Constants.sigma, \
             SW_dif, SW_dir, \
@@ -328,7 +370,7 @@ def HeatEvolution(time_steps,delta_t):
         SHF_ave[t] = np.mean(SHF_roof)
         G_ave[t] = np.mean(G_out_surf_roof)
 
-    return T_ave_roof, T_ave_wall, T_ave_road, LW_ave, SW_ave, LHF_ave, SHF_ave, G_ave
+    return T_ave_roof, T_ave_wall, T_ave_road, LW_ave, SW_ave, LHF_ave, SHF_ave, G_ave, SF_wall_m, SF_road_m
 
 def AnalyticalSoil(t,z,lamb,C):
     k = lamb/C
@@ -375,12 +417,12 @@ def PlotGreyMap(data,middle,v_max):
     plt.show()
 
 def PlotSurfaceTemp(T_ave_roof,T_ave_wall,T_ave_road, time_steps):
-    time = (np.arange(time_steps))#* Constants.timestep/3600)
+    time = (np.arange(time_steps)* Constants.timestep/3600)
 
     plt.figure()
     plt.plot(time,T_ave_roof[:,0], label="Simulated Surface Temp")
-    # plt.plot(time,T_ave_wall[:,0], label="Wall")
-    #plt.plot(time,T_ave_road[:,0], label="road")
+    plt.plot(time,T_ave_wall[:,0], label="Wall")
+    plt.plot(time,T_ave_road[:,0], label="road")
     plt.plot(time,T_2m[:Constants.nr_of_steps], 'blue', label="Temp at 2m altitude")
     plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
     plt.xlabel("Time [h]")
@@ -402,8 +444,8 @@ def PlotTempLayers(T_ave,time_steps):
     plt.show()
     return
 
-def PlotSurfaceFluxes(LW_net,SW_net,G_out,LHF,SHF):
-    time = (np.arange(Constants.nr_of_steps)*Constants.timestep / 3600)
+def PlotSurfaceFluxes(nr_of_steps,LW_net,SW_net,G_out,LHF,SHF):
+    time = (np.arange(nr_of_steps)*Constants.timestep / 3600)
     plt.figure()
     plt.plot(time,LW_net, label="LW net")
     #plt.plot(time,(LW_down[:Constants.nr_of_steps]-LW_up[:Constants.nr_of_steps]), label="LW up cabau")

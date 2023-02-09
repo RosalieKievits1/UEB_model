@@ -35,9 +35,9 @@ def solarpos(julian_day,latitude,longitude,hour,radians=True):
     """the sun change 15 degrees or 0.26 radians per hour"""
     hour_rad = (T-12)*0.261799
     """the declination angle (acitually the zenith is defined as angle from top so not the same)"""
-    zenith = np.arcsin(np.sin(delta)*np.sin(latitude)+np.cos(delta)*np.cos(latitude)*np.cos(hour_rad))
+    el_angle = np.arcsin(np.sin(delta)*np.sin(latitude)+np.cos(delta)*np.cos(latitude)*np.cos(hour_rad))
 
-    azimuth = np.arcsin(np.cos(delta)*np.sin(hour_rad)/np.cos(zenith))
+    azimuth = np.arcsin(np.cos(delta)*np.sin(hour_rad)/np.cos(el_angle))
     if (np.cos(hour_rad)<(np.tan(delta)/np.tan(latitude))):
         if T<12:
             azimuth = abs(azimuth)+np.pi
@@ -45,16 +45,16 @@ def solarpos(julian_day,latitude,longitude,hour,radians=True):
             azimuth = np.pi-azimuth
 
     """Correct to measure from north"""
-    azimuth = azimuth+np.pi
+    azimuth = (azimuth+np.pi)%(2*np.pi)
 
     """Transform to degrees if we set the boolean radians to false"""
     """The azimuth angle is 0 when the sun is south and positive westwards"""
     if (radians==False):
         azimuth = azimuth*180/np.pi
         azimuth = azimuth % 360
-        zenith = zenith*180/np.pi
+        el_angle = el_angle*180/np.pi
 
-    return azimuth,zenith,hour_sunrise,hour_sunset
+    return azimuth,el_angle
 
 
 # df = pd.read_csv('SolarPosMay1.csv')

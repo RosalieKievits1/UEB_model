@@ -81,10 +81,21 @@ time = (np.arange(Constants.nr_of_steps)) #in hours
 
 # time = (np.arange(Constants.nr_of_steps))# * Constants.timestep/3600)
 
-[T_roof, T_wall,T_road, LW_net_roof, SW_net_roof, LHF_roof, SHF_roof, G_out_surf_roof] = Functions.HeatEvolution(Constants.nr_of_steps,Constants.timestep)
-Functions.PlotSurfaceTemp(T_roof,T_wall,T_road,Constants.nr_of_steps)
-Functions.PlotTempLayers(T_wall,Constants.nr_of_steps)
-Functions.PlotSurfaceFluxes(LW_net_roof, SW_net_roof, G_out_surf_roof, LHF_roof, SHF_roof)
+[T_roof, T_wall,T_road, LW_net_roof, SW_net_roof, LHF_roof, SHF_roof, G_out_surf_roof, SF_wall, SF_road] = Functions.HeatEvolution(Functions.nr_of_steps,Constants.timestep)
+Functions.PlotSurfaceTemp(T_roof,T_wall,T_road,Functions.nr_of_steps)
+Functions.PlotTempLayers(T_wall,Functions.nr_of_steps)
+Functions.PlotSurfaceFluxes(Functions.nr_of_steps,LW_net_roof, SW_net_roof, G_out_surf_roof, LHF_roof, SHF_roof)
+
+plt.figure()
+plt.plot(Functions.time,Functions.Azi, label='Azi')
+plt.plot(Functions.time,Functions.El, label='El')
+plt.plot(Functions.time,SF_wall, label='wall')
+plt.plot(Functions.time,SF_road, label='road')
+plt.xlabel('Time [hours]')
+plt.ylabel('Angles [radians], Shadowfactor [0-1]')
+plt.legend()
+plt.show()
+
 # Functions.PlotSurfaceTemp(T_roof_g,T_wall_g,T_road_g,Constants.nr_of_steps)
 # Functions.PlotTempLayers(T_roof_g,Constants.nr_of_steps)
 # Functions.PlotSurfaceFluxes(LW_net_roof_g, SW_net_roof_g, G_out_surf_roof_g, LHF_roof_g, SHF_roof_g)

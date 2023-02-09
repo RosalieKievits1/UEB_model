@@ -97,6 +97,9 @@ eps = 0.622 # ratio of molar masses of vapor and dry air
 """For the solar position algorithm (based on Rotterdam)"""
 latitude = 51.9
 long_rd = 4.46
+"Lagos"
+Lat_lagos = 6.46
+Long_lagos = 3.41
 "Julian day and hour of the day in local mean time"
 #julianday = 305 #1 nov
 julianday = 121 #1 may
