@@ -693,7 +693,7 @@ elif (gridboxsize==0.5):
     #SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
     [x_len,y_len] = data.shape
 "We are going to average the data over 12.5m and compute the SVF again"
-gridratio = 25
+gridratio = 5
 data = average_svf(data,gridratio)
 coords = coordheight(data,int(gridboxsize*gridratio))
 [x_len, y_len] = data.shape
