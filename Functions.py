@@ -91,6 +91,16 @@ def SF_masson(h_w,Zenith):
         SF_roof = 0
     return SF_roof, SF_wall, SF_road
 
+def SVF_masson(h_w):
+    """
+    :param h_w: Height over width ratio
+    :return: returns the SVF over the sunlit wall
+    """
+    SVF_road = (np.sqrt((h_w**2+1))-h_w)
+    SVF_wall = (1/2*(h_w+1-np.sqrt(h_w**2+1))/h_w)
+    SVF_roof = 1
+    return SVF_roof, SVF_wall, SVF_road
+
 """Equations for map model"""
 def initialize_map(layers,shape):
     """

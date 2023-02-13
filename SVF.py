@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 from multiprocessing.pool import Pool
 import tifffile as tf
 from tqdm import tqdm
-
 import Functions
 import config
 from functools import partial
@@ -14,6 +13,7 @@ import Sunpos
 # import SVFs05m
 # import SF05mHN1
 # import pickle
+# import SVFs5m
 
 sttime = time.time()
 
@@ -695,11 +695,22 @@ elif (gridboxsize==0.5):
 "We are going to average the data over 12.5m and compute the SVF again"
 gridratio = 5
 data = average_svf(data,gridratio)
-coords = coordheight(data,int(gridboxsize*gridratio))
+coords = coordheight(data,gridboxsize)
+print(coords)
 [x_len, y_len] = data.shape
 blocklength = int(x_len/2*y_len/2)
+# SVF = SVFs5m.SVFs
 SVFs = calc_SVF(coords, max_radius, blocklength, int(gridboxsize*gridratio))
 print(SVFs)
+# SVF_matrix = np.ndarray([x_len,y_len])
+# for i in range(int(x_len/2*y_len/2)):
+#     SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVF[i]
+# SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# plt.figure()
+# plt.imshow(SVF_matrix) #, vmin=0, vmax=1, aspect='auto')
+# plt.show()
+# # np.save('SVF_GR5Matrix', SVF_matrix)
+# print(SVF_matrix)
 
 "Shadowfactor"
 # coords = coordheight(data,gridboxsize)
@@ -732,12 +743,34 @@ print(SVFs)
 
 "Save all SF, areafractions and SVF to pickles"
 # coords = coordheight(data,gridboxsize)
-# gridratio = 25
-# SF = SF05mHN1.SFs
+# SVF = SVFs05m.SVFs
+# # gridratio = 25
+# # SF = SF05mHN1.SFs
 # # SVF_matrix = np.ndarray([x_len,y_len])
 # # for i in range(int(x_len/2*y_len/2)):
 # #     SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVF[i]
 # # SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# # np.save('SVF_05Matrix', SVF_matrix)
+# with open('SVF_05Matrix.npy', 'rb') as f:
+#     SVF_matrix = np.load(f)
+# data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# SVF_roof = []
+# SVF_road = []
+# for i in range(data.shape[0]):
+#     for j in range(data.shape[1]):
+#         if data[i,j]>0:
+#             SVF_roof.append(SVF_matrix[i,j])
+#         elif data[i,j]<=0:
+#             SVF_road.append(SVF_matrix[i,j])
+# plt.figure()
+# plt.hist(SVF_roof, bins = 30,weights=np.ones(len(SVF_roof))/len(SVF_roof))
+# plt.ylabel('Probability [0-1]')
+# plt.xlabel('SVF roof [0-1]')
+# plt.figure()
+# plt.hist(SVF_road, bins = 30,weights=np.ones(len(SVF_road))/len(SVF_road))
+# plt.ylabel('Probability [0-1]')
+# plt.xlabel('SVF road [0-1]')
+# plt.show()
 # SF_matrix = np.ndarray([x_len,y_len])
 # for i in range(int(x_len/2*y_len/2)):
 #     SF_matrix[int(coords[i,0]),int(coords[i,1])] = SF[i]
@@ -883,8 +916,7 @@ print(SVFs)
 #         SF_r[t] = 0
 #         SF_w[t] = 0
 #
-# np.save('SF_wall_24_Hours_may1', SF_r)
-# np.save('SF_road_24_Hours_may1', SF_w)
+
 
 # with open('SF_wall_24_Hours_may1.npy', 'rb') as f:
 #     SF_w = np.load(f)
@@ -1085,55 +1117,7 @@ print(SVFs)
 # plt.show()
 "End of Mean SF per surface type"
 
-# [wall_matrix,totalwall] = wallArea(data,gridboxsize)
-# wall = wall_matrix[int(x_len/4),int(y_len/4),2]
-# print(SVF_WVF_wall(point,coords,max_radius,2,wall,10))
 
-
-# SVF_wall[SVF_wall < 0] = 0
-# SVF_wall[Wall_area == 0] = 0
-#
-# SVF_wall = np.nan_to_num(SVF_wall, nan=np.nanmean(SVF_wall))
-
-# SVF_wall = np.nan_to_num(SVF_wall, nan=0)
-
-# print(SVF_wall)
-# print(Road_frac)
-# print(Roof_frac)
-# WVF_roof = 1-SVF_roof
-# WVF_road = 1-SVF_road
-# GVF_wall = WVF_road*(Road_frac/(Wall_frac+Road_frac+Roof_frac))
-# RVF_wall = WVF_roof*(Roof_frac/(Wall_frac+Roof_frac+Road_frac))
-# RVF_wall = np.nan_to_num(RVF_wall, nan=0)
-# #GVF_wall = np.nan_to_num(GVF_wall, nan=0)
-#
-# #RVF_wall = np.nan_to_num(RVF_wall, nan=0) #nan=np.nanmean(RVF_wall))
-# WVF_wall = 1-SVF_wall-GVF_wall-RVF_wall
-# WVF_wall[WVF_wall<0] =0
-# print("GVF_wall")
-# print(np.mean(GVF_wall))
-# print(np.max(GVF_wall))
-# print(np.min(GVF_wall))
-#
-# #GVF_wall = np.nan_to_num(GVF_wall, nan=np.nanmean(GVF_wall))
-#
-# print("RVF")
-#WVF_wall = np.nan_to_num(WVF_wall, nan=np.nanmean(WVF_wall))
-#print(np.count_nonzero(np.logical_and(Roof_area==0,Wall_area==0)))
-# Since the wall reflects on the roof, the roof should also reflect on the wall??
-
-#RVF_wall = np.nan_to_num(RVF_wall, nan=np.nanmean(RVF_wall))
-# print(np.mean(RVF_wall))
-# #WVF_wall[WVF_wall<0] = 0
-# # print(Wall_frac)
-# # print(np.max(Wall_frac))
-# # print(np.min(Wall_frac))
-# print(np.max(RVF_wall))
-# print(np.min(RVF_wall))
-# print("WVF_wall")
-# print(np.mean(WVF_wall))
-# print(np.max(WVF_wall))
-# print(np.min(WVF_wall))
 "Now we have a SVF for roof and road surfaces averaged over 5m gridcells, " \
 "and the data averaged over 5m, surface fractions for now"
 
