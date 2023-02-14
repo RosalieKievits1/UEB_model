@@ -9,33 +9,33 @@ from numpy import random
 
 import Sunpos
 
-"""Read in data"""
-data = pd.read_csv("cabauw_2018.csv", sep = ';')
-data.head()
-
-"""upward sensible heat flux"""
-SHF = data.iloc[: , 32]
-"""Relative humidity at 10 m"""
-q_first_layer = data.iloc[: , 30]
-"""Upward Latent Heat flux"""
-LHF = data.iloc[: , 33]
-"""upward longwave heat flux"""
-LW_up = data.iloc[: , 34]
-"""downward longwave heat flux"""
-LW_down = data.iloc[: , 35]
-"""upward shortwave heat flux"""
-SW_up = data.iloc[: , 36]
-"""downward shortwave heat flux"""
-SW_down = data.iloc[: , 37]
-# """solar zenith angle"""
-#Zenith = data.iloc[: ,38]*np.pi/180
-"""the temperature at 2 m high (use as ic for surface temp)"""
-T_2m = data.iloc[: ,24]
-T_air = T_2m[0]
-"""Surface pressure"""
-p_surf = data.iloc[: ,5]
+# """Read in data"""
+# data = pd.read_csv("cabauw_2018.csv", sep = ';')
+# data.head()
 #
-nr_of_steps = 24*6
+# """upward sensible heat flux"""
+# SHF = data.iloc[: , 32]
+# """Relative humidity at 10 m"""
+# q_first_layer = data.iloc[: , 30]
+# """Upward Latent Heat flux"""
+# LHF = data.iloc[: , 33]
+# """upward longwave heat flux"""
+# LW_up = data.iloc[: , 34]
+# """downward longwave heat flux"""
+# LW_down = data.iloc[: , 35]
+# """upward shortwave heat flux"""
+# SW_up = data.iloc[: , 36]
+# """downward shortwave heat flux"""
+# SW_down = data.iloc[: , 37]
+# # """solar zenith angle"""
+# #Zenith = data.iloc[: ,38]*np.pi/180
+# """the temperature at 2 m high (use as ic for surface temp)"""
+# T_2m = data.iloc[: ,24]
+# T_air = T_2m[0]
+# """Surface pressure"""
+# p_surf = data.iloc[: ,5]
+# #
+# nr_of_steps = 24*6
 # print(np.polyfit(Zenith, SW_down, deg=1))
 # plt.figure()
 # plt.scatter(Zenith,SW_down,marker='x')

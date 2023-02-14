@@ -753,14 +753,7 @@ for h in range(len(hours)):
 "end of Shadowfactor for 24 hours"
 
 "Save all SF, areafractions and SVF to pickles"
-def Fit_WallvsRoadMasson(SVF_road):
-    alp = 0.01559134
-    bet = 0.83318688
-    cee = -0.39185316
-    SVF_w = np.empty((len(SVF_road)))
-    for i in range(len(SVF_road)):
-        SVF_w[i] = alp + bet*SVF_road[i] + cee*SVF_road[i]**2
-    return SVF_w
+
 
 #coords = coordheight(data,gridboxsize)
 # SVF = SVFs05m.SVFs
@@ -1193,28 +1186,6 @@ def Fit_WallvsRoadMasson(SVF_road):
 # plt.ylabel('Mean SF [0-1]')
 # plt.show()
 "End of Mean SF per surface type"
-
-
-"Now we have a SVF for roof and road surfaces averaged over 5m gridcells, " \
-"and the data averaged over 5m, surface fractions for now"
-
-# plt.subplot(1, 2, 2)
-# plt.imshow(SVF_knmi_HN1,vmin=0, vmax = 1, aspect='auto')
-# #plt.colorbar()
-# plt.show()
-# print(SVFs05[50:100])
-# meanSVFs05 = sum(SVFs05)/len(SVFs05)
-# print('The mean of the SVFs computed on 0.5m is ' + str(meanSVFs05))
-# print('The max of the SVFs computed on 0.5m is ' + str(max(SVFs05)))
-# print('The min of the SVFs computed on 0.5m is ' + str(min(SVFs05)))
-
-#
-#SVFs5m = SVF5mPy.SVFs
-# meanSVFs5m = sum(SVFs5m)/len(SVFs5m)
-# print('The mean of the SVFs computed on 5m is ' + str(meanSVFs5m))
-# print('The max of the SVFs computed on 5m is ' + str(max(SVFs5m)))
-# print('The min of the SVFs computed on 5m is ' + str(min(SVFs5m)))
-# print(np.sum(((np.array(SVFs5m)-meanSVFs5m)**2))/(len(SVFs5m)))
 
 "Infinite canyon Time evolution"
 # h_w = 0.6
