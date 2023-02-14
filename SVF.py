@@ -741,7 +741,7 @@ coords = coordheight(data,gridboxsize)
 hours = np.array([6, 7]) #np.linspace(13,17,5)
 SF_matrix = np.ndarray([int(x_len),int(y_len)])
 for h in range(len(hours)):
-    [azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hours[h],radians=True)
+    [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hours[h],radians=True)
     SFs = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
     print("The Date is " + str(Constants.julianday) + " and time is " + str(hours[h]))
     print(SFs)
