@@ -496,16 +496,3 @@ def PlotSurfaceFluxes(nr_of_steps,LW_net,SW_net,G_out,LHF,SHF):
     plt.legend(loc='upper right')
     plt.show()
     return
-
-# h_ws = np.linspace(0.1,4,20)
-# [SVF_roof, SVF_wall, SVF_road] = SVF_masson(h_ws)
-# plt.figure()
-# # plt.plot(h_ws,SVF_road, label='Road SVF')
-# # plt.plot(h_ws,SVF_wall, label='Wall SVF')
-# plt.plot(SVF_road,SVF_wall)
-# #print(np.polyfit(SVF_road,SVF_wall,2))
-# #plt.plot(SVF_road,SVF_w,label='fit')
-# plt.legend()
-# plt.ylabel('SVF wall [0-1]')
-# plt.xlabel('SVF road [0-1]')
-# plt.show()
