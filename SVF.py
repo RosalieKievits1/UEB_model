@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from multiprocessing.pool import Pool
 import tifffile as tf
 from tqdm import tqdm
-import Functions
+#import Functions
 import config
 from functools import partial
 import time
