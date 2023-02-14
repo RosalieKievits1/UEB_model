@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import SVF
 from tqdm import tqdm
 from numpy import random
-import scipy.optimize
 
 import Sunpos
 
