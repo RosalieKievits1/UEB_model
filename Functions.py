@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import SVF
 from tqdm import tqdm
 from numpy import random
+import scipy.optimize
 
 import Sunpos
 
@@ -34,31 +35,43 @@ T_2m = data.iloc[: ,24]
 T_air = T_2m[0]
 """Surface pressure"""
 p_surf = data.iloc[: ,5]
-
+#
 nr_of_steps = 24*6
-#print(np.polyfit(Zenith, SW_down, deg=1))
+# print(np.polyfit(Zenith, SW_down, deg=1))
+# plt.figure()
+# plt.scatter(Zenith,SW_down,marker='x')
+# plt.xlabel('Zenith Angle [Rad]')
+# plt.ylabel('Shortwave Radiation Flux [W/m2]')
+# plt.show()
 "Azimuth and zenith angle based on the day of the year"
-Azi = np.empty((nr_of_steps))
-El = np.empty((nr_of_steps))
-for t in range(nr_of_steps):
-    hour = (t+1)*(Constants.timestep/3600)
-    Azi[t],El[t] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hour,radians=True)
-Zenith = np.pi/2-El
-
-"A first degree fit of all short wave radiation versus zenith angles are computed," \
-"this results in the following SW vs Zenith angle distribution:"
-a = 1005.792
-b = -644.159
-SW_down = a + b*Zenith
-SW_down[SW_down<0] = 0
-
-"LW radiation is based on Air temperature forcing"
-eps = 0.8
-sigma = Constants.sigma
-time = np.linspace(0,nr_of_steps,nr_of_steps)
-T_2m = (np.sin(-np.pi/2 + 2*np.pi/(24*(3600/Constants.timestep))*time)*5)+273.15+10 #np.ones(len(time)) + 275
-LW_down = sigma*eps*T_2m**4
-q_first_layer = np.ones(len(time)) + 5
+# Azi = np.empty((nr_of_steps))
+# El = np.empty((nr_of_steps))
+# for t in range(nr_of_steps):
+#     hour = (t+1)*(Constants.timestep/3600)
+#     Azi[t],El[t] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hour,radians=True)
+# Zenith = np.pi/2-El
+# #
+# "A first degree fit of all short wave radiation versus zenith angles are computed," \
+# "this results in the following SW vs Zenith angle distribution:"
+# a = 1005.792
+# b = -644.159
+# SW_down = a + b*Zenith
+# SW_down[SW_down<0] = 0
+#
+# "LW radiation is based on Air temperature forcing"
+# eps = 0.8
+# sigma = Constants.sigma
+# time = np.linspace(0,nr_of_steps,nr_of_steps)
+# T_2m = (np.sin(-np.pi/2 + 2*np.pi/(24*(3600/Constants.timestep))*time)*5)+273.15+10 #np.ones(len(time)) + 275
+# LW_down = sigma*eps*T_2m**4
+# q_first_layer = np.ones(len(time)) + 5
+# plt.figure()
+# plt.plot(time/6,LW_down,label='LW')
+# plt.plot(time/6,SW_down,label='SW')
+# plt.ylabel('Flux [W/m2]')
+# plt.xlabel('time [h]')
+# plt.legend()
+# plt.show()
 
 def exner(pressure):
     p_zero = 10e5
@@ -75,6 +88,13 @@ def T_pot(T,p):
     p_zero = 10e5
     T_pot = T * (p_zero/p)**0.286
     return T_pot
+
+def Fit_WallvsRoadMasson(SVF_road):
+    alp = 0.01559134
+    bet = 0.83318688
+    cee = -0.39185316
+    SVF_w = alp + bet*SVF_road + cee*SVF_road**2
+    return SVF_w
 
 def SF_masson(h_w,Zenith):
     lamb_zero = np.arctan(1/h_w)
@@ -477,3 +497,16 @@ def PlotSurfaceFluxes(nr_of_steps,LW_net,SW_net,G_out,LHF,SHF):
     plt.legend(loc='upper right')
     plt.show()
     return
+
+# h_ws = np.linspace(0.1,4,20)
+# [SVF_roof, SVF_wall, SVF_road] = SVF_masson(h_ws)
+# plt.figure()
+# # plt.plot(h_ws,SVF_road, label='Road SVF')
+# # plt.plot(h_ws,SVF_wall, label='Wall SVF')
+# plt.plot(SVF_road,SVF_wall)
+# #print(np.polyfit(SVF_road,SVF_wall,2))
+# #plt.plot(SVF_road,SVF_w,label='fit')
+# plt.legend()
+# plt.ylabel('SVF wall [0-1]')
+# plt.xlabel('SVF road [0-1]')
+# plt.show()

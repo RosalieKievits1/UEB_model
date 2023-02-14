@@ -693,47 +693,58 @@ elif (gridboxsize==0.5):
     #SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
     [x_len,y_len] = data.shape
 "We are going to average the data over 12.5m and compute the SVF again"
-gridratio = 5
-data = average_svf(data,gridratio)
-coords = coordheight(data,gridboxsize)
-print(coords)
-[x_len, y_len] = data.shape
-blocklength = int(x_len/2*y_len/2)
-# SVF = SVFs5m.SVFs
-SVFs = calc_SVF(coords, max_radius, blocklength, int(gridboxsize*gridratio))
-print(SVFs)
+# gridratio = 5
+# data = average_svf(data,gridratio)
+# coords = coordheight(data,gridboxsize)
+# print(coords)
+# [x_len, y_len] = data.shape
+# blocklength = int(x_len/2*y_len/2)
+#SVF = SVFs5m.SVFs
+# SVFs = calc_SVF(coords, max_radius, blocklength, int(gridboxsize*gridratio))
+# print(SVFs)
 # SVF_matrix = np.ndarray([x_len,y_len])
 # for i in range(int(x_len/2*y_len/2)):
 #     SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVF[i]
 # SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 # plt.figure()
-# plt.imshow(SVF_matrix) #, vmin=0, vmax=1, aspect='auto')
+# plt.imshow(SVF_matrix, vmin=0, vmax=1, aspect='auto')
 # plt.show()
-# # np.save('SVF_GR5Matrix', SVF_matrix)
+# np.save('SVF_GR5Matrix', SVF_matrix)
 # print(SVF_matrix)
+
+"Height width influence on SVF"
+"Let's say you would have a repeating building block of 20m wide and 20 m high with 10 m wide streets: " \
+"A repeating infinite canyon." \
+"First compute the SVF on this grid"
+
 
 "Shadowfactor"
 # coords = coordheight(data,gridboxsize)
 # [azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,radians=True)
 # SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
 # print(SF)
-"The sun rise and sunset time for 1 may are 6 and 20 o clock (GMT)"
+# gridratio = 25
+# SF = SF05mHN1.SFs
+# "The sun rise and sunset time for 1 may are 6 and 20 o clock (GMT)"
 # SF_matrix = np.ndarray([x_len,y_len])
 # for i in range(int(x_len/2*y_len/2)):
 #     SF_matrix[int(coords[i,0]),int(coords[i,1])] = SF[i]
 # SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-# print(SF_matrix)
-
+# plt.figure()
+# plt.imshow(SF_matrix, vmin=0, vmax=1, aspect='auto')
+# plt.show()
+# with open('pickles/1MaySF/SF_may1_7am_25_HN1.pickle', 'wb') as f:
+#     pickle.dump(SF_matrix, f)
 "Shadowfactor for 24 hours"
 "Don't forget to comment out import SVFs05 !! and change hours"
-# coords = coordheight(data,gridboxsize)
-# hours = np.array([7, 19, 20]) #np.linspace(13,17,5)
-# SF_matrix = np.ndarray([int(x_len),int(y_len)])
-# for h in range(len(hours)):
-#     [azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hours[h],radians=True)
-#     SFs = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
-#     print("The Date is " + str(Constants.julianday) + " and time is " + str(hours[h]))
-#     print(SFs)
+coords = coordheight(data,gridboxsize)
+hours = np.array([6, 7]) #np.linspace(13,17,5)
+SF_matrix = np.ndarray([int(x_len),int(y_len)])
+for h in range(len(hours)):
+    [azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hours[h],radians=True)
+    SFs = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
+    print("The Date is " + str(Constants.julianday) + " and time is " + str(hours[h]))
+    print(SFs)
 #     for i in range(int(x_len/2*y_len/2)):
 #         SF_matrix[int(coords[i,0]),int(coords[i,1])] = SF[i]
 #     SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
@@ -742,34 +753,71 @@ print(SVFs)
 "end of Shadowfactor for 24 hours"
 
 "Save all SF, areafractions and SVF to pickles"
-# coords = coordheight(data,gridboxsize)
+def Fit_WallvsRoadMasson(SVF_road):
+    alp = 0.01559134
+    bet = 0.83318688
+    cee = -0.39185316
+    SVF_w = np.empty((len(SVF_road)))
+    for i in range(len(SVF_road)):
+        SVF_w[i] = alp + bet*SVF_road[i] + cee*SVF_road[i]**2
+    return SVF_w
+
+#coords = coordheight(data,gridboxsize)
 # SVF = SVFs05m.SVFs
-# # gridratio = 25
-# # SF = SF05mHN1.SFs
-# # SVF_matrix = np.ndarray([x_len,y_len])
-# # for i in range(int(x_len/2*y_len/2)):
-# #     SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVF[i]
-# # SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-# # np.save('SVF_05Matrix', SVF_matrix)
+# plt.figure()
+# plt.hist(SVF, bins = 30,weights=np.ones(len(SVF))/len(SVF))
+# plt.ylabel('Normalized Counts [0-1]')
+# plt.xlabel('SVF [0-1]')
+# plt.show()
+# gridratio = 25
+# SF = SF05mHN1.SFs
+# SVF_matrix = np.ndarray([x_len,y_len])
+# for i in range(int(x_len/2*y_len/2)):
+#     SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVF[i]
+# SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# np.save('SVF_05Matrix', SVF_matrix)
 # with open('SVF_05Matrix.npy', 'rb') as f:
 #     SVF_matrix = np.load(f)
+#data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# SVF = SVFs5m.SVFs
+# gridratio = 5
+# data = average_svf(data,gridratio)
+# [x_len,y_len] = data.shape
 # data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# print(data.shape)
+#coords = coordheight(data,gridboxsize)
+# plt.figure()
+# plt.hist(SVF, bins = 30,weights=np.ones(len(SVF))/len(SVF))
+# plt.ylabel('Normalized Counts [0-1]')
+# plt.xlabel('SVF [0-1]')
+# plt.show()
 # SVF_roof = []
 # SVF_road = []
+# with open('SVF_GR5Matrix.npy', 'rb') as f:
+#     SVF_matrix = np.load(f)
 # for i in range(data.shape[0]):
 #     for j in range(data.shape[1]):
 #         if data[i,j]>0:
 #             SVF_roof.append(SVF_matrix[i,j])
 #         elif data[i,j]<=0:
 #             SVF_road.append(SVF_matrix[i,j])
+# print(len(SVF_road))
+# print(len(SVF_roof))
+# print(len(SVF_road)/(len(SVF_roof)+len(SVF_road)))
 # plt.figure()
 # plt.hist(SVF_roof, bins = 30,weights=np.ones(len(SVF_roof))/len(SVF_roof))
-# plt.ylabel('Probability [0-1]')
+# plt.ylabel('Normalized Counts [0-1]')
 # plt.xlabel('SVF roof [0-1]')
 # plt.figure()
 # plt.hist(SVF_road, bins = 30,weights=np.ones(len(SVF_road))/len(SVF_road))
-# plt.ylabel('Probability [0-1]')
+# plt.ylabel('Normalized Counts [0-1]')
 # plt.xlabel('SVF road [0-1]')
+# plt.show()
+# SVF_w = Fit_WallvsRoadMasson(SVF_road)
+# plt.figure()
+# plt.hist(SVF_w, bins = 30,weights=np.ones(len(SVF_w))/len(SVF_w))
+# plt.ylabel('Normalized Counts [0-1]')
+# plt.xlabel('SVF wall [0-1]')
 # plt.show()
 # SF_matrix = np.ndarray([x_len,y_len])
 # for i in range(int(x_len/2*y_len/2)):
@@ -780,39 +828,68 @@ print(SVFs)
 # plt.figure()
 # plt.imshow(SF_matrix, vmin=0, vmax=1, aspect='auto')
 # plt.show()
-# "SVF loop for different grid ratios"
-# gridratio = [5,10,25,50,125,250]
+"SVF loop for different grid ratios"
+# SVF = SVFs5m.SVFs
+# gridratio = 5
+# data = average_svf(data,gridratio)
+# [x_len,y_len] = data.shape
+# #data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# print(data.shape)
+# gridratio = [1,2,5,10,25,50] #all divided by 5 already
+# with open('SVF_GR5Matrix.npy', 'rb') as f:
+#     SVF_matrix = np.load(f)
 # mean_roof = np.ndarray((len(gridratio),1))
-# roof_p1 = np.ndarray((len(gridratio),1))
-# roof_p2 = np.ndarray((len(gridratio),1))
-# frac_roof_p1 = np.ndarray((len(gridratio),1))
-# frac_roof_p2 = np.ndarray((len(gridratio),1))
+# min_roof = np.ndarray((len(gridratio),1))
+# max_roof = np.ndarray((len(gridratio),1))
+# mean_road = np.ndarray((len(gridratio),1))
+# min_road = np.ndarray((len(gridratio),1))
+# max_road = np.ndarray((len(gridratio),1))
+# frac_roof_min = np.ndarray((len(gridratio),1))
+# frac_roof_max = np.ndarray((len(gridratio),1))
 # frac_roof_mean = np.ndarray((len(gridratio),1))
+# frac_road_min = np.ndarray((len(gridratio),1))
+# frac_road_max = np.ndarray((len(gridratio),1))
+# frac_road_mean = np.ndarray((len(gridratio),1))
 #
-#
-# plt.figure()
 # for i in range(len(gridratio)):
 #     Roof_frac, Wall_frac, Road_frac = geometricProperties(data,gridratio[i],gridboxsize)
-#     [SF_roof,SF_road] = average_svf_surfacetype(SF_matrix,data,gridratio[i])
+#     [SVF_roof,SVF_road] = average_svf_surfacetype(SVF_matrix,data,gridratio[i])
 #     #data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-#     SF_wall = 1-average_svf(SF_matrix,gridratio[i])
-#     mean_roof[i] = np.nanmean(SF_roof)#*np.mean(Roof_frac)
-#     roof_p1[i] = SF_roof[0,-1]#np.nanmin(SF_wall)
-#     roof_p2[i] = SF_roof[-1,-1]#np.nanmax(SF_wall)
-#     frac_roof_p2[i] = Roof_frac[0,-1]
-#     frac_roof_p1[i] = Roof_frac[0,-1]
+#     # SVF_wall = 1-average_svf(SVF_matrix,gridratio[i])
+#     mean_roof[i] = np.nanmean(SVF_roof)#*np.mean(Roof_frac)
+#     max_roof[i] = np.nanmax(SVF_roof)
+#     min_roof[i] = np.nanmin(SVF_roof)
 #     frac_roof_mean[i] = np.nanmean(Roof_frac)
+#     frac_roof_min[i] = np.nanmin(Roof_frac)
+#     frac_roof_max[i] = np.nanmax(Roof_frac)
+#     mean_road[i] = np.nanmean(SVF_road)#*np.mean(Roof_frac)
+#     max_road[i] = np.nanmax(SVF_road)
+#     min_road[i] = np.nanmin(SVF_road)
+#     frac_road_mean[i] = np.nanmean(Road_frac)
+#     frac_road_min[i] = np.nanmin(Road_frac)
+#     frac_road_max[i] = np.nanmax(Road_frac)
 #
-# plt.plot(gridratio, mean_wall,'r',label='Mean SF')
-# plt.plot(gridratio, wall_p1,'b',label='SF p1')
-# plt.plot(gridratio, wall_p2,'y',label='SF p2')
-# plt.plot(gridratio, frac_wall_mean,'r',linestyle='dotted',label='Mean Area Fraction')
-# plt.plot(gridratio, frac_wall_p1,'b',linestyle='dotted',label='Area Fraction')
-# plt.plot(gridratio, frac_wall_p2,'y',linestyle='dotted',label='Area Fraction p2')
-# #plt.plot(gridratio, mean_road,label='Mean Road SVF')
+# plt.figure()
+# plt.plot(gridratio, mean_roof,'r',label='Mean SVF')
+# plt.plot(gridratio, min_roof,'r',linestyle='dashed',label='Min SVF')
+# plt.plot(gridratio, max_roof,'r',linestyle='dotted',label='Max SVF')
+# plt.plot(gridratio, frac_roof_mean,'b',label='Mean Area Fraction')
+# plt.plot(gridratio, frac_roof_min,'b',linestyle='dashed',label='Min Area Fraction')
+# plt.plot(gridratio, frac_roof_max,'b',linestyle='dotted',label='Max Area Fraction')
 # plt.xlabel('gridratio')
 # plt.legend(loc='upper right')
-# plt.ylabel('SF [0-1]')
+# plt.ylabel('SVF, Area Fraction [0-1]')
+# "Road"
+# plt.figure()
+# plt.plot(gridratio, mean_road,'r',label='Mean SVF')
+# plt.plot(gridratio, min_road,'r',linestyle='dashed',label='Min SVF')
+# plt.plot(gridratio, max_road,'r',linestyle='dotted',label='Max SVF')
+# plt.plot(gridratio, frac_road_mean,'b',label='Mean Area Fraction')
+# plt.plot(gridratio, frac_road_min,'b',linestyle='dashed',label='Min Area Fraction')
+# plt.plot(gridratio, frac_road_max,'b',linestyle='dotted',label='Max Area Fraction')
+# plt.xlabel('gridratio')
+# plt.legend(loc='upper right')
+# plt.ylabel('SVF, Area Fraction [0-1]')
 # plt.show()
 
 # gridratio = 25
