@@ -4,98 +4,71 @@ import pandas as pd
 import Constants
 import matplotlib.pyplot as plt
 import Functions
-#import SVF
+import SVF
+import Sunpos
+#import pickle
 
-#plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
-# csfont = {'fontname':'Arial (sans-serif)'}
-# hfont = {'fontname':'Arial (sans-serif)'}
-plt.close('all')
-#
-# nr_steps = Functions.nr_steps
-# T_air = Functions.T_air
+"Data import"
+data = SVF.data
+gridratio = 25
+"Azimuth and zenith angle based on the day of the year"
+days = 6
+nr_of_steps = int(24*3600/Constants.timestep*days)
+startday = Constants.julianday
 
-"""City using SVF and shadow casting"""
-# #print(SVF.geometricProperties(data,SVF.gridboxsize))
-# blocklength = int(data.shape[0]/2*data.shape[1]/2)
-# coords = SVF.coordheight(data)
-# print(SVF.reshape_SVF(data,coords,294,48,52,10,reshape=False))
+Azi = np.empty((nr_of_steps))
+El = np.empty((nr_of_steps))
+Zenith = np.empty((nr_of_steps))
+for t in range(nr_of_steps):
+    hour = t*(Constants.timestep/3600)%24
+    day = (t*(Constants.timestep/3600)//24)+200
+    Azi[t],El[t] = Sunpos.solarpos(day,Constants.latitude,Constants.long_rd,hour,radians=True)
+    Zenith[t] = np.pi/2-El[t]
+    if np.logical_and(hour>=6,hour<=20):
+        with open('Pickles/1MaySF/SF_may1_'+str(int(hour))+'_HN1.pickle', 'rb') as f:
+            SF_matrix = pickle.load(f)
+        [SF_roof,SF_road] = SVF.average_surfacetype(SF_matrix,data,gridratio)
+        SF_wall = SVF.WallSF_fit(Zenith[t],SF_road)
+    else:
+        [x_len,y_len] = data.shape
+        SF_roof=np.zeros([int(x_len/2/gridratio),int(y_len/2/gridratio)])
+        SF_wall=np.zeros([int(x_len/2/gridratio),int(y_len/2/gridratio)])
+        SF_road=np.zeros([int(x_len/2/gridratio),int(y_len/2/gridratio)])
 
-# print("These are the Sky View Factors")
-# print(SVF_matrix)
-# print("These are the Shadowfactors")
-# print(SF_matrix)
-# print("These are the average temperatures")
-# print(Functions.HeatEvolution(data,nr_steps,Constants.timestep,azimuth,zenith))
+"A first degree fit of all short wave radiation versus zenith angles are computed," \
+"this results in the following SW vs Zenith angle distribution:"
+a = 1005.792
+b = -644.159
+SW_down = a + b*Zenith
+SW_down[SW_down<0] = 0
 
-"""Calculate the Shadow casting for 24 hours on one day"""
-# data = SVF.readdata(SVF.minheight,SVF.dsm1,SVF.dtm1)
-# hour = np.linspace(0,24,25)
-# for t in len(hour):
-#     "Calculate the azimuth and zenith for every hour"
-#     [zenith,azimuth] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hour[t],radians=True)
-#
-#     "Calculate average surface temperatures for roof and road surface types"
-#     [t_roof_ave, t_road_ave, t_ave] = Functions.HeatEvolution(data,Constants.nr_of_steps,Constants.timestep,azimuth,zenith)
-#
-
-# Functions.PlotGreyMap(SVF.data,middle=False,v_max=1)
-
-time = (np.arange(Constants.nr_of_steps)) #in hours
-#plt.plot(time,Functions.T_2m)
-# delta_d = 0.03
-# T_soil_num_grass = Functions.NumericalSoil(time,Constants.timestep,delta_d,Constants.lamb_grass,Constants.C_grass,Constants.layers,Functions.T_2m)
-# T_soil_num_asp = Functions.NumericalSoil(time,Constants.timestep,delta_d,Constants.lamb_asphalt,Constants.C_asphalt,Constants.layers,Functions.T_2m)
-# style = ['solid',(0,(1,1)),(0,(1,2)),(0,(1,4))]
+"LW radiation is based on Air temperature forcing"
+sigma = Constants.sigma
+time = np.linspace(0,nr_of_steps,nr_of_steps)
+q_first_layer = np.ones(len(time)) + 5
+eps = 0.7
+T_2m = (np.sin(-np.pi + 2*np.pi/(24*(3600/Constants.timestep))*time)*Constants.T_air_amp)+Constants.T_air
+LW_down = sigma*eps*T_2m**4
 # plt.figure()
-# for l in range(Constants.layers):
-#     if l%5==0:
-#         stl_idx = int(l/5)
-#         plt.plot(time/6,T_soil_num_grass[:,l],'green',linestyle=style[stl_idx],label='Grass at depth ' + str(np.around(l*delta_d,2)) + 'm')
-#         plt.plot(time/6,T_soil_num_asp[:,l],'black',linestyle=style[stl_idx],label='Asphalt at depth ' + str(np.around(l*delta_d,2)) + 'm')
-# #plt.legend()
-# plt.xlabel("time [h]")
-# plt.ylabel("Temperature [K]")
-# plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
-# plt.show()
-# thickness = np.linspace(0,1,50)
-# T_soil = np.empty((len(thickness)))
-# Num_soil = np.empty((len(thickness)))
-# plt.figure()
-# for d in range(len(thickness)):
-#     T_soil[d] = Functions.AnalyticalSoil(0,thickness[d],Constants.lamb_grass,Constants.C_grass)
-#     #plt.plot(T_soil_num[d],thickness)
-#     Num_soil[d] = T_soil_num[0,d]
-# #plt.plot(Num_soil,thickness)
-# plt.plot(T_soil,thickness,'-')
-# plt.ylim(max(thickness), min(thickness))
-# plt.show()
+# plt.plot(time/6,LW_down,label='LW')
+# plt.plot(time/6,SW_down,label='SW')
+# plt.ylabel('Flux [W/m2]')
+# plt.xlabel('time [h]')
+# plt.legend()
+# plt.title('Forcing LW and SW fluxes')
+#plt.show()
 
-# plt.plot(time,Functions.T_2m[:Constants.nr_of_steps], label="Forcing Temp")
-# d = np.sum(Constants.d_roof[:])
-# T_soil = Functions.AnalyticalSoil(time,d,Constants.lamb_grass,Constants.C_grass)
-# plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
-# plt.xlabel("Time [h]")
-# plt.ylabel("Temperature for layer [K]")
-# plt.legend(loc='upper right')
-# plt.show()
+"SVF"
+with open('SVF_05Matrix.npy', 'rb') as f:
+    SVF_matrix = np.load(f)
+[SVF_roof,SVF_road] = SVF.average_surfacetype(SVF_matrix,data,gridratio)
+SVF_wall = SVF.Inv_WallvsRoadMasson(SVF_road)
 
-# time = (np.arange(Constants.nr_of_steps))# * Constants.timestep/3600)
-
-[T_roof, T_wall,T_road, LW_net_roof, SW_net_roof, LHF_roof, SHF_roof, G_out_surf_roof, SF_wall, SF_road] = Functions.HeatEvolution(Functions.nr_of_steps,Constants.timestep)
-Functions.PlotSurfaceTemp(T_roof,T_wall,T_road,Functions.nr_of_steps)
-Functions.PlotTempLayers(T_wall,Functions.nr_of_steps)
-Functions.PlotSurfaceFluxes(Functions.nr_of_steps,LW_net_roof, SW_net_roof, G_out_surf_roof, LHF_roof, SHF_roof)
-
-plt.figure()
-plt.plot(Functions.time,Functions.Azi, label='Azi')
-plt.plot(Functions.time,Functions.El, label='El')
-plt.plot(Functions.time,SF_wall, label='wall')
-plt.plot(Functions.time,SF_road, label='road')
-plt.xlabel('Time [hours]')
-plt.ylabel('Angles [radians], Shadowfactor [0-1]')
-plt.legend()
-plt.show()
-
-# Functions.PlotSurfaceTemp(T_roof_g,T_wall_g,T_road_g,Constants.nr_of_steps)
-# Functions.PlotTempLayers(T_roof_g,Constants.nr_of_steps)
-# Functions.PlotSurfaceFluxes(LW_net_roof_g, SW_net_roof_g, G_out_surf_roof_g, LHF_roof_g, SHF_roof_g)
+"Now all functions"
+[T_roof, T_wall,T_road, LW_net_roof, SW_net_roof, LHF_roof, SHF_roof, G_out_surf_roof] = \
+    Functions.HeatEvolution(nr_of_steps,Constants.timestep,
+                            SW_down,LW_down,T_2m,q_first_layer,
+                            SVF_roof,SVF_wall,SVF_road,SF_roof,SF_wall,SF_road)
+Functions.PlotSurfaceTemp(T_roof,T_wall,T_road,T_2m,nr_of_steps)
+Functions.PlotTempLayers(T_wall,T_2m,nr_of_steps)
+Functions.PlotSurfaceFluxes(nr_of_steps,LW_net_roof, SW_net_roof,SW_down, G_out_surf_roof, LHF_roof, SHF_roof,show=True)

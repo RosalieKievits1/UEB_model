@@ -106,4 +106,7 @@ julianday = 121 #1 may
 
 hour = 18 # 10:30 am
 
+"Average air temp and air temp amp, in Kelvin"
+T_air = 273.15+10
+T_air_amp = 5
 

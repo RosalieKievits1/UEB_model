@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import SVF
 from tqdm import tqdm
 from numpy import random
-
 import Sunpos
 
 # """Read in data"""
@@ -15,7 +14,7 @@ import Sunpos
 #
 # """upward sensible heat flux"""
 # SHF = data.iloc[: , 32]
-# """Relative humidity at 10 m"""
+"""Relative humidity at 10 m"""
 # q_first_layer = data.iloc[: , 30]
 # """Upward Latent Heat flux"""
 # LHF = data.iloc[: , 33]
@@ -27,7 +26,7 @@ import Sunpos
 # SW_up = data.iloc[: , 36]
 # """downward shortwave heat flux"""
 # SW_down = data.iloc[: , 37]
-# # """solar zenith angle"""
+# """solar zenith angle"""
 # #Zenith = data.iloc[: ,38]*np.pi/180
 # """the temperature at 2 m high (use as ic for surface temp)"""
 # T_2m = data.iloc[: ,24]
@@ -35,42 +34,13 @@ import Sunpos
 # """Surface pressure"""
 # p_surf = data.iloc[: ,5]
 # #
-# nr_of_steps = 24*6
 # print(np.polyfit(Zenith, SW_down, deg=1))
 # plt.figure()
 # plt.scatter(Zenith,SW_down,marker='x')
 # plt.xlabel('Zenith Angle [Rad]')
 # plt.ylabel('Shortwave Radiation Flux [W/m2]')
 # plt.show()
-"Azimuth and zenith angle based on the day of the year"
-# Azi = np.empty((nr_of_steps))
-# El = np.empty((nr_of_steps))
-# for t in range(nr_of_steps):
-#     hour = (t+1)*(Constants.timestep/3600)
-#     Azi[t],El[t] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hour,radians=True)
-# Zenith = np.pi/2-El
-# #
-# "A first degree fit of all short wave radiation versus zenith angles are computed," \
-# "this results in the following SW vs Zenith angle distribution:"
-# a = 1005.792
-# b = -644.159
-# SW_down = a + b*Zenith
-# SW_down[SW_down<0] = 0
-#
-# "LW radiation is based on Air temperature forcing"
-# eps = 0.8
-# sigma = Constants.sigma
-# time = np.linspace(0,nr_of_steps,nr_of_steps)
-# T_2m = (np.sin(-np.pi/2 + 2*np.pi/(24*(3600/Constants.timestep))*time)*5)+273.15+10 #np.ones(len(time)) + 275
-# LW_down = sigma*eps*T_2m**4
-# q_first_layer = np.ones(len(time)) + 5
-# plt.figure()
-# plt.plot(time/6,LW_down,label='LW')
-# plt.plot(time/6,SW_down,label='SW')
-# plt.ylabel('Flux [W/m2]')
-# plt.xlabel('time [h]')
-# plt.legend()
-# plt.show()
+
 
 def exner(pressure):
     p_zero = 10e5
@@ -87,38 +57,6 @@ def T_pot(T,p):
     p_zero = 10e5
     T_pot = T * (p_zero/p)**0.286
     return T_pot
-
-def Fit_WallvsRoadMasson(SVF_road):
-    alp = 0.01559134
-    bet = 0.83318688
-    cee = -0.39185316
-    SVF_w = alp + bet*SVF_road + cee*SVF_road**2
-    return SVF_w
-
-def SF_masson(h_w,Zenith):
-    lamb_zero = np.arctan(1/h_w)
-    SF_roof = 1
-    if (Zenith > lamb_zero):
-        SF_wall = (1/2/h_w)
-        SF_road = 0
-    elif (Zenith < lamb_zero):
-        SF_wall = (1/2*np.tan(Zenith))
-        SF_road = 1-h_w*np.tan(Zenith)
-    if Zenith>np.pi/2:
-        SF_wall = 0
-        SF_road = 0
-        SF_roof = 0
-    return SF_roof, SF_wall, SF_road
-
-def SVF_masson(h_w):
-    """
-    :param h_w: Height over width ratio
-    :return: returns the SVF over the sunlit wall
-    """
-    SVF_road = (np.sqrt((h_w**2+1))-h_w)
-    SVF_wall = (1/2*(h_w+1-np.sqrt(h_w**2+1))/h_w)
-    SVF_roof = 1
-    return SVF_roof, SVF_wall, SVF_road
 
 """Equations for map model"""
 def initialize_map(layers,shape):
@@ -150,7 +88,7 @@ def initialize_map(layers,shape):
     # lin_temp_roof = np.linspace(T_air,T_inner_bc_roof,layers)
     # lin_temp_roof = np.swapaxes(lin_temp_roof, 0, 2)
     # lin_temp_roof = np.swapaxes(lin_temp_roof, 0, 1)
-    map_T_roof[:,:,0:layers] = T_air #lin_temp_roof
+    map_T_roof[:,:,0:layers] = Constants.T_air #lin_temp_roof
     capacities_roof[:,:,0] = Constants.C_bitumen
     lambdas_roof[:,:,0] = Constants.lamb_bitumen
 
@@ -158,12 +96,12 @@ def initialize_map(layers,shape):
     # lin_temp_wall = np.linspace(T_air,T_inner_bc_wall,layers)
     # lin_temp_wall = np.swapaxes(lin_temp_wall, 0, 2)
     # lin_temp_wall = np.swapaxes(lin_temp_wall, 0, 1)
-    map_T_wall[:,:,0:layers] = T_air #lin_temp_wall
+    map_T_wall[:,:,0:layers] = Constants.T_air #lin_temp_wall
     """Roads"""
     # lin_temp_road = np.linspace(T_air,T_inner_bc_road,layers)
     # lin_temp_road = np.swapaxes(lin_temp_road, 0, 2)
     # lin_temp_road = np.swapaxes(lin_temp_road, 0, 1)
-    map_T_road[:,:,0:layers] = T_air #lin_temp_road
+    map_T_road[:,:,0:layers] = Constants.T_air #lin_temp_road
     capacities_road[:,:,0] = Constants.C_asphalt
     lambdas_road[:,:,0] = Constants.lamb_asphalt
 
@@ -311,7 +249,7 @@ def layer_balance(d_roof, d_wall, d_road,
 
     return map_T_roof[:,:,1:layers], map_T_wall[:,:,1:layers], map_T_road[:,:,1:layers]
 
-def HeatEvolution(time_steps,delta_t):
+def HeatEvolution(time_steps,delta_t,SW_down,LW_down,T_2m,q_first_layer,SVF_roof,SVF_wall,SVF_road,SF_roof,SF_wall,SF_road):
 
     "Arrays that store average surface temperatures"
     T_ave_roof = np.empty((time_steps,Constants.layers))
@@ -326,7 +264,7 @@ def HeatEvolution(time_steps,delta_t):
     SF_wall_m = np.empty((time_steps))
 
     "Now we need to separate the roof, wall and road SVF and SF"
-    [x_len,y_len] = SVF.SVF_roof.shape
+    [x_len,y_len] = SVF_roof.shape
 
     map_T_roof,map_T_wall,map_T_road, \
            capacities_roof,capacities_wall,capacities_road, \
@@ -339,19 +277,10 @@ def HeatEvolution(time_steps,delta_t):
     map_T_old_wall = map_T_wall
     map_T_old_road = map_T_road
 
-    SF_Roof = 1
-    SF_Road = SVF.SF_r
-    SF_Wall = SVF.SF_w
     for t in tqdm(range(time_steps)):
         "for now"
-        h_w = SVF.h_w
-        #[SF_roof, SF_wall, SF_road] = SF_masson(h_w,Zenith[t])
-
-        SF_roof = SF_Roof*np.ones([2,2])
-        SF_wall = SF_Wall[t]*np.ones([2,2])
-        SF_road = SF_Road[t]*np.ones([2,2])
-        SF_road_m[t] = np.mean(SF_road)
-        SF_wall_m[t] = np.mean(SF_wall)
+        # h_w = SVF.h_w
+        # #[SF_roof, SF_wall, SF_road] = SF_masson(h_w,Zenith[t])
 
         SW_dir = SW_down[t]*0.3
         SW_dif = SW_down[t]*0.7
@@ -362,7 +291,7 @@ def HeatEvolution(time_steps,delta_t):
         [map_T_roof[:,:,0],map_T_wall[:,:,0],map_T_road[:,:,0], LW_net_roof, SW_net_roof, LHF_roof, SHF_roof, G_out_surf_roof] = surfacebalance(albedos_roof, albedos_wall, albedos_road, \
             emissivity_roof, emissivity_wall, emissivity_road, \
             capacities_roof, capacities_wall, capacities_road, \
-            SVF.SVF_roof, SVF.SVF_wall, SVF.SVF_road, \
+            SVF_roof, SVF_wall, SVF_road, \
             SF_roof, SF_wall, SF_road, \
             Constants.d_roof, Constants.d_wall, Constants.d_road, \
             lambdas_roof, lambdas_wall, lambdas_road, \
@@ -399,7 +328,7 @@ def HeatEvolution(time_steps,delta_t):
         SHF_ave[t] = np.mean(SHF_roof)
         G_ave[t] = np.mean(G_out_surf_roof)
 
-    return T_ave_roof, T_ave_wall, T_ave_road, LW_ave, SW_ave, LHF_ave, SHF_ave, G_ave, SF_wall_m, SF_road_m
+    return T_ave_roof, T_ave_wall, T_ave_road, LW_ave, SW_ave, LHF_ave, SHF_ave, G_ave
 
 def AnalyticalSoil(t,z,lamb,C):
     k = lamb/C
@@ -445,42 +374,44 @@ def PlotGreyMap(data,middle,v_max):
         plt.imshow(data,vmax=v_max)
     plt.show()
 
-def PlotSurfaceTemp(T_ave_roof,T_ave_wall,T_ave_road, time_steps):
+def PlotSurfaceTemp(T_ave_roof,T_ave_wall,T_ave_road,T_2m,time_steps,show=False):
     time = (np.arange(time_steps)* Constants.timestep/3600)
 
     plt.figure()
-    plt.plot(time,T_ave_roof[:,0], label="Simulated Surface Temp")
+    plt.plot(time,T_ave_roof[:,0], label="Roof")
     plt.plot(time,T_ave_wall[:,0], label="Wall")
     plt.plot(time,T_ave_road[:,0], label="road")
-    plt.plot(time,T_2m[:Constants.nr_of_steps], 'blue', label="Temp at 2m altitude")
+    plt.plot(time,T_2m, 'blue', label="Temp at 2m (Forcing)")
     plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
     plt.xlabel("Time [h]")
     plt.ylabel("Surface Temperature [K]")
     plt.legend(loc='upper right')
-    plt.show()
+    if show == True:
+        plt.show()
     return
 
-def PlotTempLayers(T_ave,time_steps):
+def PlotTempLayers(T_ave,T_2m,time_steps,show=False):
     time = (np.arange(time_steps)* Constants.timestep/3600)
     plt.figure()
     for l in range(Constants.layers):
         plt.plot(time,T_ave[:,l], label="layer " + str(l))
-    plt.plot(time,T_2m[:Constants.nr_of_steps], label="Measured Temp above surface")
+    plt.plot(time,T_2m, label="Air Temp (Forcing)")
     plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
     plt.xlabel("Time [h]")
     plt.ylabel("Temperature [K]")
     plt.legend(loc='upper right')
-    plt.show()
+    if show == True:
+        plt.show()
     return
 
-def PlotSurfaceFluxes(nr_of_steps,LW_net,SW_net,G_out,LHF,SHF):
+def PlotSurfaceFluxes(nr_of_steps,LW_net,SW_net,SW_down,G_out,LHF,SHF,show=False):
     time = (np.arange(nr_of_steps)*Constants.timestep / 3600)
     plt.figure()
     plt.plot(time,LW_net, label="LW net")
     #plt.plot(time,(LW_down[:Constants.nr_of_steps]-LW_up[:Constants.nr_of_steps]), label="LW up cabau")
     plt.plot(time,SW_net, label="SW net")
     #plt.plot(time,(SW_down[:Constants.nr_of_steps]-SW_up[:Constants.nr_of_steps]), label="SW up cabau")
-    plt.plot(time,SW_down[:Constants.nr_of_steps],label="SW down")
+    plt.plot(time,SW_down,label="SW down")
     # LHF_cabau = Functions.LHF[:Constants.nr_of_steps]
     # LHF_cabau[LHF_cabau<-1000] = 0
     # SHF_cabau = Functions.SHF[:Constants.nr_of_steps]
@@ -494,5 +425,6 @@ def PlotSurfaceFluxes(nr_of_steps,LW_net,SW_net,G_out,LHF,SHF):
     plt.xlabel("Time [h]")
     plt.ylabel("Flux [W/m2K]")
     plt.legend(loc='upper right')
-    plt.show()
+    if show == True:
+        plt.show()
     return
