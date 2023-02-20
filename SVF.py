@@ -728,14 +728,15 @@ elif (gridboxsize==0.5):
     dsm_HN1 = "".join([input_dir, '/R_37HN1.TIF'])
     data = readdata(minheight,dsm_HN1,dtm_HN1)
     [x_long, y_long] = data.shape
-    data = data[:int(x_long/5),int(y_long/5):int(2*y_long/5)]
+    #data = data[:int(x_long/5),int(y_long/5):int(2*y_long/5)]
+    data = data[:int(x_long/5),:int(y_long/5)]
     #SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
     [x_len,y_len] = data.shape
-
+# data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+#
 # plt.figure()
 # plt.imshow(data,vmin=0,vmax=20)
 # plt.show()
-
 #
 # H_w = np.linspace(0.2,5,20)
 # SF_w = np.empty((len(H_w)))
@@ -785,19 +786,46 @@ elif (gridboxsize==0.5):
 # for h in range(len(SF_road_ave)):
 #     SF_wall_ave[h] = f1(SF_road_ave[h], popt[0],popt[1],popt[2])
 "Histograms"
+# gridratio = 5
+# data = average_svf(data,gridratio)
+# [x_len,y_len] = data.shape
+# data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+#
+# with open('SVFP2_Matrix.npy', 'rb') as f:
+#     SVF_matrix = np.load(f)
+# #grid_ratio=1
 # bin_nr = 30
+# SVF_roof_ave = []
+# SVF_road_ave = []
+# for i in range(int(x_len/2)):
+#     for j in range(int(y_len/2)):
+#         if data[i,j]>0:
+#             SVF_roof_ave.append(SVF_matrix[i,j])
+#         else:
+#             SVF_road_ave.append(SVF_matrix[i,j])
 # plt.figure()
-# plt.hist(SF_wall_ave, bins = bin_nr,weights=np.ones(len(SF_wall_ave))/len(SF_wall_ave))
+# SVF_list = SVF_matrix.flatten()
+# plt.hist(SVF_list, bins = bin_nr,weights=np.ones(len(SVF_list))/len(SVF_list))
 # plt.ylabel('Normalized Counts [0-1]')
-# plt.xlabel('SF [0-1]')
+# plt.xlabel('SVF [0-1]')
 # plt.figure()
-# plt.hist(SF_road_ave, bins = bin_nr,weights=np.ones(len(SF_road_ave))/len(SF_road_ave))
-# plt.ylabel('Normalized Counts [0-1]')
-# plt.xlabel('SF [0-1]')
+# SVF_road_ave = SVF_ave_road.flatten()
+# SVF_roof_ave = SVF_ave_roof.flatten()
+#SVF_road_ave = np.array(SVF_road_ave)
+# SVF_wall_ave = Inv_WallvsRoadMasson(np.array(SVF_road_ave))
+# print(len(SVF_road_ave)/(len(SVF_road_ave)+len(SVF_roof_ave)))
 # plt.figure()
-# plt.hist(SF_roof_ave, bins = bin_nr,weights=np.ones(len(SF_roof_ave))/len(SF_roof_ave))
+# plt.hist(SVF_wall_ave, bins = bin_nr,weights=np.ones(len(SVF_wall_ave))/len(SVF_wall_ave))
 # plt.ylabel('Normalized Counts [0-1]')
-# plt.xlabel('SF [0-1]')
+# plt.xlabel('SVF [0-1]')
+# plt.figure()
+# plt.hist(SVF_road_ave, bins = bin_nr,weights=np.ones(len(SVF_road_ave))/len(SVF_road_ave))
+# plt.ylabel('Normalized Counts [0-1]')
+# plt.xlabel('SVF [0-1]')
+# plt.figure()
+# plt.hist(SVF_roof_ave, bins = bin_nr,weights=np.ones(len(SVF_roof_ave))/len(SVF_roof_ave))
+# plt.ylabel('Normalized Counts [0-1]')
+# plt.xlabel('SVF [0-1]')
 # plt.show()
 
 
@@ -847,38 +875,46 @@ elif (gridboxsize==0.5):
 # plt.show()
 
 "We are going to average the data over 12.5m and compute the SVF again"
-coords = coordheight(data)
-blocklength = int(x_len/2*y_len/2)
-SVFs = calc_SVF(coords, max_radius, blocklength, gridboxsize)
-"The SVFs non averaged"
-print(SVFs)
+# coords = coordheight(data)
+# blocklength = int(x_len/2*y_len/2)
+# SVFs = calc_SVF(coords, max_radius, blocklength, gridboxsize)
+# "The SVFs non averaged"
+# print(SVFs)
+#
+#
+# gridratio = 5
+# data = average_svf(data,gridratio)
+# coords = coordheight(data)
+# [x_len, y_len] = data.shape
+# blocklength = int(x_len/2*y_len/2)
+# SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
+# "The SVFs averaged over 5m"
+# print(SVFs)
 
-
-gridratio = 5
-data = average_svf(data,gridratio)
-coords = coordheight(data)
-[x_len, y_len] = data.shape
-blocklength = int(x_len/2*y_len/2)
-SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
-"The SVFs averaged over 5m"
-print(SVFs)
-
-# #SVF = SVFs5m.SVFs
+# SVF = SVFs5m.SVFs
+# #np.save('SVFP1_List', SVF)
 # #SVFs = calc_SVF(coords, max_radius, blocklength, int(gridboxsize*gridratio))
 # SVF_matrix = np.ndarray([x_len,y_len])
 # for i in range(int(x_len/2*y_len/2)):
 #     SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVF[i]
 # SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 # plt.figure()
-# plt.imshow(SVF_matrix, vmin=0, vmax=1, aspect='auto')
+# plt.imshow(SVF_matrix, vmin=0, vmax=1)
 # plt.show()
-# np.save('SVF_GR5Matrix', SVF_matrix)
-# print(SVF_matrix)
+# np.save('SVFP2_GR5_Matrix', SVF_matrix)
+#print(SVF_matrix)
 
 "Height width influence on SVF"
 "Let's say you would have a repeating building block of 20m wide and 20 m high with 10 m wide streets: " \
 "A repeating infinite canyon." \
 "First compute the SVF on this grid"
+
+# for i in range(15):
+#     with open('Pickles/1MaySF/SF_may1_'+str(int(i+6))+'_HN1.pickle', 'rb') as f:
+#         SF_matrix = pickle.load(f)
+#     plt.figure()
+#     plt.imshow(SF_matrix,vmin=0,vmax=1)
+#     plt.imsave('/Users/rosaliekievits/Desktop/PlaatjesMEP/ShadowFactors_may1/Figures/SF_may1_'+str(int(i+6))+'.png',SF_matrix)
 
 "Movie"
 # import matplotlib.animation as animation
@@ -898,10 +934,10 @@ print(SVFs)
 "end movie"
 
 "Shadowfactor"
-# coords = coordheight(data)
-# # [azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,Constants.hour,radians=True)
-# # SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
-# # print(SF)
+coords = coordheight(data)
+[azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,5,radians=True)
+SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
+print(SF)
 # # gridratio = 25
 # SF = SF05mHN1.SFs
 # "The sun rise and sunset time for 1 may are 6 and 20 o clock (GMT)"
