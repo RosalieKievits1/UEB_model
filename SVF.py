@@ -935,7 +935,7 @@ elif (gridboxsize==0.5):
 
 "Shadowfactor"
 coords = coordheight(data)
-[azimuth,el_angle,T_ss,T_sr] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,5,radians=True)
+[azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,5,radians=True)
 SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
 print(SF)
 # # gridratio = 25
