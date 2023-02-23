@@ -85,22 +85,14 @@ def initialize_map(layers,shape):
     map_T_road = np.ndarray([x_len,y_len,layers])
 
     """Roofs"""
-    # lin_temp_roof = np.linspace(T_air,T_inner_bc_roof,layers)
-    # lin_temp_roof = np.swapaxes(lin_temp_roof, 0, 2)
-    # lin_temp_roof = np.swapaxes(lin_temp_roof, 0, 1)
     map_T_roof[:,:,0:layers] = Constants.T_air #lin_temp_roof
     capacities_roof[:,:,0] = Constants.C_bitumen
     lambdas_roof[:,:,0] = Constants.lamb_bitumen
 
     """Roads"""
-    # lin_temp_wall = np.linspace(T_air,T_inner_bc_wall,layers)
-    # lin_temp_wall = np.swapaxes(lin_temp_wall, 0, 2)
-    # lin_temp_wall = np.swapaxes(lin_temp_wall, 0, 1)
     map_T_wall[:,:,0:layers] = Constants.T_air #lin_temp_wall
+
     """Roads"""
-    # lin_temp_road = np.linspace(T_air,T_inner_bc_road,layers)
-    # lin_temp_road = np.swapaxes(lin_temp_road, 0, 2)
-    # lin_temp_road = np.swapaxes(lin_temp_road, 0, 1)
     map_T_road[:,:,0:layers] = Constants.T_air #lin_temp_road
     capacities_road[:,:,0] = Constants.C_asphalt
     lambdas_road[:,:,0] = Constants.lamb_asphalt
@@ -144,11 +136,6 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
     GVF_wall = SVF_wall
     RVF_wall = 0
     WVF_wall = 1-SVF_wall-GVF_wall
-    # GVF_wall = WVF_road*(frac_road/(frac_road+frac_wall))
-    # RVF_wall = (WVF_roof)*(frac_roof/(frac_roof+frac_wall))
-    # RVF_wall = np.nan_to_num(RVF_wall, nan=0) #nan=np.nanmean(RVF_wall))
-    # WVF_wall = 1-SVF_wall-GVF_wall-RVF_wall
-    # WVF_wall[WVF_wall<0] =0
 
 
     """Longwave radiation"""
@@ -180,8 +167,6 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
     LHF_wall = 0
     LHF_road = Constants.L_v * Constants.rho_air * (1/Constants.res_road) * (q_sat(T_old_road,Constants.p_atm) - q_sat(T_firstlayer,Constants.p_atm))
 
-    # print("SHF = " + str(SHF_roof))
-    # print("LHF = " + str(LHF_roof))
     " conduction"
     lamb_ave_out_surf_roof = (d_roof[0]+d_roof[1])/((d_roof[0]/lambdas_roof[:,:,0])+(d_roof[1]/lambdas_roof[:,:,1]))
     G_out_surf_roof = lamb_ave_out_surf_roof*((T_old_roof-T_old_subs_roof)/(1/2*(d_roof[0]+d_road[1])))

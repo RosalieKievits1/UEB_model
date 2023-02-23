@@ -109,4 +109,8 @@ hour = 18 # 10:30 am
 "Average air temp and air temp amp, in Kelvin"
 T_air = 273.15+10
 T_air_amp = 5
+"For computing LW_down, from P Schrijvers page 20"
+c = 46.5 #[K/hPa]
+RH = 0.75 #75%, relative humidity
+
 

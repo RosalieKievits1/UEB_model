@@ -9,7 +9,7 @@ from functools import partial
 import time
 #import KNMI_SVF_verification
 import Constants
-import Sunpos
+# import Sunpos
 # import SVFs05m
 # import SF05mHN1
 # import pickle
@@ -674,7 +674,7 @@ def SVF_masson(h_w):
     :param h_w: Height over width ratio
     :return: returns the SVF
     """
-    SVF_road = (np.sqrt((h_w**2+1))-h_w)
+    SVF_road = (np.sqrt(h_w**2+1)-h_w)
     SVF_wall = (1/2*(h_w+1-np.sqrt(h_w**2+1))/h_w)
     SVF_roof = 1
     return SVF_roof, SVF_wall, SVF_road
@@ -732,7 +732,7 @@ elif (gridboxsize==0.5):
     data = data[:int(x_long/5),:int(y_long/5)]
     #SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
     [x_len,y_len] = data.shape
-# data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+#data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 #
 # plt.figure()
 # plt.imshow(data,vmin=0,vmax=20)
@@ -881,15 +881,14 @@ elif (gridboxsize==0.5):
 # "The SVFs non averaged"
 # print(SVFs)
 #
-#
-# gridratio = 5
-# data = average_svf(data,gridratio)
-# coords = coordheight(data)
-# [x_len, y_len] = data.shape
-# blocklength = int(x_len/2*y_len/2)
-# SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
-# "The SVFs averaged over 5m"
-# print(SVFs)
+gridratio = 25
+data = average_svf(data,gridratio)
+coords = coordheight(data)
+[x_len, y_len] = data.shape
+blocklength = int(x_len/2*y_len/2)
+SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
+"The SVFs averaged over 12.5m"
+print(SVFs)
 
 # SVF = SVFs5m.SVFs
 # #np.save('SVFP1_List', SVF)
@@ -917,27 +916,52 @@ elif (gridboxsize==0.5):
 #     plt.imsave('/Users/rosaliekievits/Desktop/PlaatjesMEP/ShadowFactors_may1/Figures/SF_may1_'+str(int(i+6))+'.png',SF_matrix)
 
 "Movie"
+# grid_ratio = 10
+# HIST_BINS = np.linspace(0,1,30)
+# def getSFdata(hour,gridratio):
+#     with open('pickles/1MaySF/SF_may1_'+ str(hour) +'_HN1.pickle', 'rb') as f:
+#         SF_matrix = pickle.load(f)
+#     [SF_roof,SF_road] = average_surfacetype(SF_matrix,data,gridratio)
+#     return SF_road
+#
 # import matplotlib.animation as animation
 #
+# def prepare_animation(bar_container):
+#
+#     def animate(frame_number):
+#         frame_number = (frame_number+6)
+#         dataSF = getSFdata(frame_number,grid_ratio)
+#         n, _ = np.histogram(dataSF, HIST_BINS)
+#
+#         for count, rect in zip(n, bar_container.patches):
+#             rect.set_height(count)
+#
+#         return bar_container.patches
+#
+#     return animate
+# fig, ax = plt.subplots()
+# _, _, bar_container = ax.hist(data, HIST_BINS,lw=1,ec="blue", fc="yellow", alpha=0.5)
+# #ax.set_ylim(top=1)
+# ani = animation.FuncAnimation(fig, prepare_animation(bar_container), 15,repeat=True, blit=True)
+# plt.show()
+# #HTML(ani.to_html5_video())
 # frames = [] # for storing the generated images
 # fig = plt.figure()
 # for i in range(15):
-#     with open('Pickles/1MaySF/SF_may1_'+str(int(i+6))+'_HN1.pickle', 'rb') as f:
+#     with open('pickles/1MaySF/SF_may1_'+ int(i+6) +'_HN1.pickle', 'rb') as f:
 #         SF_matrix = pickle.load(f)
 #     frames.append([plt.imshow(SF_matrix,animated=True)])
-#
-# ani = animation.ArtistAnimation(fig, frames, interval=50, blit=True,
-#                                 repeat_delay=1000)
+# ani = animation.ArtistAnimation(fig, frames, interval=50, blit=True,repeat_delay=1000)
 # writergif = animation.PillowWriter(fps=30)
 # ani.save('/Users/rosaliekievits/Desktop/PlaatjesMEP/ShadowFactors_may1/Out files May 1/New/SFmovie.gif', writer=writergif)
 # plt.show()
 "end movie"
 
 "Shadowfactor"
-coords = coordheight(data)
-[azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,5,radians=True)
-SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
-print(SF)
+# coords = coordheight(data)
+# [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,5,radians=True)
+# SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
+# print(SF)
 # # gridratio = 25
 # SF = SF05mHN1.SFs
 # "The sun rise and sunset time for 1 may are 6 and 20 o clock (GMT)"
