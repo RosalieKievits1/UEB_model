@@ -159,13 +159,15 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
                   (SW_dir * SF_wall + SW_diff * SVF_wall) * albedos_wall * (1-albedos_road) * (1-SVF_road)
 
     " Latent and Sensible Heat fluxes "
-    SHF_roof = Constants.C_pd * Constants.rho_air * (1/Constants.res_roof) * (T_pot(T_old_roof,Constants.p_atm) - T_pot(T_firstlayer,Constants.p_atm))
+    SHF_roof = 0#Constants.C_pd * Constants.rho_air * (1/Constants.res_roof) * (T_pot(T_old_roof,Constants.p_atm) - T_pot(T_firstlayer,Constants.p_atm))
     SHF_wall = 0
-    SHF_road = Constants.C_pd * Constants.rho_air * (1/Constants.res_road) * (T_pot(T_old_road,Constants.p_atm) - T_pot(T_firstlayer,Constants.p_atm))
+    SHF_road = 0#Constants.C_pd * Constants.rho_air * (1/Constants.res_road) * (T_pot(T_old_road,Constants.p_atm) - T_pot(T_firstlayer,Constants.p_atm))
 
-    LHF_roof = Constants.L_v * Constants.rho_air * (1/Constants.res_roof) * (q_sat(T_old_roof,Constants.p_atm) - q_sat(T_firstlayer,Constants.p_atm))
+    LHF_roof = 0#Constants.L_v * Constants.rho_air * (1/Constants.res_roof) * (q_sat(T_old_roof,Constants.p_atm) - q_sat(T_firstlayer,Constants.p_atm))
     LHF_wall = 0
-    LHF_road = Constants.L_v * Constants.rho_air * (1/Constants.res_road) * (q_sat(T_old_road,Constants.p_atm) - q_sat(T_firstlayer,Constants.p_atm))
+    LHF_road = 0#Constants.L_v * Constants.rho_air * (1/Constants.res_road) * (q_sat(T_old_road,Constants.p_atm) - q_sat(T_firstlayer,Constants.p_atm))
+
+
 
     " conduction"
     lamb_ave_out_surf_roof = (d_roof[0]+d_roof[1])/((d_roof[0]/lambdas_roof[:,:,0])+(d_roof[1]/lambdas_roof[:,:,1]))
@@ -277,7 +279,7 @@ def HeatEvolution(time_steps,delta_t,SW_down,LW_down,T_2m,q_first_layer,SVF_roof
             emissivity_roof, emissivity_wall, emissivity_road, \
             capacities_roof, capacities_wall, capacities_road, \
             SVF_roof, SVF_wall, SVF_road, \
-            SF_roof, SF_wall, SF_road, \
+            SF_roof[t,:,:], SF_wall[t,:,:], SF_road[t,:,:], \
             Constants.d_roof, Constants.d_wall, Constants.d_road, \
             lambdas_roof, lambdas_wall, lambdas_road, \
             map_T_old_roof[:,:,0], map_T_old_wall[:,:,0], map_T_old_road[:,:,0], \
@@ -403,8 +405,8 @@ def PlotSurfaceFluxes(nr_of_steps,LW_net,SW_net,SW_down,G_out,LHF,SHF,show=False
     # SHF_cabau[SHF_cabau<-1000] = 0
     # plt.plot(time,LHF_cabau,label="LHF_cabau")
     # plt.plot(time,SHF_cabau,label="SHF_cabau")
-    plt.plot(time,LHF, label="LHF")
-    plt.plot(time,SHF, label="SHF")
+    # plt.plot(time,LHF, label="LHF")
+    # plt.plot(time,SHF, label="SHF")
     plt.plot(time,G_out, label="G")
     plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
     plt.xlabel("Time [h]")

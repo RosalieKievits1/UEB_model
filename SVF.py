@@ -14,6 +14,7 @@ import Constants
 # import SF05mHN1
 # import pickle
 # import SVFs5m
+# import SVFGR25
 # from pynverse import inversefunc
 # from scipy.optimize import curve_fit
 
@@ -400,8 +401,8 @@ def average_surfacetype(matrix,data, grid_ratio):
             part = matrix[int(i*grid_ratio):int((i+1)*grid_ratio), int(j*grid_ratio):int((j+1)*grid_ratio)]
             ave_roof[i,j] = np.mean(part[data_part>0])
             ave_road[i,j] = np.mean(part[data_part<=0])
-    ave_roof[np.isnan(ave_roof)] = 0
-    ave_road[np.isnan(ave_road)] = 0
+    ave_roof[np.isnan(ave_roof)] = np.nanmean(ave_roof)
+    ave_road[np.isnan(ave_road)] = np.nanmean(ave_road)
     return ave_roof,ave_road
 
 def average_svf(SVF_matrix, grid_ratio):
@@ -700,6 +701,7 @@ def WallSF_fit(Zenith,SF_road):
     popt, pcov = curve_fit(Wall_roadSF_fit, SF_r, SF_w)
     SF_wall = Wall_roadSF_fit(SF_road,popt[0],popt[1],popt[2])
     SF_wall[np.isnan(SF_wall)] = np.nanmean(SF_wall)
+    SF_wall[np.isnan(SF_wall)] = 0
     return SF_wall
 
 "The block is divided into 25 blocks, this is still oke with the max radius but it does not take to much memory"
@@ -729,13 +731,13 @@ elif (gridboxsize==0.5):
     data = readdata(minheight,dsm_HN1,dtm_HN1)
     [x_long, y_long] = data.shape
     #data = data[:int(x_long/5),int(y_long/5):int(2*y_long/5)]
-    data = data[:int(x_long/5),:int(y_long/5)]
+    data = data[:int(x_long/5),int(2*y_long/5):int(3*y_long/5)]
     #SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
     [x_len,y_len] = data.shape
-#data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 #
+# print(np.max(data))
 # plt.figure()
-# plt.imshow(data,vmin=0,vmax=20)
+# plt.imshow(data,vmin=0,vmax=50)
 # plt.show()
 #
 # H_w = np.linspace(0.2,5,20)
@@ -875,24 +877,24 @@ elif (gridboxsize==0.5):
 # plt.show()
 
 "We are going to average the data over 12.5m and compute the SVF again"
-# coords = coordheight(data)
-# blocklength = int(x_len/2*y_len/2)
-# SVFs = calc_SVF(coords, max_radius, blocklength, gridboxsize)
-# "The SVFs non averaged"
-# print(SVFs)
+coords = coordheight(data)
+blocklength = int(x_len/2*y_len/2)
+SVFs = calc_SVF(coords, max_radius, blocklength, gridboxsize)
+print("The SVFs non averaged")
+print(SVFs)
 #
-gridratio = 25
+gridratio = 5
 data = average_svf(data,gridratio)
 coords = coordheight(data)
 [x_len, y_len] = data.shape
 blocklength = int(x_len/2*y_len/2)
 SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
-"The SVFs averaged over 12.5m"
+print("The SVFs averaged over 2.5m")
 print(SVFs)
 
-# SVF = SVFs5m.SVFs
-# #np.save('SVFP1_List', SVF)
-# #SVFs = calc_SVF(coords, max_radius, blocklength, int(gridboxsize*gridratio))
+# SVF = SVFGR25.SVFs
+#np.save('SVFP1_List', SVF)
+#SVFs = calc_SVF(coords, max_radius, blocklength, int(gridboxsize*gridratio))
 # SVF_matrix = np.ndarray([x_len,y_len])
 # for i in range(int(x_len/2*y_len/2)):
 #     SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVF[i]
@@ -900,7 +902,7 @@ print(SVFs)
 # plt.figure()
 # plt.imshow(SVF_matrix, vmin=0, vmax=1)
 # plt.show()
-# np.save('SVFP2_GR5_Matrix', SVF_matrix)
+# np.save('SVF_GR25_Matrix', SVF_matrix)
 #print(SVF_matrix)
 
 "Height width influence on SVF"
