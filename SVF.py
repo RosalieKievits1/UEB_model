@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 from multiprocessing.pool import Pool
 import tifffile as tf
 from tqdm import tqdm
-#import Functions
 import config
 from functools import partial
 import time
@@ -120,6 +119,24 @@ def datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4):
     """right lower block"""
     bigblock[x_len::,y_len::] = block4
     return bigblock
+
+def MediateData(data,delta_x,delta_y,delta_z,gridboxsize):
+    "In this averaging, the gridcell must be half full to be full or it will be empty"
+    "Define what the ratios of gridcells are in x and y direction"
+    min_vol = delta_x*delta_y*delta_z
+    [x_len,y_len] = data.shape
+    GR_x = delta_x/gridboxsize
+    GR_y = delta_y/gridboxsize
+    if np.logical_or((x_len%GR_x != 0),(y_len%GR_y != 0)):
+        print('The chosen gridboxsizes are not appropriate')
+    data_new = np.zeros([int(x_len/GR_x),int(y_len/GR_y)])
+    [x_len,y_len] = data_new.shape
+    for i in range(x_len):
+        for j in range(y_len):
+            part = data[int(i*GR_x):int((i+1)*GR_x),int(j*GR_y):int((j+1)*GR_y)]
+            Vol = np.sum(part)
+            data_new[i,j] = np.floor(Vol/min_vol)*delta_z
+    return data_new
 
 """First we store the data in a more workable form"""
 def coordheight(data):
@@ -730,13 +747,14 @@ elif (gridboxsize==0.5):
     dsm_HN1 = "".join([input_dir, '/R_37HN1.TIF'])
     data = readdata(minheight,dsm_HN1,dtm_HN1)
     [x_long, y_long] = data.shape
-    data = data[:int(x_long/5),int(y_long/5):int(2*y_long/5)]
+    #data = data[:int(x_long/5),int(y_long/5):int(2*y_long/5)]
     #data = data[:int(x_long/5),int(2*y_long/5):int(3*y_long/5)]
-    #data = data[:int(x_long/5),:int(y_long/5)]
+    data = data[:int(x_long/5),:int(y_long/5)]
 
     #SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
     [x_len,y_len] = data.shape
 #
+
 # data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 # print(np.max(data))
 # plt.figure()
@@ -795,8 +813,7 @@ elif (gridboxsize==0.5):
 # data = average_svf(data,gridratio)
 # [x_len,y_len] = data.shape
 # data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-# # # #
-# with open('SVF_MatrixP3_GR25.npy', 'rb') as f:
+# with open('SVF_MatrixP2_GR25.npy', 'rb') as f:
 #     SVF_matrix = np.load(f)
 # print(np.mean(SVF_matrix))
 # #grid_ratio=1
@@ -890,13 +907,25 @@ elif (gridboxsize==0.5):
 # print("The SVFs non averaged")
 # print(SVFs)
 #
-gridratio = 25
-data = average_svf(data,gridratio)
-coords = coordheight(data)
-[x_len, y_len] = data.shape
+"We now choose a new way of averaging the data:"
+data_new = MediateData(data,5,5,5,0.5)
+gridratio = 5
+# data = average_svf(data,gridratio)
+coords = coordheight(data_new)
+[x_len, y_len] = data_new.shape
 blocklength = int(x_len/2*y_len/2)
 SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
-print("The SVFs averaged over 12.5m")
+print("The SVFs averaged over 2.5m in x y and z")
+print(SVFs)
+
+data_new = MediateData(data,12.5,12.5,10,0.5)
+gridratio = 12.5
+# data = average_svf(data,gridratio)
+coords = coordheight(data_new)
+[x_len, y_len] = data_new.shape
+blocklength = int(x_len/2*y_len/2)
+SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
+print("The SVFs with delta x, delta y 12.5m delta z 10m")
 print(SVFs)
 # SVF = SVFs05m.SVFs
 # SVF = SVFGR25.SVFs
@@ -909,8 +938,8 @@ print(SVFs)
 # plt.figure()
 # plt.imshow(SVF_matrix, vmin=0, vmax=1)
 # plt.show()
-# np.save('SVF_MatrixP3_GR25', SVF_matrix)
-#print(SVF_matrix)
+# np.save('SVF_MatrixP2_GR25', SVF_matrix)
+# print(SVF_matrix)
 
 "Height width influence on SVF"
 "Let's say you would have a repeating building block of 20m wide and 20 m high with 10 m wide streets: " \

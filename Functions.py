@@ -58,6 +58,7 @@ def T_pot(T,p):
     T_pot = T * (p_zero/p)**0.286
     return T_pot
 
+
 """Equations for map model"""
 def initialize_map(layers,shape):
     """
