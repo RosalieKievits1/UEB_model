@@ -908,25 +908,26 @@ elif (gridboxsize==0.5):
 # print(SVFs)
 #
 "We now choose a new way of averaging the data:"
-data_new = MediateData(data,5,5,5,0.5)
+data_new = MediateData(data,2.5,2.5,5,0.5)
+print(data_new.shape)
 gridratio = 5
-# data = average_svf(data,gridratio)
+data = average_svf(data,gridratio)
 coords = coordheight(data_new)
 [x_len, y_len] = data_new.shape
 blocklength = int(x_len/2*y_len/2)
 SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
 print("The SVFs averaged over 2.5m in x y and z")
 print(SVFs)
-
-data_new = MediateData(data,12.5,12.5,10,0.5)
-gridratio = 12.5
-# data = average_svf(data,gridratio)
-coords = coordheight(data_new)
-[x_len, y_len] = data_new.shape
-blocklength = int(x_len/2*y_len/2)
-SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
-print("The SVFs with delta x, delta y 12.5m delta z 10m")
-print(SVFs)
+#
+# data_new = MediateData(data,12.5,12.5,10,0.5)
+# gridratio = 12.5
+# # data = average_svf(data,gridratio)
+# coords = coordheight(data_new)
+# [x_len, y_len] = data_new.shape
+# blocklength = int(x_len/2*y_len/2)
+# SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
+# print("The SVFs with delta x, delta y 12.5m delta z 10m")
+# print(SVFs)
 # SVF = SVFs05m.SVFs
 # SVF = SVFGR25.SVFs
 # np.save('SVFP1_List', SVF)
