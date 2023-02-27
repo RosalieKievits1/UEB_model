@@ -732,12 +732,15 @@ elif (gridboxsize==0.5):
     [x_long, y_long] = data.shape
     #data = data[:int(x_long/5),int(y_long/5):int(2*y_long/5)]
     data = data[:int(x_long/5),int(2*y_long/5):int(3*y_long/5)]
+    #data = data[:int(x_long/5),:int(y_long/5)]
+
     #SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
     [x_len,y_len] = data.shape
 #
+# data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 # print(np.max(data))
 # plt.figure()
-# plt.imshow(data,vmin=0,vmax=50)
+# plt.imshow(data,vmin=0,vmax=40)
 # plt.show()
 #
 # H_w = np.linspace(0.2,5,20)
@@ -787,14 +790,15 @@ elif (gridboxsize==0.5):
 # SF_wall_ave = np.empty((len(SF_road_ave)))
 # for h in range(len(SF_road_ave)):
 #     SF_wall_ave[h] = f1(SF_road_ave[h], popt[0],popt[1],popt[2])
-"Histograms"
+# "Histograms"
 # gridratio = 5
 # data = average_svf(data,gridratio)
 # [x_len,y_len] = data.shape
 # data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-#
-# with open('SVFP2_Matrix.npy', 'rb') as f:
+# # #
+# with open('SVFP2_GR5_Matrix.npy', 'rb') as f:
 #     SVF_matrix = np.load(f)
+# print(np.mean(SVF_matrix))
 # #grid_ratio=1
 # bin_nr = 30
 # SVF_roof_ave = []
@@ -805,16 +809,19 @@ elif (gridboxsize==0.5):
 #             SVF_roof_ave.append(SVF_matrix[i,j])
 #         else:
 #             SVF_road_ave.append(SVF_matrix[i,j])
+# print(np.mean(SVF_road_ave))
+# print(np.mean(SVF_roof_ave))
 # plt.figure()
 # SVF_list = SVF_matrix.flatten()
 # plt.hist(SVF_list, bins = bin_nr,weights=np.ones(len(SVF_list))/len(SVF_list))
 # plt.ylabel('Normalized Counts [0-1]')
 # plt.xlabel('SVF [0-1]')
 # plt.figure()
-# SVF_road_ave = SVF_ave_road.flatten()
-# SVF_roof_ave = SVF_ave_roof.flatten()
-#SVF_road_ave = np.array(SVF_road_ave)
+# # SVF_road_ave = SVF_road_ave.flatten()
+# # SVF_roof_ave = SVF_roof_ave.flatten()
+# SVF_road_ave = np.array(SVF_road_ave)
 # SVF_wall_ave = Inv_WallvsRoadMasson(np.array(SVF_road_ave))
+# print(np.mean(SVF_wall_ave))
 # print(len(SVF_road_ave)/(len(SVF_road_ave)+len(SVF_roof_ave)))
 # plt.figure()
 # plt.hist(SVF_wall_ave, bins = bin_nr,weights=np.ones(len(SVF_wall_ave))/len(SVF_wall_ave))
@@ -877,24 +884,24 @@ elif (gridboxsize==0.5):
 # plt.show()
 
 "We are going to average the data over 12.5m and compute the SVF again"
-coords = coordheight(data)
-blocklength = int(x_len/2*y_len/2)
-SVFs = calc_SVF(coords, max_radius, blocklength, gridboxsize)
-print("The SVFs non averaged")
-print(SVFs)
+# coords = coordheight(data)
+# blocklength = int(x_len/2*y_len/2)
+# SVFs = calc_SVF(coords, max_radius, blocklength, gridboxsize)
+# print("The SVFs non averaged")
+# print(SVFs)
 #
-gridratio = 5
+gridratio = 25
 data = average_svf(data,gridratio)
 coords = coordheight(data)
 [x_len, y_len] = data.shape
 blocklength = int(x_len/2*y_len/2)
 SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
-print("The SVFs averaged over 2.5m")
+print("The SVFs averaged over 12.5m")
 print(SVFs)
-
+# SVF = SVFs05m.SVFs
 # SVF = SVFGR25.SVFs
-#np.save('SVFP1_List', SVF)
-#SVFs = calc_SVF(coords, max_radius, blocklength, int(gridboxsize*gridratio))
+# np.save('SVFP1_List', SVF)
+# SVFs = calc_SVF(coords, max_radius, blocklength, int(gridboxsize*gridratio))
 # SVF_matrix = np.ndarray([x_len,y_len])
 # for i in range(int(x_len/2*y_len/2)):
 #     SVF_matrix[int(coords[i,0]),int(coords[i,1])] = SVF[i]
@@ -902,7 +909,7 @@ print(SVFs)
 # plt.figure()
 # plt.imshow(SVF_matrix, vmin=0, vmax=1)
 # plt.show()
-# np.save('SVF_GR25_Matrix', SVF_matrix)
+# np.save('SVF_MatrixP3', SVF_matrix)
 #print(SVF_matrix)
 
 "Height width influence on SVF"
