@@ -730,8 +730,8 @@ elif (gridboxsize==0.5):
     dsm_HN1 = "".join([input_dir, '/R_37HN1.TIF'])
     data = readdata(minheight,dsm_HN1,dtm_HN1)
     [x_long, y_long] = data.shape
-    #data = data[:int(x_long/5),int(y_long/5):int(2*y_long/5)]
-    data = data[:int(x_long/5),int(2*y_long/5):int(3*y_long/5)]
+    data = data[:int(x_long/5),int(y_long/5):int(2*y_long/5)]
+    #data = data[:int(x_long/5),int(2*y_long/5):int(3*y_long/5)]
     #data = data[:int(x_long/5),:int(y_long/5)]
 
     #SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
@@ -791,12 +791,12 @@ elif (gridboxsize==0.5):
 # for h in range(len(SF_road_ave)):
 #     SF_wall_ave[h] = f1(SF_road_ave[h], popt[0],popt[1],popt[2])
 # "Histograms"
-# gridratio = 5
+# gridratio = 25
 # data = average_svf(data,gridratio)
 # [x_len,y_len] = data.shape
 # data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-# # #
-# with open('SVFP2_GR5_Matrix.npy', 'rb') as f:
+# # # #
+# with open('SVF_MatrixP3_GR25.npy', 'rb') as f:
 #     SVF_matrix = np.load(f)
 # print(np.mean(SVF_matrix))
 # #grid_ratio=1
@@ -909,7 +909,7 @@ print(SVFs)
 # plt.figure()
 # plt.imshow(SVF_matrix, vmin=0, vmax=1)
 # plt.show()
-# np.save('SVF_MatrixP3', SVF_matrix)
+# np.save('SVF_MatrixP3_GR25', SVF_matrix)
 #print(SVF_matrix)
 
 "Height width influence on SVF"
