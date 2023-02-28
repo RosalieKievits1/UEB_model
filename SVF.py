@@ -7,7 +7,7 @@ import config
 from functools import partial
 import time
 #import KNMI_SVF_verification
-import Constants
+# import Constants
 # import Sunpos
 # import SVFs05m
 # import SF05mHN1
@@ -748,8 +748,8 @@ elif (gridboxsize==0.5):
     data = readdata(minheight,dsm_HN1,dtm_HN1)
     [x_long, y_long] = data.shape
     #data = data[:int(x_long/5),int(y_long/5):int(2*y_long/5)]
-    data = data[:int(x_long/5),int(2*y_long/5):int(3*y_long/5)]
-    #data = data[:int(x_long/5),:int(y_long/5)]
+    # data = data[:int(x_long/5),int(2*y_long/5):int(3*y_long/5)]
+    data = data[:int(x_long/5),:int(y_long/5)]
 
     #SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
     [x_len,y_len] = data.shape
@@ -919,7 +919,7 @@ blocklength = int(x_len/2*y_len/2)
 SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
 print("The SVFs averaged over 2.5m in x y and z")
 print(SVFs)
-#
+# #
 data_new = MediateData(data,12.5,12.5,10,0.5)
 gridratio = 25
 coords = coordheight(data_new)
@@ -928,6 +928,7 @@ blocklength = int(x_len/2*y_len/2)
 SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
 print("The SVFs with delta x, delta y 12.5m delta z 10m")
 print(SVFs)
+# SVF = SVFs5m.SVFs
 # SVF = SVFs05m.SVFs
 # SVF = SVFGR25.SVFsGR25NMP3
 # print(len(SVF))
@@ -940,7 +941,7 @@ print(SVFs)
 # plt.figure()
 # plt.imshow(SVF_matrix, vmin=0, vmax=1)
 # plt.show()
-# np.save('SVF_MatrixP3_GR25_newMethod', SVF_matrix)
+# np.save('SVF_MatrixP3_GR5_newMethod', SVF_matrix)
 # print(SVF_matrix)
 
 "Height width influence on SVF"
