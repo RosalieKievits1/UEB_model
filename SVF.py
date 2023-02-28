@@ -748,17 +748,19 @@ elif (gridboxsize==0.5):
     data = readdata(minheight,dsm_HN1,dtm_HN1)
     [x_long, y_long] = data.shape
     #data = data[:int(x_long/5),int(y_long/5):int(2*y_long/5)]
-    #data = data[:int(x_long/5),int(2*y_long/5):int(3*y_long/5)]
-    data = data[:int(x_long/5),:int(y_long/5)]
+    data = data[:int(x_long/5),int(2*y_long/5):int(3*y_long/5)]
+    #data = data[:int(x_long/5),:int(y_long/5)]
 
     #SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
     [x_len,y_len] = data.shape
 #
 
+# data = MediateData(data,12.5,12.5,10,gridboxsize)
+# [x_len,y_len] = data.shape
 # data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 # print(np.max(data))
 # plt.figure()
-# plt.imshow(data,vmin=0,vmax=40)
+# plt.imshow(data,vmin=0)
 # plt.show()
 #
 # H_w = np.linspace(0.2,5,20)
@@ -813,7 +815,7 @@ elif (gridboxsize==0.5):
 # data = average_svf(data,gridratio)
 # [x_len,y_len] = data.shape
 # data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-# with open('SVF_MatrixP2_GR25.npy', 'rb') as f:
+# with open('SVF_MatrixP1_GR25_newMethod.npy', 'rb') as f:
 #     SVF_matrix = np.load(f)
 # print(np.mean(SVF_matrix))
 # #grid_ratio=1
@@ -919,17 +921,17 @@ SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
 print("The SVFs averaged over 2.5m in x y and z")
 print(SVFs)
 #
-# data_new = MediateData(data,12.5,12.5,10,0.5)
-# gridratio = 12.5
+data_new = MediateData(data,12.5,12.5,10,0.5)
+gridratio = 25
 # # data = average_svf(data,gridratio)
-# coords = coordheight(data_new)
-# [x_len, y_len] = data_new.shape
-# blocklength = int(x_len/2*y_len/2)
-# SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
-# print("The SVFs with delta x, delta y 12.5m delta z 10m")
-# print(SVFs)
+coords = coordheight(data_new)
+[x_len, y_len] = data_new.shape
+blocklength = int(x_len/2*y_len/2)
+SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
+print("The SVFs with delta x, delta y 12.5m delta z 10m")
+print(SVFs)
 # SVF = SVFs05m.SVFs
-# SVF = SVFGR25.SVFs
+# SVF = SVFs5m.SVFs
 # np.save('SVFP1_List', SVF)
 # SVFs = calc_SVF(coords, max_radius, blocklength, int(gridboxsize*gridratio))
 # SVF_matrix = np.ndarray([x_len,y_len])
@@ -939,7 +941,7 @@ print(SVFs)
 # plt.figure()
 # plt.imshow(SVF_matrix, vmin=0, vmax=1)
 # plt.show()
-# np.save('SVF_MatrixP2_GR25', SVF_matrix)
+# np.save('SVF_MatrixP1_GR5_newMethod', SVF_matrix)
 # print(SVF_matrix)
 
 "Height width influence on SVF"
