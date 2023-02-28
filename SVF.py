@@ -913,7 +913,6 @@ elif (gridboxsize==0.5):
 data_new = MediateData(data,2.5,2.5,2.5,0.5)
 print(data_new.shape)
 gridratio = 5
-data = average_svf(data,gridratio)
 coords = coordheight(data_new)
 [x_len, y_len] = data_new.shape
 blocklength = int(x_len/2*y_len/2)
@@ -923,7 +922,6 @@ print(SVFs)
 #
 data_new = MediateData(data,12.5,12.5,10,0.5)
 gridratio = 25
-# # # data = average_svf(data,gridratio)
 coords = coordheight(data_new)
 [x_len, y_len] = data_new.shape
 blocklength = int(x_len/2*y_len/2)
