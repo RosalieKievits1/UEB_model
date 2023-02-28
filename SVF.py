@@ -7,7 +7,7 @@ import config
 from functools import partial
 import time
 #import KNMI_SVF_verification
-# import Constants
+import Constants
 # import Sunpos
 # import SVFs05m
 # import SF05mHN1
