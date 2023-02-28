@@ -135,7 +135,7 @@ def MediateData(data,delta_x,delta_y,delta_z,gridboxsize):
         for j in range(y_len):
             part = data[int(i*GR_x):int((i+1)*GR_x),int(j*GR_y):int((j+1)*GR_y)]
             Vol = np.sum(part)
-            data_new[i,j] = np.floor(Vol/min_vol)*delta_z
+            data_new[i,j] = np.round(Vol/min_vol)*delta_z
     return data_new
 
 """First we store the data in a more workable form"""
@@ -755,7 +755,7 @@ elif (gridboxsize==0.5):
     [x_len,y_len] = data.shape
 #
 
-# data = MediateData(data,12.5,12.5,10,gridboxsize)
+# data = MediateData(data,2.5,2.5,2.5,gridboxsize)
 # [x_len,y_len] = data.shape
 # data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 # print(np.max(data))
@@ -815,7 +815,7 @@ elif (gridboxsize==0.5):
 # data = average_svf(data,gridratio)
 # [x_len,y_len] = data.shape
 # data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-# with open('SVF_MatrixP1_GR25_newMethod.npy', 'rb') as f:
+# with open('SVF_MatrixP3_GR5_newMethod.npy', 'rb') as f:
 #     SVF_matrix = np.load(f)
 # print(np.mean(SVF_matrix))
 # #grid_ratio=1
@@ -835,9 +835,9 @@ elif (gridboxsize==0.5):
 # plt.hist(SVF_list, bins = bin_nr,weights=np.ones(len(SVF_list))/len(SVF_list))
 # plt.ylabel('Normalized Counts [0-1]')
 # plt.xlabel('SVF [0-1]')
-# plt.figure()
-# # SVF_road_ave = SVF_road_ave.flatten()
-# # SVF_roof_ave = SVF_roof_ave.flatten()
+# # plt.figure()
+# # # SVF_road_ave = SVF_road_ave.flatten()
+# # # SVF_roof_ave = SVF_roof_ave.flatten()
 # SVF_road_ave = np.array(SVF_road_ave)
 # SVF_wall_ave = Inv_WallvsRoadMasson(np.array(SVF_road_ave))
 # print(np.mean(SVF_wall_ave))
@@ -910,7 +910,7 @@ elif (gridboxsize==0.5):
 # print(SVFs)
 #
 "We now choose a new way of averaging the data:"
-data_new = MediateData(data,2.5,2.5,5,0.5)
+data_new = MediateData(data,2.5,2.5,2.5,0.5)
 print(data_new.shape)
 gridratio = 5
 data = average_svf(data,gridratio)
@@ -923,7 +923,7 @@ print(SVFs)
 #
 data_new = MediateData(data,12.5,12.5,10,0.5)
 gridratio = 25
-# # data = average_svf(data,gridratio)
+# # # data = average_svf(data,gridratio)
 coords = coordheight(data_new)
 [x_len, y_len] = data_new.shape
 blocklength = int(x_len/2*y_len/2)
@@ -931,7 +931,8 @@ SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
 print("The SVFs with delta x, delta y 12.5m delta z 10m")
 print(SVFs)
 # SVF = SVFs05m.SVFs
-# SVF = SVFs5m.SVFs
+# SVF = SVFGR25.SVFsGR25NMP3
+# print(len(SVF))
 # np.save('SVFP1_List', SVF)
 # SVFs = calc_SVF(coords, max_radius, blocklength, int(gridboxsize*gridratio))
 # SVF_matrix = np.ndarray([x_len,y_len])
@@ -941,7 +942,7 @@ print(SVFs)
 # plt.figure()
 # plt.imshow(SVF_matrix, vmin=0, vmax=1)
 # plt.show()
-# np.save('SVF_MatrixP1_GR5_newMethod', SVF_matrix)
+# np.save('SVF_MatrixP3_GR25_newMethod', SVF_matrix)
 # print(SVF_matrix)
 
 "Height width influence on SVF"
