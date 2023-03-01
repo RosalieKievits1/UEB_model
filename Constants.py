@@ -11,6 +11,7 @@ layers = 7
 d_roof = np.ones([layers]) * 0.05 #[0.05,0.1,0.15, 0.2] #
 d_wall = np.ones([layers]) * 0.05 #[0.05,0.1,0.15, 0.2] #
 d_road = np.ones([layers]) * 0.05 #[0.05,0.1,0.15, 0.2] #
+d_water = np.ones([layers]) * 0.1 #[0.05,0.1,0.15, 0.2] #
 
 """timestep"""
 timestep = 10*60 #[s]

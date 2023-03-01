@@ -8,14 +8,14 @@ from functools import partial
 import time
 #import KNMI_SVF_verification
 import Constants
-# import Sunpos
-# import SVFs05m
-# import SF05mHN1
-# import pickle
-# import SVFs5m
-# import SVFGR25
-# from pynverse import inversefunc
-# from scipy.optimize import curve_fit
+import Sunpos
+import SVFs05m
+import SF05mHN1
+import pickle
+import SVFs5m
+import SVFGR25
+from pynverse import inversefunc
+from scipy.optimize import curve_fit
 
 sttime = time.time()
 
@@ -96,8 +96,8 @@ def readdata(minheight,dsm,dtm):
     datadiffcopy[data_diff<minheight] = 0
     data_final = datadiffcopy
     """All water elements are set to zero"""
-    data_final = data_final - data_water
-    return data_final
+    #data_final = data_final - data_water
+    return data_final, data_water
 
 def datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4):
     """
@@ -354,7 +354,7 @@ def reshape_SVF(data, coords,gridboxsize,azimuth,zenith,reshape,save_CSV,save_Im
         return SFs #,SVFs#,
 
 
-def geometricProperties(data,grid_ratio,gridboxsize):
+def geometricProperties(data,data_water,grid_ratio,gridboxsize):
     """
     Function that determines the average height over width of an area,
     the average height over width, and the built fraction of an area
@@ -379,12 +379,13 @@ def geometricProperties(data,grid_ratio,gridboxsize):
     for i in range(int(x_long/grid_ratio)):
         for j in range(int(y_long/grid_ratio)):
             part = data[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
+            part_water = data_water[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
             part_wall = Wall_area_gridcell[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
             ave_height[i,j] = np.mean(part[part>0])
             road_elements[i,j] = max(np.count_nonzero(part==0),0)
             built_elements[i,j] = max(np.count_nonzero(part>0),0)
             "The road elements are actually also water elements"
-            water_elements[i,j] = max(np.count_nonzero(part==-1),0)
+            water_elements[i,j] = max(np.count_nonzero(part_water),0)
             delta[i,j] = built_elements[i,j]/(road_elements[i,j]+built_elements[i,j]+water_elements[i,j])
             wall_area_med[i,j] = max(np.sum(part_wall),0)
 
@@ -403,9 +404,9 @@ def geometricProperties(data,grid_ratio,gridboxsize):
     Wall_frac = np.around(wall_area_med/Total_area,3)
     Road_frac = np.around(Road_area/Total_area,3)
     Water_frac = np.around(Water_area/Total_area,3)
-    #Road_frac = Road_frac + Water_frac
+    Ground_frac = Road_frac + Water_frac
     H_W = ave_height * delta
-    return Roof_frac, Wall_frac, Road_frac #Roof_area, wall_area_med, Road_area#
+    return Roof_frac, Wall_frac, Road_frac,Water_frac #Roof_area, wall_area_med, Road_area#
 
 def average_surfacetype(matrix,data, grid_ratio):
     [x_long, y_long] = matrix.shape
@@ -480,46 +481,22 @@ def wallArea(data,gridboxsize):
     data[data<0] = 0
     """We only evaluate the area in the center block"""
     "The 3d wall area matrix is the size of data with 4 rows for each wall in order north, east, south west"
-    if gridboxsize==5:
-        wall_area = np.ndarray([int(x_len-2*max_radius/gridboxsize),int(y_len-2*max_radius/gridboxsize),4])
-    elif gridboxsize==0.5:
-        #wall_area = np.ndarray([int(x_len/2),int(y_len/2),4])
-        wall_area = np.zeros([int(x_len),int(y_len),4])
+    wall_area = np.zeros([int(x_len),int(y_len),4])
 
-    if (gridboxsize == 0.5):
-        for i in range(int(x_len/4),int(3*x_len/4)):
-            for j in range(int(y_len/4),int(3*y_len/4)):
-                if (data[i,j]>0):
-                    """We check for all the points surrounding the building if they are also buildings, 
-                    if the building next to it is higher the wall belongs to the building next to it,
-                    if the current building is higher, the exterior wall is the difference in height * gridboxsize"""
-                    wall_area[i,j,0] = max(data[i,j]-data[i-1,j],0)*gridboxsize
-                    wall_area[i,j,1] = max(data[i,j]-data[i,j+1],0)*gridboxsize
-                    wall_area[i,j,2] = max(data[i,j]-data[i+1,j],0)*gridboxsize
-                    wall_area[i,j,3] = max(data[i,j]-data[i,j-1],0)*gridboxsize
-                    """The wall area corresponding to that building is"""
-                    #wall_area[int(i-x_len/4),int(j-y_len/4)] = wall1+wall2+wall3+wall4
-                elif (data[i,j]==0):
-                    wall_area[int(i-x_len/4),int(j-x_len/4),:] = 0
-    elif (gridboxsize==5):
-        i = int(max_radius/gridboxsize)
-        j = int(max_radius/gridboxsize)
-        while i < int(x_len-max_radius/gridboxsize):
-            while j < int(y_len-max_radius/gridboxsize):
-                if (data[i,j]>0):
-                    """We check for all the points surrounding the building if they are also buildings, 
-                    if the building next to it is higher the wall belongs to the building next to it,
-                    if the current building is higher, the exterior wall is the difference in height * gridboxsize"""
-                    wall_area[int(i-max_radius/gridboxsize),int(j-max_radius/gridboxsize),0] = max(data[i,j]-data[i-1,j],0)*gridboxsize
-                    wall_area[int(i-max_radius/gridboxsize),int(j-max_radius/gridboxsize),2] = max(data[i,j]-data[i,j+1],0)*gridboxsize
-                    wall_area[int(i-max_radius/gridboxsize),int(j-max_radius/gridboxsize),1] = max(data[i,j]-data[i+1,j],0)*gridboxsize
-                    wall_area[int(i-max_radius/gridboxsize),int(j-max_radius/gridboxsize),3] = max(data[i,j]-data[i,j-1],0)*gridboxsize
-                    """The wall area corresponding to that building is"""
-                    #wall_area[int(i-max_radius/gridboxsize),int(j-max_radius/gridboxsize)] = np.sum(wall,axis=2)
-                elif (data[i,j]==0):
-                    wall_area[int(i-max_radius/gridboxsize),int(j-max_radius/gridboxsize),:] = 0
-                j+=1
-            i+=1
+    for i in range(int(x_len/4),int(3*x_len/4)):
+        for j in range(int(y_len/4),int(3*y_len/4)):
+            if (data[i,j]>0):
+                """We check for all the points surrounding the building if they are also buildings, 
+                if the building next to it is higher the wall belongs to the building next to it,
+                if the current building is higher, the exterior wall is the difference in height * gridboxsize"""
+                wall_area[i,j,0] = max(data[i,j]-data[i-1,j],0)*gridboxsize
+                wall_area[i,j,1] = max(data[i,j]-data[i,j+1],0)*gridboxsize
+                wall_area[i,j,2] = max(data[i,j]-data[i+1,j],0)*gridboxsize
+                wall_area[i,j,3] = max(data[i,j]-data[i,j-1],0)*gridboxsize
+                """The wall area corresponding to that building is"""
+                #wall_area[int(i-x_len/4),int(j-y_len/4)] = wall1+wall2+wall3+wall4
+            elif (data[i,j]==0):
+                wall_area[int(i-x_len/4),int(j-x_len/4),:] = 0
     """wall_area is a matrix of the size of center block of data, 
     with each point storing the exterior wall for that building,
     wall_area_total is the total exterior wall area of the dataset"""
@@ -739,23 +716,23 @@ print("The Date is " + str(Constants.julianday) + " and time is " + str(Constant
 if (gridboxsize==5):
     dtm_HN1 = "".join([input_dir, '/M5_37HN1.TIF'])
     dsm_HN1 = "".join([input_dir, '/R5_37HN1.TIF'])
-    data = readdata(minheight,dsm_HN1,dtm_HN1)
+    [data, data_water] = readdata(minheight,dsm_HN1,dtm_HN1)
     [x_long, y_long] = data.shape
 
 elif (gridboxsize==0.5):
     dtm_HN1 = "".join([input_dir, '/M_37HN1.TIF'])
     dsm_HN1 = "".join([input_dir, '/R_37HN1.TIF'])
-    data = readdata(minheight,dsm_HN1,dtm_HN1)
+    [data, data_water] = readdata(minheight,dsm_HN1,dtm_HN1)
     [x_long, y_long] = data.shape
     #data = data[:int(x_long/5),int(y_long/5):int(2*y_long/5)]
-    # data = data[:int(x_long/5),int(2*y_long/5):int(3*y_long/5)]
+    #data = data[:int(x_long/5),int(2*y_long/5):int(3*y_long/5)]
     data = data[:int(x_long/5),:int(y_long/5)]
 
     #SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
     [x_len,y_len] = data.shape
 #
 
-# data = MediateData(data,2.5,2.5,2.5,gridboxsize)
+# data = MediateData(data,12.5,12.5,10,gridboxsize)
 # [x_len,y_len] = data.shape
 # data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 # print(np.max(data))
@@ -815,7 +792,7 @@ elif (gridboxsize==0.5):
 # data = average_svf(data,gridratio)
 # [x_len,y_len] = data.shape
 # data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-# with open('SVF_MatrixP3_GR5_newMethod.npy', 'rb') as f:
+# with open('SVF_MatrixP1_GR25_newMethod.npy', 'rb') as f:
 #     SVF_matrix = np.load(f)
 # print(np.mean(SVF_matrix))
 # #grid_ratio=1
@@ -835,9 +812,9 @@ elif (gridboxsize==0.5):
 # plt.hist(SVF_list, bins = bin_nr,weights=np.ones(len(SVF_list))/len(SVF_list))
 # plt.ylabel('Normalized Counts [0-1]')
 # plt.xlabel('SVF [0-1]')
-# # plt.figure()
-# # # SVF_road_ave = SVF_road_ave.flatten()
-# # # SVF_roof_ave = SVF_roof_ave.flatten()
+# # # plt.figure()
+# # # # SVF_road_ave = SVF_road_ave.flatten()
+# # # # SVF_roof_ave = SVF_roof_ave.flatten()
 # SVF_road_ave = np.array(SVF_road_ave)
 # SVF_wall_ave = Inv_WallvsRoadMasson(np.array(SVF_road_ave))
 # print(np.mean(SVF_wall_ave))
@@ -910,27 +887,27 @@ elif (gridboxsize==0.5):
 # print(SVFs)
 #
 "We now choose a new way of averaging the data:"
-data_new = MediateData(data,2.5,2.5,2.5,0.5)
-print(data_new.shape)
-gridratio = 5
-coords = coordheight(data_new)
-[x_len, y_len] = data_new.shape
-blocklength = int(x_len/2*y_len/2)
-SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
-print("The SVFs averaged over 2.5m in x y and z")
-print(SVFs)
-# #
-data_new = MediateData(data,12.5,12.5,10,0.5)
-gridratio = 25
-coords = coordheight(data_new)
-[x_len, y_len] = data_new.shape
-blocklength = int(x_len/2*y_len/2)
-SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
-print("The SVFs with delta x, delta y 12.5m delta z 10m")
-print(SVFs)
+# data_new = MediateData(data,2.5,2.5,2.5,0.5)
+# print(data_new.shape)
+# gridratio = 5
+# coords = coordheight(data_new)
+# [x_len, y_len] = data_new.shape
+# blocklength = int(x_len/2*y_len/2)
+# SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
+# print("The SVFs averaged over 2.5m in x y and z")
+# print(SVFs)
+# # #
+# data_new = MediateData(data,2.5,2.5,2.5,0.5)
+# gridratio = 5
+# coords = coordheight(data_new)
+# [x_len, y_len] = data_new.shape
+# blocklength = int(x_len/2*y_len/2)
+# SVFs = calc_SVF(coords, max_radius, blocklength, int(gridratio*gridboxsize))
+# print("The SVFs with delta x, delta y 12.5m delta z 10m")
+# print(SVFs)
 # SVF = SVFs5m.SVFs
 # SVF = SVFs05m.SVFs
-# SVF = SVFGR25.SVFsGR25NMP3
+# SVF = SVFGR25.SVFsGR25NMP1
 # print(len(SVF))
 # np.save('SVFP1_List', SVF)
 # SVFs = calc_SVF(coords, max_radius, blocklength, int(gridboxsize*gridratio))
@@ -941,7 +918,7 @@ print(SVFs)
 # plt.figure()
 # plt.imshow(SVF_matrix, vmin=0, vmax=1)
 # plt.show()
-# np.save('SVF_MatrixP3_GR5_newMethod', SVF_matrix)
+# np.save('SVF_MatrixP1_GR5_newMethod', SVF_matrix)
 # print(SVF_matrix)
 
 "Height width influence on SVF"
