@@ -92,12 +92,9 @@ def readdata(minheight,dsm,dtm):
     #                 data_diff[i, j] = 0
 
     """filter all heights below the min height out"""
-    datadiffcopy = data_diff
-    datadiffcopy[data_diff<minheight] = 0
-    data_final = datadiffcopy
+    data_diff[data_diff<minheight] = 0
     """All water elements are set to zero"""
-    #data_final = data_final - data_water
-    return data_final, data_water
+    return data_diff, data_water
 
 def datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4):
     """
@@ -120,7 +117,7 @@ def datasquare(dtm1,dsm1,dtm2,dsm2,dtm3,dsm3,dtm4,dsm4):
     bigblock[x_len::,y_len::] = block4
     return bigblock
 
-def MediateData(data,delta_x,delta_y,delta_z,gridboxsize):
+def MediateData(data,data_water,delta_x,delta_y,delta_z,gridboxsize):
     "In this averaging, the gridcell must be half full to be full or it will be empty"
     "Define what the ratios of gridcells are in x and y direction"
     min_vol = delta_x*delta_y*delta_z
@@ -130,13 +127,18 @@ def MediateData(data,delta_x,delta_y,delta_z,gridboxsize):
     if np.logical_or((x_len%GR_x != 0),(y_len%GR_y != 0)):
         print('The chosen gridboxsizes are not appropriate')
     data_new = np.zeros([int(x_len/GR_x),int(y_len/GR_y)])
+    data_water_new = np.zeros([int(x_len/GR_x),int(y_len/GR_y)])
     [x_len,y_len] = data_new.shape
     for i in range(x_len):
         for j in range(y_len):
             part = data[int(i*GR_x):int((i+1)*GR_x),int(j*GR_y):int((j+1)*GR_y)]
-            Vol = np.sum(part)
+            [p_x,p_y] = part.shape
+            part_water = data_water[int(i*GR_x):int((i+1)*GR_x),int(j*GR_y):int((j+1)*GR_y)]
+            Vol = np.mean(part)*delta_x*delta_y
+            data_water_new[i,j] = np.round(np.count_nonzero(part_water)/(p_x*p_y))
             data_new[i,j] = np.round(Vol/min_vol)*delta_z
-    return data_new
+    data_new[data_water_new > 0] = 0
+    return data_new,data_water_new
 
 """First we store the data in a more workable form"""
 def coordheight(data):
@@ -364,6 +366,7 @@ def geometricProperties(data,data_water,grid_ratio,gridboxsize):
     ave_height : average height of the area
     delta: fraction of built area
     """
+    data[data<0] = 0
     [x_long, y_long] = data.shape
     # x_long = int(x_long/2)
     # y_long = int(y_long/2)
@@ -373,6 +376,7 @@ def geometricProperties(data,data_water,grid_ratio,gridboxsize):
     ave_height = np.zeros([int(x_long/grid_ratio),int(y_long/grid_ratio)])
     road_elements = np.zeros([int(x_long/grid_ratio),int(y_long/grid_ratio)])
     built_elements = np.zeros([int(x_long/grid_ratio),int(y_long/grid_ratio)])
+    ground_elements = np.zeros([int(x_long/grid_ratio),int(y_long/grid_ratio)])
     water_elements = np.zeros([int(x_long/grid_ratio),int(y_long/grid_ratio)])
     wall_area_med = np.zeros([int(x_long/grid_ratio),int(y_long/grid_ratio)])
     "We want to take the mean of the SVF values over a gridsize of gridratio"
@@ -382,13 +386,13 @@ def geometricProperties(data,data_water,grid_ratio,gridboxsize):
             part_water = data_water[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
             part_wall = Wall_area_gridcell[i*grid_ratio:(i+1)*grid_ratio, j*grid_ratio:(j+1)*grid_ratio]
             ave_height[i,j] = np.mean(part[part>0])
-            road_elements[i,j] = max(np.count_nonzero(part==0),0)
-            built_elements[i,j] = max(np.count_nonzero(part>0),0)
+            built_elements[i,j] = np.count_nonzero(part>0)
+            ground_elements[i,j] = np.count_nonzero(part==0)
             "The road elements are actually also water elements"
-            water_elements[i,j] = max(np.count_nonzero(part_water),0)
-            delta[i,j] = built_elements[i,j]/(road_elements[i,j]+built_elements[i,j]+water_elements[i,j])
-            wall_area_med[i,j] = max(np.sum(part_wall),0)
-
+            water_elements[i,j] = np.count_nonzero(part_water)
+            road_elements[i,j] = ground_elements[i,j]-water_elements[i,j]
+            delta[i,j] = built_elements[i,j]/(built_elements[i,j]+ground_elements[i,j])
+            wall_area_med[i,j] = np.sum(part_wall)
     """We want to determine the wall area from the height and delta
     Say each block is a separate building: then the wall area would be 4*sum(builtarea), 
     but since we have a certain density of houses we could make a relation 
@@ -396,17 +400,16 @@ def geometricProperties(data,data_water,grid_ratio,gridboxsize):
     Roof_area = built_elements*gridboxsize**2
     Road_area = road_elements*gridboxsize**2
     Water_area = water_elements*gridboxsize**2
-
-    Total_area = Roof_area + wall_area_med + Road_area + Water_area
-    Roof_area = Roof_area + Water_area
+    Ground_area = ground_elements*gridboxsize**2
+    Total_area = Roof_area + wall_area_med + Ground_area
     """Fractions of the area of the total surface"""
     Roof_frac = np.around(Roof_area/Total_area,3)
     Wall_frac = np.around(wall_area_med/Total_area,3)
     Road_frac = np.around(Road_area/Total_area,3)
     Water_frac = np.around(Water_area/Total_area,3)
-    Ground_frac = Road_frac + Water_frac
+    Ground_frac = np.around(Ground_area/Total_area,3)
     H_W = ave_height * delta
-    return Roof_frac, Wall_frac, Road_frac,Water_frac #Roof_area, wall_area_med, Road_area#
+    return Roof_frac, Wall_frac, Road_frac,Water_frac, Ground_frac #Roof_area, wall_area_med, Road_area#
 
 def average_surfacetype(matrix,data, grid_ratio):
     [x_long, y_long] = matrix.shape

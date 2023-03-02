@@ -294,9 +294,10 @@ def HeatEvolution(time_steps,delta_t,SW_down,LW_down,T_2m,q_first_layer,SVF_roof
     map_T_old_water = map_T_water
 
     "The water and road fractions are fractions of the entire surface area"
-    Water_frac = Water_frac/(Water_frac+Road_frac)
-    Road_frac = Road_frac/(Water_frac+Road_frac)
-
+    Water_frac_new = Water_frac/(Water_frac+Road_frac)
+    Road_frac_new = Road_frac/(Water_frac+Road_frac)
+    Road_frac_new = np.nan_to_num(Road_frac_new,nan=np.nanmean(Road_frac_new))
+    Water_frac_new = np.nan_to_num(Water_frac_new,nan=np.nanmean(Water_frac_new))
     for t in tqdm(range(time_steps)):
         "for now"
         # h_w = SVF.h_w
@@ -317,7 +318,7 @@ def HeatEvolution(time_steps,delta_t,SW_down,LW_down,T_2m,q_first_layer,SVF_roof
             lambdas_roof, lambdas_wall, lambdas_road, \
             map_T_old_roof[:,:,0], map_T_old_wall[:,:,0], map_T_old_road[:,:,0], map_T_old_water[:,:,0],\
             map_T_roof[:,:,1], map_T_wall[:,:,1], map_T_road[:,:,1],map_T_water[:,:,1], \
-            Road_frac, Water_frac, \
+            Road_frac_new, Water_frac_new, \
             delta_t, \
             Constants.sigma, \
             SW_dif, SW_dir, \
@@ -331,7 +332,7 @@ def HeatEvolution(time_steps,delta_t,SW_down,LW_down,T_2m,q_first_layer,SVF_roof
                   map_T_old_roof, map_T_old_wall, map_T_old_road,map_T_old_water,
                   T_inner_bc_roof, T_inner_bc_wall,
                   capacities_roof, capacities_wall, capacities_road,
-                  Water_frac,Road_frac,
+                  Water_frac_new,Road_frac_new,
                   Constants.layers, delta_t)
 
         map_T_old_roof = map_T_roof
@@ -404,8 +405,8 @@ def PlotSurfaceTemp(T_ave_roof,T_ave_wall,T_ave_road,T_ave_water, T_ave_ground,T
     time = (np.arange(time_steps)* Constants.timestep/3600)
 
     plt.figure()
-    plt.plot(time,T_ave_roof[:,0], label="Roof")
-    plt.plot(time,T_ave_wall[:,0], label="Wall")
+    # plt.plot(time,T_ave_roof[:,0], label="Roof")
+    # plt.plot(time,T_ave_wall[:,0], label="Wall")
     plt.plot(time,T_ave_road[:,0], label="road")
     plt.plot(time,T_ave_water[:,0], label="water")
     plt.plot(time,T_ave_ground[:,0], label="ground")

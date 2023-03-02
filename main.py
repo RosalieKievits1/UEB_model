@@ -26,9 +26,9 @@ Zenith = np.empty((nr_of_steps))
 [x_len,y_len] = data.shape
 data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 #data = SVF.average_svf(data,gr_SVF)
-data = SVF.MediateData(data,gr_SVF*gridboxsize,gr_SVF*gridboxsize,gr_SVF*gridboxsize,gridboxsize)
-[Roof_frac,Wall_frac,Road_frac,Water_frac] = SVF.geometricProperties(data,data_water,gridratio,gridboxsize*gr_SVF)
-#print(data.shape)
+[data,data_water_new] = SVF.MediateData(data,data_water,gr_SVF*gridboxsize,gr_SVF*gridboxsize,gr_SVF*gridboxsize,gridboxsize)
+[Roof_frac,Wall_frac,Road_frac,Water_frac,Ground_frac] = SVF.geometricProperties(data,data_water_new,gridratio,gridboxsize*gr_SVF)
+
 [x_len,y_len] = data.shape
 SF_roof=np.zeros([nr_of_steps, int(x_len/int(gridratio)),int(y_len/int(gridratio))])
 SF_wall=np.zeros([nr_of_steps, int(x_len/int(gridratio)),int(y_len/int(gridratio))])
