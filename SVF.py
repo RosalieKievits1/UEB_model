@@ -836,7 +836,16 @@ elif (gridboxsize==0.5):
 # plt.xlabel('SVF [0-1]')
 # plt.show()
 
-
+"Height Distribution Dataset"
+# data_list = data.flatten()
+# data_list = data_list[data_list>0] # if you only want roof surfaces
+# bin_nr = 50
+# print(np.max(data))
+# plt.figure()
+# plt.hist(data_list, bins = bin_nr,weights=np.ones(len(data_list))/len(data_list))
+# plt.ylabel('Normalized Counts [0-1]')
+# plt.xlabel('Height')
+# plt.show()
 
 "Colorbars"
 # lent = 120
@@ -979,8 +988,6 @@ elif (gridboxsize==0.5):
 "end movie"
 
 "Shadowfactor"
-[data_new,data_water_new] = MediateData(data,data_water,2.5,2.5,2.5,0.5)
-coords = coordheight(data_new)
 #[azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,5,radians=True)
 # SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
 # print(SF)
@@ -998,8 +1005,10 @@ coords = coordheight(data_new)
 #     pickle.dump(SF_matrix, f)
 "Shadowfactor for 24 hours"
 "Don't forget to comment out import SVFs05 !! and change hours"
-# coords = coordheight(data)
-hours = np.linspace(6,12,7)
+coords = coordheight(data)
+hours = np.linspace(13,20,8)
+[data_new,data_water_new] = MediateData(data,data_water,2.5,2.5,2.5,0.5)
+coords = coordheight(data_new)
 blocklength = int(data_new.shape[0]/2*data_new.shape[1]/2)
 # SF_matrix = np.ndarray([int(x_len),int(y_len)])
 for h in range(len(hours)):

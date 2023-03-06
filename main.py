@@ -90,30 +90,30 @@ LW_down = sigma*eps*T_2m**4
 # np.save('Temp/T_wall_05', T_wall)
 # np.save('Temp/T_ground_05', T_ground)
 
-with open('Temp/T_roof_GR5_NM.npy', 'rb') as f:
-    T_roof_5 = np.load(f)
-with open('Temp/T_roof_05.npy', 'rb') as f:
-    T_roof_05 = np.load(f)
-with open('Temp/T_wall_GR5_NM.npy', 'rb') as f:
-    T_wall_5 = np.load(f)
-with open('Temp/T_wall_05.npy', 'rb') as f:
-    T_wall_05 = np.load(f)
-with open('Temp/T_ground_GR5_NM.npy', 'rb') as f:
-    T_road_5 = np.load(f)
-with open('Temp/T_ground_05.npy', 'rb') as f:
-    T_road_05 = np.load(f)
-time = (np.arange(nr_of_steps)* Constants.timestep/3600)
-# #
-plt.figure()
-plt.plot(time,T_roof_5[:,0]-T_roof_05[:,0],'r', label="Roof, difference")
-plt.plot(time,T_wall_5[:,0]-T_wall_05[:,0],'b', label="Wall, difference")
-plt.plot(time,T_road_5[:,0]-T_road_05[:,0],'y', label="Ground, difference")
-#plt.plot(time,T_roof_05[:,0],'r--', label="Roof")
-#plt.plot(time,T_wall_05[:,0],'b--', label="Wall")
-#plt.plot(time,T_road_05[:,0],'y--', label="Road")
-#plt.plot(time,T_2m, 'blue', label="Temp at 2m (Forcing)")
-plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
-plt.xlabel("Time [h]")
-plt.ylabel("Surface Temperature [K]")
-plt.legend(loc='upper right')
-plt.show()
+# with open('Temp/T_roof_GR5_NM.npy', 'rb') as f:
+#     T_roof_5 = np.load(f)
+# with open('Temp/T_roof_05.npy', 'rb') as f:
+#     T_roof_05 = np.load(f)
+# with open('Temp/T_wall_GR5_NM.npy', 'rb') as f:
+#     T_wall_5 = np.load(f)
+# with open('Temp/T_wall_05.npy', 'rb') as f:
+#     T_wall_05 = np.load(f)
+# with open('Temp/T_ground_GR5_NM.npy', 'rb') as f:
+#     T_road_5 = np.load(f)
+# with open('Temp/T_ground_05.npy', 'rb') as f:
+#     T_road_05 = np.load(f)
+# time = (np.arange(nr_of_steps)* Constants.timestep/3600)
+# # #
+# plt.figure()
+# plt.plot(time,T_roof_5[:,0]-T_roof_05[:,0],'r', label="Roof, difference")
+# plt.plot(time,T_wall_5[:,0]-T_wall_05[:,0],'b', label="Wall, difference")
+# plt.plot(time,T_road_5[:,0]-T_road_05[:,0],'y', label="Ground, difference")
+# #plt.plot(time,T_roof_05[:,0],'r--', label="Roof")
+# #plt.plot(time,T_wall_05[:,0],'b--', label="Wall")
+# #plt.plot(time,T_road_05[:,0],'y--', label="Road")
+# #plt.plot(time,T_2m, 'blue', label="Temp at 2m (Forcing)")
+# plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
+# plt.xlabel("Time [h]")
+# plt.ylabel("Surface Temperature [K]")
+# plt.legend(loc='upper right')
+# plt.show()
