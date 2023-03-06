@@ -9,13 +9,13 @@ import time
 #import KNMI_SVF_verification
 import Constants
 import Sunpos
-import SVFs05m
-import SF05mHN1
-import pickle
-import SVFs5m
-import SVFGR25
-from pynverse import inversefunc
-from scipy.optimize import curve_fit
+# import SVFs05m
+# import SF05mHN1
+# import pickle
+# import SVFs5m
+# import SVFGR25
+# from pynverse import inversefunc
+# from scipy.optimize import curve_fit
 
 sttime = time.time()
 
@@ -979,8 +979,9 @@ elif (gridboxsize==0.5):
 "end movie"
 
 "Shadowfactor"
-# coords = coordheight(data)
-# [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,5,radians=True)
+[data_new,data_water_new] = MediateData(data,data_water,2.5,2.5,2.5,0.5)
+coords = coordheight(data_new)
+#[azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,5,radians=True)
 # SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
 # print(SF)
 # # gridratio = 25
@@ -998,13 +999,16 @@ elif (gridboxsize==0.5):
 "Shadowfactor for 24 hours"
 "Don't forget to comment out import SVFs05 !! and change hours"
 # coords = coordheight(data)
-# hours = np.array([6, 7]) #np.linspace(13,17,5)
+hours = np.linspace(6,12,7)
+print(hours)
+blocklength = int(data.shape[0]/2*data.shape[1]/2)
 # SF_matrix = np.ndarray([int(x_len),int(y_len)])
-# for h in range(len(hours)):
-#     [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hours[h],radians=True)
-#     SFs = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
-#     print("The Date is " + str(Constants.julianday) + " and time is " + str(hours[h]))
-#     print(SFs)
+for h in range(len(hours)):
+    [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hours[h],radians=True)
+    SFs = calc_SF(coords,azimuth,el_angle,blocklength)
+    #SFs = reshape_SVF(data_new,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
+    print("The Date is " + str(Constants.julianday) + " and time is " + str(hours[h]))
+    print(SFs)
 #     for i in range(int(x_len/2*y_len/2)):
 #         SF_matrix[int(coords[i,0]),int(coords[i,1])] = SF[i]
 #     SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]

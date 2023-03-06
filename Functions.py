@@ -405,10 +405,10 @@ def PlotSurfaceTemp(T_ave_roof,T_ave_wall,T_ave_road,T_ave_water, T_ave_ground,T
     time = (np.arange(time_steps)* Constants.timestep/3600)
 
     plt.figure()
-    # plt.plot(time,T_ave_roof[:,0], label="Roof")
-    # plt.plot(time,T_ave_wall[:,0], label="Wall")
-    plt.plot(time,T_ave_road[:,0], label="road")
-    plt.plot(time,T_ave_water[:,0], label="water")
+    plt.plot(time,T_ave_roof[:,0], label="Roof")
+    plt.plot(time,T_ave_wall[:,0], label="Wall")
+    #plt.plot(time,T_ave_road[:,0], label="road")
+    #plt.plot(time,T_ave_water[:,0], label="water")
     plt.plot(time,T_ave_ground[:,0], label="ground")
     plt.plot(time,T_2m, 'blue', label="Temp at 2m (Forcing)")
     plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
