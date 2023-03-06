@@ -1000,8 +1000,7 @@ coords = coordheight(data_new)
 "Don't forget to comment out import SVFs05 !! and change hours"
 # coords = coordheight(data)
 hours = np.linspace(6,12,7)
-print(hours)
-blocklength = int(data.shape[0]/2*data.shape[1]/2)
+blocklength = int(data_new.shape[0]/2*data_new.shape[1]/2)
 # SF_matrix = np.ndarray([int(x_len),int(y_len)])
 for h in range(len(hours)):
     [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hours[h],radians=True)
