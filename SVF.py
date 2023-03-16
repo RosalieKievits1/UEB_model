@@ -1074,7 +1074,7 @@ elif (gridboxsize==0.5):
 "Shadowfactor for 24 hours"
 "Don't forget to comment out import SVFs05 !! and change hours"
 #coords = coordheight(data)
-hours = np.linspace(5,12,8)
+hours = np.linspace(5,20,16)
 #hours = np.linspace(13,20,8)
 [data_new,data_water_new] = MediateData(data,data_water,12.5,12.5,12.5,0.5)
 coords = coordheight(data_new)
