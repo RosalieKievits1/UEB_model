@@ -18,21 +18,21 @@ timestep = 10*60 #[s]
 nr_of_steps = 800
 
 """albedos"""
-a_bitumen = 0.12
-a_asphalt = 0.12
-a_grass = 0.3
-a_glass = 0.21
-a_brick = 0.3
-a_water = 0.009
+a_bitumen = 0#0.12
+a_asphalt = 0#0.12
+a_grass = 0#0.3
+a_glass = 0#0.21
+a_brick = 0#0.3
+a_water = 0#0.009
 
 """emissivities"""
-e_asphalt = 0.88
-e_grass = 0.98
-e_bitumen = 0.97
-e_grass = 0.94 # from cabau
-e_glass = 0.9
-e_brick = 0.9
-e_water = 0.95
+e_asphalt = 1#0.88
+e_grass = 1#0.98
+e_bitumen = 1#0.97
+e_grass = 1#0.94 # from cabau
+e_glass = 1#0.9
+e_brick = 1#0.9
+e_water = 1#0.95
 
 """vector of emissivities of roof wall and road"""
 emissivities = [e_bitumen,e_brick,e_asphalt,e_water]

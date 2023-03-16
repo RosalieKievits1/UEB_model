@@ -8,13 +8,14 @@ from tqdm import tqdm
 from numpy import random
 import Sunpos
 
-# """Read in data"""
-# data = pd.read_csv("cabauw_2018.csv", sep = ';')
-# data.head()
-#
+"""Read in data"""
+#data = pd.read_csv("cabauw_2018.csv", sep = ';')
+data = pd.read_csv("era5_NL_2021.csv",sep=',')
+data.head()
+
 # """upward sensible heat flux"""
 # SHF = data.iloc[: , 32]
-"""Relative humidity at 10 m"""
+# """Relative humidity at 10 m"""
 # q_first_layer = data.iloc[: , 30]
 # """Upward Latent Heat flux"""
 # LHF = data.iloc[: , 33]
@@ -26,20 +27,31 @@ import Sunpos
 # SW_up = data.iloc[: , 36]
 # """downward shortwave heat flux"""
 # SW_down = data.iloc[: , 37]
-# """solar zenith angle"""
-# #Zenith = data.iloc[: ,38]*np.pi/180
+"""solar zenith angle"""
+#Zenith = data.iloc[: ,38]*np.pi/180
+Zenith = data.iloc[: ,6]*np.pi/180
+GHI = data.iloc[: ,2]
+DNI = data.iloc[:,5]
+DHI = data.iloc[:,4]
+D_perc = DNI*np.cos(Zenith)/GHI
 # """the temperature at 2 m high (use as ic for surface temp)"""
 # T_2m = data.iloc[: ,24]
 # T_air = T_2m[0]
 # """Surface pressure"""
 # p_surf = data.iloc[: ,5]
-# #
-# print(np.polyfit(Zenith, SW_down, deg=1))
+#
+# Zenith = Zenith[DNI>0]
+# D_perc = D_perc[DNI>0]
 # plt.figure()
-# plt.scatter(Zenith,SW_down,marker='x')
+# #print(np.polyfit(Zenith, D_perc, deg=3))
+# #plt.plot(Zenith,0.1318+1.0317*Zenith-0.6612*Zenith**2,'r')
+# # plt.plot(Zenith,0.8-0.36*Zenith**2,'r')
+# plt.scatter(Zenith,D_perc,marker='x')
+# plt.plot(Zenith,np.cos(Zenith),'r')
 # plt.xlabel('Zenith Angle [Rad]')
 # plt.ylabel('Shortwave Radiation Flux [W/m2]')
 # plt.show()
+
 
 
 def exner(pressure):
@@ -260,7 +272,7 @@ def layer_balance(d_roof, d_wall, d_road,d_water,
 
     return map_T_roof[:,:,1:layers], map_T_wall[:,:,1:layers], map_T_road[:,:,1:layers],map_T_water[:,:,1:layers],map_T_ground[:,:,1:layers]
 
-def HeatEvolution(time_steps,delta_t,SW_down,LW_down,T_2m,q_first_layer,SVF_roof,SVF_wall,SVF_road,SF_roof,SF_wall,SF_road,Roof_frac, Road_frac, Wall_frac, Water_frac, \
+def HeatEvolution(time_steps,delta_t,SW_down,Zenith,LW_down,T_2m,q_first_layer,SVF_roof,SVF_wall,SVF_road,SF_roof,SF_wall,SF_road,Roof_frac, Road_frac, Wall_frac, Water_frac, \
 ):
 
     "Arrays that store average surface temperatures"
@@ -299,12 +311,9 @@ def HeatEvolution(time_steps,delta_t,SW_down,LW_down,T_2m,q_first_layer,SVF_roof
     Road_frac_new = np.nan_to_num(Road_frac_new,nan=np.nanmean(Road_frac_new))
     Water_frac_new = np.nan_to_num(Water_frac_new,nan=np.nanmean(Water_frac_new))
     for t in tqdm(range(time_steps)):
-        "for now"
-        # h_w = SVF.h_w
-        # #[SF_roof, SF_wall, SF_road] = SF_masson(h_w,Zenith[t])
 
-        SW_dir = SW_down[t]*0.3
-        SW_dif = SW_down[t]*0.7
+        SW_dir = SW_down[t]*np.cos(Zenith[t])
+        SW_dif = SW_down[t]*(1-np.cos(Zenith[t]))
         LW_d = LW_down[t]
         "Set these to constants for now"
         T_firstlayer = T_2m[t]
