@@ -33,9 +33,10 @@ SF_roof=np.zeros([nr_of_steps, int(x_len/int(gridratio)),int(y_len/int(gridratio
 SF_wall=np.zeros([nr_of_steps, int(x_len/int(gridratio)),int(y_len/int(gridratio))])
 SF_road=np.zeros([nr_of_steps, int(x_len/int(gridratio)),int(y_len/int(gridratio))])
 #print(SF_roof.shape)
-# hour_list = []
-# mean_SF = []
-# mean_SF_05 = []
+hour_list = []
+mean_SFGR5 = []
+mean_SF_05 = []
+mean_SFGR25 = []
 for t in range(nr_of_steps):
     hour = t*(Constants.timestep/3600)%24
     day = (t*(Constants.timestep/3600)//24)+200
@@ -45,15 +46,19 @@ for t in range(nr_of_steps):
         with open('Pickles/1MaySF/SF_may1_'+str(int(hour))+'_HN1.pickle', 'rb') as f:
             SF_matrix = pickle.load(f)
         # with open('SF1May_aveNM_GR5/SFP1_GR5_NM_' + str(int(hour)) + '.npy', 'rb') as f:
-        #     SF_matrix = np.load(f)
-        # mean_SF.append(np.mean(SF_matrix))
-        # mean_SF_05.append(np.mean(SF_matrix_05))
+        #     SF_matrixGR5 = np.load(f)
+        # with open('SF1May_aveNM_GR25/SFP1_GR25_NM_' + str(int(hour)) + '.npy', 'rb') as f:
+        #     SF_matrixGR25 = np.load(f)
+        # mean_SFGR5.append(np.mean(SF_matrixGR5))
+        # mean_SF_05.append(np.mean(SF_matrix))
+        # mean_SFGR25.append(np.mean(SF_matrixGR25))
         # hour_list.append(hour)
         #print(SF_matrix.shape)
         [SF_roof[t,:,:],SF_road[t,:,:]] = SVF.average_surfacetype(SF_matrix,data,int(gridratio))
         SF_wall[t,:,:] = SVF.WallSF_fit(Zenith[t],SF_road[t,:,:])
 # plt.figure()
-# plt.plot(hour_list,mean_SF,label='Mean SF for averaged grid')
+# plt.plot(hour_list,mean_SFGR5,label='Mean SF for 2.5m LES averaged grid')
+# plt.plot(hour_list,mean_SFGR25,label='Mean SF for 12.5m LES averaged grid')
 # plt.plot(hour_list,mean_SF_05,label='Mean SF for 0.5m grid')
 # plt.xlabel('time [h]')
 # plt.ylabel('mean SF [0-1]')
@@ -96,44 +101,67 @@ with open('SVF_05Matrix.npy', 'rb') as f:
 [SVF_roof,SVF_road] = SVF.average_surfacetype(SVF_matrix,data,gridratio)
 SVF_wall = SVF.Inv_WallvsRoadMasson(SVF_road)
 
+res_roof = 60
+res_road = 60
+
 "Now all functions"
-[T_roof, T_wall,T_road,T_water,T_ground, LW_net_roof, SW_net_roof, LHF_roof, SHF_roof, G_out_surf_roof] = \
+[T_roof, T_wall,T_road,T_water,T_ground, \
+           LW_net_roof, SW_net_roof, G_out_surf_roof, SHF_roof, LHF_roof, \
+           LW_net_wall, SW_net_wall, G_out_surf_wall, \
+           LW_net_road, SW_net_road, G_out_surf_road, SHF_road, LHF_road, \
+           LW_net_water, SW_net_water, G_out_surf_water, SHF_water, LHF_water] = \
     Functions.HeatEvolution(nr_of_steps,Constants.timestep,
                             SW_down,Zenith,LW_down,T_2m,q_first_layer,
                             SVF_roof,SVF_wall,SVF_road,SF_roof,SF_wall,SF_road,
-                            Roof_frac,Road_frac,Wall_frac,Water_frac)
+                            Roof_frac,Road_frac,Wall_frac,Water_frac,
+                            res_roof, res_road)
 Functions.PlotSurfaceTemp(T_roof,T_wall,T_road,T_water,T_ground,T_2m,nr_of_steps)
 Functions.PlotTempLayers(T_wall,T_2m,nr_of_steps)
-Functions.PlotSurfaceFluxes(nr_of_steps,LW_net_roof, SW_net_roof,SW_down, G_out_surf_roof, LHF_roof, SHF_roof,show=True)
+Functions.PlotSurfaceFluxes(nr_of_steps,SHF_roof,"SHF_roof",SHF_road,"SHF_road",LHF_roof,"LHF_roof",LHF_road,"LHF_road")
+Functions.PlotSurfaceFluxes(nr_of_steps,LW_net_road,"LW road",LW_net_water,"LW water",SW_net_road,"SW Road",SW_net_water,"SW water")
 
-# np.save('Temp/T_roof_05_noRefl', T_roof)
-# np.save('Temp/T_wall_05_noRefl', T_wall)
-# np.save('Temp/T_ground_05_noRefl', T_ground)
+plt.show()
+# np.save('AeroRes/SHF_roof_60', SHF_roof)
+# np.save('AeroRes/SHF_road_60', SHF_road)
+# np.save('AeroRes/LHF_roof_60', LHF_roof)
+# np.save('AeroRes/LHF_road_60', LHF_road)
+# np.save('AeroRes/Temp_roof_60', T_roof)
+# np.save('AeroRes/Temp_ground_60', T_ground)
+# np.save('AeroRes/Temp_road_60', T_road)
+# np.save('AeroRes/Temp_water_60', T_water)
 
-# with open('Temp/T_roof_GR5NM_noRefl.npy', 'rb') as f:
-#     T_roof_5 = np.load(f)
-# with open('Temp/T_roof_05_noRefl.npy', 'rb') as f:
-#     T_roof_05 = np.load(f)
-# with open('Temp/T_wall_GR5NM_noRefl.npy', 'rb') as f:
-#     T_wall_5 = np.load(f)
-# with open('Temp/T_wall_05_noRefl.npy', 'rb') as f:
-#     T_wall_05 = np.load(f)
-# with open('Temp/T_ground_GR5NM_noRefl.npy', 'rb') as f:
-#     T_road_5 = np.load(f)
-# with open('Temp/T_ground_05_noRefl.npy', 'rb') as f:
-#     T_road_05 = np.load(f)
+# with open('AeroResTemps/LHF_roof_30.npy', 'rb') as f:
+#     LHF_roof_30 = np.load(f)
+# with open('AeroResTemps/LHF_road_30.npy', 'rb') as f:
+#     LHF_road_30 = np.load(f)
+# with open('AeroResTemps/LHF_roof_60.npy', 'rb') as f:
+#     LHF_roof_60 = np.load(f)
+# with open('AeroResTemps/LHF_road_60.npy', 'rb') as f:
+#     LHF_road_60 = np.load(f)
+# with open('AeroResTemps/LHF_roof_90.npy', 'rb') as f:
+#     LHF_roof_90 = np.load(f)
+# with open('AeroResTemps/LHF_road_90.npy', 'rb') as f:
+#     LHF_road_90 = np.load(f)
 # time = (np.arange(nr_of_steps)* Constants.timestep/3600)
 # # #
 # plt.figure()
-# plt.plot(time,T_roof_05[:,0]-T_roof_5[:,0],'r', label="Roof, difference")
-# plt.plot(time,T_wall_05[:,0]-T_wall_5[:,0],'b', label="Wall, difference")
-# plt.plot(time,T_road_05[:,0]-T_road_5[:,0],'y', label="Ground, difference")
-# #plt.plot(time,T_roof_05[:,0],'r--', label="Roof")
-# #plt.plot(time,T_wall_05[:,0],'b--', label="Wall")
-# #plt.plot(time,T_road_05[:,0],'y--', label="Road")
-# #plt.plot(time,T_2m, 'blue', label="Temp at 2m (Forcing)")
+# plt.plot(time,LHF_road_90,'b', label="Road, 90 s/m")
+# plt.plot(time,LHF_road_60,'r', label="Road, 60 s/m")
+# plt.plot(time,LHF_road_30,'y', label="Road, 30 s/m")
+#plt.plot(time,SHF_road_90,'b--', label="Road, 90 s/m")
+#plt.plot(time,SHF_roof_60,'r', label="Roof, 60 s/m")
+#plt.plot(time,SHF_road_60,'r--', label="Road, 60 s/m")
+#plt.plot(time,SHF_roof_30,'y', label="Roof, 30 s/m")
+#plt.plot(time,SHF_road_30,'y--', label="Road, 30 s/m")
+# plt.plot(time,T_roof_90[:,0],'y', label="90 s/m")
+# plt.plot(time,T_roof_05[:,0],'r--', label="Roof")
+# plt.plot(time,T_wall_05[:,0],'b--', label="Wall")
+# plt.plot(time,T_road_05[:,0],'y--', label="Road")
+# plt.plot(time,T_2m, 'blue', label="Temp at 2m (Forcing)")
 # plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
 # plt.xlabel("Time [h]")
-# plt.ylabel("Surface Temperature [K]")
+# #plt.ylabel("Ground Surface Temperature [K]")
+# plt.ylabel("LHF [W/m2K]")
+# plt.ylim((-50,50))
 # plt.legend(loc='upper right')
 # plt.show()

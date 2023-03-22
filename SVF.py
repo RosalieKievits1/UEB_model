@@ -9,14 +9,14 @@ import time
 #import KNMI_SVF_verification
 import Constants
 import Sunpos
-# import SVFs05m
-# import SF05mHN1
-# import pickle
-# import SVFs5m
-# import SVFGR25
-# from pynverse import inversefunc
-# from scipy.optimize import curve_fit
-# from mpl_toolkits.mplot3d import Axes3D
+import SVFs05m
+import SF05mHN1
+import pickle
+import SVFs5m
+import SVFGR25
+from pynverse import inversefunc
+from scipy.optimize import curve_fit
+from mpl_toolkits.mplot3d import Axes3D
 
 
 sttime = time.time()
@@ -1074,21 +1074,34 @@ elif (gridboxsize==0.5):
 "Shadowfactor for 24 hours"
 "Don't forget to comment out import SVFs05 !! and change hours"
 #coords = coordheight(data)
-hours = np.linspace(5,20,16)
+#hours = np.linspace(5,20,16)
 #hours = np.linspace(13,20,8)
-[data_new,data_water_new] = MediateData(data,data_water,12.5,12.5,12.5,0.5)
-coords = coordheight(data_new)
-blocklength = int(data_new.shape[0]/2*data_new.shape[1]/2)
+# [data_new,data_water_new] = MediateData(data,data_water,12.5,12.5,12.5,0.5)
+# coords = coordheight(data_new)
+# [x_len,y_len] = data_new.shape
+# blocklength = int(data_new.shape[0]/2*data_new.shape[1]/2)
 # SF_matrix = np.ndarray([int(x_len),int(y_len)])
-for h in range(len(hours)):
-    [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hours[h],radians=True)
-    SFs = calc_SF(coords,azimuth,el_angle,blocklength)
-    #SFs = reshape_SVF(data_new,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
-    print("The Date is " + str(Constants.julianday) + " and time is " + str(hours[h]))
-    print(SFs)
-#     for i in range(int(x_len/2*y_len/2)):
-#         SF_matrix[int(coords[i,0]),int(coords[i,1])] = SF[i]
-#     SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# SF = SVFGR25.SFs20
+# for i in range(int(x_len/2*y_len/2)):
+#     SF_matrix[int(coords[i,0]),int(coords[i,1])] = SF[i]
+# SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# plt.figure()
+# plt.imshow(SF_matrix, vmin=0, vmax=1)
+# plt.show()
+# np.save('SF1May_aveNM_GR25/SFP1_GR25_NM_20', SF_matrix)
+# for h in range(len(hours)):
+#     SF_matrix = np.ndarray([int(x_len),int(y_len)])
+    # [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,hours[h],radians=True)
+    # SFs = calc_SF(coords,azimuth,el_angle,blocklength)
+    # #SFs = reshape_SVF(data_new,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
+    # print("The Date is " + str(Constants.julianday) + " and time is " + str(hours[h]))
+    # print(SFs)
+    # SFi = 'SFs' + str(hours[h])
+    # SF = SVFGR25.SFi
+    # for i in range(int(x_len/2*y_len/2)):
+    #     SF_matrix[int(coords[i,0]),int(coords[i,1])] = SF[i]
+    # SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+    # np.save('SF1May_aveNM_GR25/SFP1_GR25_NM_'+ str(hours[h]), SF_matrix)
 #     print(SF_matrix)
     #np.savetxt("SFmatrix" + str(hours[h]) + ".csv", SF_matrix, delimiter=",")
 "end of Shadowfactor for 24 hours"

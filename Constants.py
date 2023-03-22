@@ -18,30 +18,29 @@ timestep = 10*60 #[s]
 nr_of_steps = 800
 
 """albedos"""
-a_bitumen = 0#0.12
-a_asphalt = 0#0.12
-a_grass = 0#0.3
-a_glass = 0#0.21
-a_brick = 0#0.3
-a_water = 0#0.009
+a_bitumen = 0.12
+a_asphalt = 0.12
+a_grass = 0.3
+a_glass = 0.21
+a_brick = 0.3
+a_water = 0.009
 
 """emissivities"""
-e_asphalt = 1#0.88
-e_grass = 1#0.98
-e_bitumen = 1#0.97
-e_grass = 1#0.94 # from cabau
-e_glass = 1#0.9
-e_brick = 1#0.9
-e_water = 1#0.95
+e_asphalt = 0.88
+e_bitumen = 0.97
+e_grass = 0.94 # from cabau
+e_glass = 0.9
+e_brick = 0.9
+e_water = 0.95
 
 """vector of emissivities of roof wall and road"""
 emissivities = [e_bitumen,e_brick,e_asphalt,e_water]
 albedos = [a_bitumen,a_brick,a_asphalt,a_asphalt]
 
 """start temperatures"""
-T_roof = 2+273.15
+#T_roof = 2+273.15
 T_road = 5+273.15
-T_grass = 10+273.15
+#T_grass = 10+273.15
 T_ground = 10+273.15
 T_water = 10+273.15
 # building heating temp
@@ -85,9 +84,10 @@ p_atm = 1.01325e5 # [Pa] surface pressure
 p_surf = 1.089e5 # [Pa] pressure at first atmospheric level (troposphere), according to literature ranges between 100 and 200mBar
 
 "Aerodynamc resistances for roof and road"
-res_roof = 1/0.05#1/0.03
-res_road = 1/0.05#1/0.03
-
+# https://www.mdpi.com/2072-4292/11/11/1347
+res_roof = 60
+res_road = 60
+res_water = 200
 
 R_w = 461.52 # J/kgK gas constant of water
 L_v = 2.5e6 #J/kg latent vaporization heat of water
