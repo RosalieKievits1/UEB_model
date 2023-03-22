@@ -292,6 +292,7 @@ def HeatEvolution(time_steps,delta_t,SW_down,Zenith,LW_down,T_2m,q_first_layer,
     T_ave_road = np.empty((time_steps,Constants.layers))
     T_ave_water = np.empty((time_steps,Constants.layers))
     T_ave_ground = np.empty((time_steps,Constants.layers))
+    T_ave_surf = np.empty((time_steps))
 
     "Arrays to store all surface averaged heat fluxes"
     LW_ave_roof = np.empty((time_steps))
@@ -335,8 +336,8 @@ def HeatEvolution(time_steps,delta_t,SW_down,Zenith,LW_down,T_2m,q_first_layer,
     "The water and road fractions are fractions of the entire surface area"
     Water_frac_new = Water_frac/(Water_frac+Road_frac)
     Road_frac_new = Road_frac/(Water_frac+Road_frac)
-    Road_frac_new = np.nan_to_num(Road_frac_new,nan=np.nanmean(Road_frac_new))
-    Water_frac_new = np.nan_to_num(Water_frac_new,nan=np.nanmean(Water_frac_new))
+    Road_frac_new = np.nan_to_num(Road_frac_new, nan=0) #nan=np.nanmean(Road_frac_new))
+    Water_frac_new = np.nan_to_num(Water_frac_new,nan=0) #nan=np.nanmean(Water_frac_new))
     for t in tqdm(range(time_steps)):
 
         SW_dir = SW_down[t]*np.cos(Zenith[t])
@@ -380,7 +381,7 @@ def HeatEvolution(time_steps,delta_t,SW_down,Zenith,LW_down,T_2m,q_first_layer,
         map_T_old_road = map_T_road
         map_T_old_water = map_T_water
 
-        "Average SURFACE temperatures"
+        "Average surface temperatures"
         for l in range(Constants.layers):
             T_ave_roof[t,l] = np.mean(map_T_roof[:,:,l])
             T_ave_wall[t,l] = np.mean(map_T_wall[:,:,l])
@@ -388,7 +389,10 @@ def HeatEvolution(time_steps,delta_t,SW_down,Zenith,LW_down,T_2m,q_first_layer,
             T_ave_water[t,l] = np.mean(map_T_water[:,:,l])
             T_ave_ground[t,l] = np.mean(map_T_ground[:,:,l])
 
-        #T_ave_surf[t] = np.mean(T_surf_roof*Roof_frac + T_surf_wall*Wall_frac + T_surf_road*Road_frac)
+        "Average surface Temperature"
+        T_ave_surf[t] = np.mean(map_T_roof[:,:,0]*Roof_frac + map_T_wall[:,:,0]*Wall_frac + map_T_road[:,:,0]*Road_frac + map_T_water[:,:,0]*Water_frac)
+
+        "Surface averaged Fluxes"
         LW_ave_roof[t] = np.mean(LW_net_roof)
         LW_ave_wall[t] = np.mean(LW_net_wall)
         LW_ave_road[t] = np.mean(LW_net_road)
@@ -407,10 +411,9 @@ def HeatEvolution(time_steps,delta_t,SW_down,Zenith,LW_down,T_2m,q_first_layer,
         SHF_ave_roof[t] = np.mean(SHF_roof)
         SHF_ave_road[t] = np.mean(SHF_road)
         SHF_ave_water[t] = np.mean(SHF_water)
-        #G_ave[t] = np.mean(G_out_surf_roof)
 
 
-    return T_ave_roof, T_ave_wall, T_ave_road,T_ave_water,T_ave_ground, \
+    return T_ave_roof, T_ave_wall, T_ave_road,T_ave_water,T_ave_ground,T_ave_surf, \
            LW_ave_roof, SW_ave_roof, G_ave_roof, SHF_ave_roof, LHF_ave_roof, \
            LW_ave_wall, SW_ave_wall, G_ave_wall, \
            LW_ave_road, SW_ave_road, G_ave_road, SHF_ave_road, LHF_ave_road, \
@@ -460,16 +463,17 @@ def PlotGreyMap(data,middle,v_max):
         plt.imshow(data,vmax=v_max)
     plt.show()
 
-def PlotSurfaceTemp(T_ave_roof,T_ave_wall,T_ave_road,T_ave_water, T_ave_ground,T_2m,time_steps,show=False):
+def PlotSurfaceTemp(T_ave_roof,T_ave_wall,T_ave_road,T_ave_water, T_ave_ground,T_2m,T_ave_surf,time_steps,show=False):
     time = (np.arange(time_steps)* Constants.timestep/3600)
 
     plt.figure()
-    plt.plot(time,T_ave_roof[:,0], label="Roof")
-    plt.plot(time,T_ave_wall[:,0], label="Wall")
-    #plt.plot(time,T_ave_road[:,0], label="road")
-    #plt.plot(time,T_ave_water[:,0], label="water")
+    #plt.plot(time,T_ave_roof[:,0], label="Roof")
+    #plt.plot(time,T_ave_wall[:,0], label="Wall")
+    plt.plot(time,T_ave_road[:,0], label="road")
+    plt.plot(time,T_ave_water[:,0], label="water")
     plt.plot(time,T_ave_ground[:,0], label="ground")
-    plt.plot(time,T_2m, 'blue', label="Temp at 2m (Forcing)")
+    plt.plot(time,T_ave_surf, label="Average Surface Temperature (single slab)")
+    #plt.plot(time,T_2m, 'blue', label="Temp at 2m (Forcing)")
     plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
     plt.xlabel("Time [h]")
     plt.ylabel("Surface Temperature [K]")
@@ -497,8 +501,8 @@ def PlotSurfaceFluxes(nr_of_steps,Flux1,Flux_1,Flux2,Flux_2,Flux3,Flux_3,Flux4,F
     plt.figure()
     plt.plot(time,Flux1, label=Flux_1)
     plt.plot(time,Flux2, label=Flux_2)
-    #plt.plot(time,(SW_down[:Constants.nr_of_steps]-SW_up[:Constants.nr_of_steps]), label="SW up cabau")
     plt.plot(time,Flux3,label=Flux_3)
+    plt.plot(time,Flux4,label=Flux_4)
     plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
     plt.xlabel("Time [h]")
     plt.ylabel("Flux [W/m2K]")

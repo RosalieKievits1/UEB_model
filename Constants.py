@@ -24,6 +24,7 @@ a_grass = 0.3
 a_glass = 0.21
 a_brick = 0.3
 a_water = 0.009
+a_concrete = 0.35
 
 """emissivities"""
 e_asphalt = 0.88
@@ -32,6 +33,7 @@ e_grass = 0.94 # from cabau
 e_glass = 0.9
 e_brick = 0.9
 e_water = 0.95
+e_concrete = 0.9
 
 """vector of emissivities of roof wall and road"""
 emissivities = [e_bitumen,e_brick,e_asphalt,e_water]
@@ -56,6 +58,7 @@ C_grass = 2000e3
 C_fiber = 148e3
 C_water = 4200e3
 C_soil = 1900e3 # https://open.library.okstate.edu/rainorshine/chapter/13-2-soil-thermal-properties/
+C_concrete = 2110e3
 
 """thermal conductivities"""
 # [W/mK]
@@ -66,6 +69,7 @@ lamb_brick = 1.31
 lamb_fiber = 0.08
 lamb_water = 0.598
 lamb_soil = 0.3
+lamb_concrete = 1.51
 
 """Geometric properties:"""
 # Hight over width ratio

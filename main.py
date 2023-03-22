@@ -105,22 +105,22 @@ res_roof = 60
 res_road = 60
 
 "Now all functions"
-[T_roof, T_wall,T_road,T_water,T_ground, \
-           LW_net_roof, SW_net_roof, G_out_surf_roof, SHF_roof, LHF_roof, \
-           LW_net_wall, SW_net_wall, G_out_surf_wall, \
-           LW_net_road, SW_net_road, G_out_surf_road, SHF_road, LHF_road, \
-           LW_net_water, SW_net_water, G_out_surf_water, SHF_water, LHF_water] = \
-    Functions.HeatEvolution(nr_of_steps,Constants.timestep,
-                            SW_down,Zenith,LW_down,T_2m,q_first_layer,
-                            SVF_roof,SVF_wall,SVF_road,SF_roof,SF_wall,SF_road,
-                            Roof_frac,Road_frac,Wall_frac,Water_frac,
-                            res_roof, res_road)
-Functions.PlotSurfaceTemp(T_roof,T_wall,T_road,T_water,T_ground,T_2m,nr_of_steps)
-Functions.PlotTempLayers(T_wall,T_2m,nr_of_steps)
-Functions.PlotSurfaceFluxes(nr_of_steps,SHF_roof,"SHF_roof",SHF_road,"SHF_road",LHF_roof,"LHF_roof",LHF_road,"LHF_road")
-Functions.PlotSurfaceFluxes(nr_of_steps,LW_net_road,"LW road",LW_net_water,"LW water",SW_net_road,"SW Road",SW_net_water,"SW water")
-
-plt.show()
+# [T_roof, T_wall,T_road,T_water,T_ground,T_ave_surf,\
+#            LW_net_roof, SW_net_roof, G_out_surf_roof, SHF_roof, LHF_roof, \
+#            LW_net_wall, SW_net_wall, G_out_surf_wall, \
+#            LW_net_road, SW_net_road, G_out_surf_road, SHF_road, LHF_road, \
+#            LW_net_water, SW_net_water, G_out_surf_water, SHF_water, LHF_water] = \
+#     Functions.HeatEvolution(nr_of_steps,Constants.timestep,
+#                             SW_down,Zenith,LW_down,T_2m,q_first_layer,
+#                             SVF_roof,SVF_wall,SVF_road,SF_roof,SF_wall,SF_road,
+#                             Roof_frac,Road_frac,Wall_frac,Water_frac,
+#                             res_roof, res_road)
+# Functions.PlotSurfaceTemp(T_roof,T_wall,T_road,T_water,T_ground,T_2m,T_ave_surf,nr_of_steps)
+# Functions.PlotTempLayers(T_wall,T_2m,nr_of_steps)
+# Functions.PlotSurfaceFluxes(nr_of_steps,SHF_roof,"SHF_roof",SHF_road,"SHF_road",LHF_roof,"LHF_roof",LHF_road,"LHF_road")
+# Functions.PlotSurfaceFluxes(nr_of_steps,LW_net_road,"LW road",LW_net_water,"LW water",SW_net_road,"SW Road",SW_net_water,"SW water")
+#
+# plt.show()
 # np.save('AeroRes/SHF_roof_60', SHF_roof)
 # np.save('AeroRes/SHF_road_60', SHF_road)
 # np.save('AeroRes/LHF_roof_60', LHF_roof)
@@ -129,7 +129,19 @@ plt.show()
 # np.save('AeroRes/Temp_ground_60', T_ground)
 # np.save('AeroRes/Temp_road_60', T_road)
 # np.save('AeroRes/Temp_water_60', T_water)
-
+layers = 5
+time = (np.arange(nr_of_steps)* Constants.timestep/3600)
+T_concrete = Functions.NumericalSoil(time,Constants.timestep,0.1,Constants.lamb_concrete,Constants.C_concrete,layers,T_2m)
+T_grass = Functions.NumericalSoil(time,Constants.timestep,0.1,Constants.lamb_grass,Constants.C_grass,layers,T_2m)
+lines = ['solid',(1,(1,1)),(1,(1,2)),(1,(1,3)),(1,(1,4)),(1,(1,5)),(1,(1,6)),(1,(1,7))]
+plt.figure()
+for l in range(layers):
+    plt.plot(time,T_concrete[:,l],'k',linestyle=lines[l])
+    plt.plot(time,T_grass[:,l],'g',linestyle=lines[l])
+plt.xlabel('time [h]')
+plt.ylabel('Temperature [K]')
+#plt.legend()
+plt.show()
 # with open('AeroResTemps/LHF_roof_30.npy', 'rb') as f:
 #     LHF_roof_30 = np.load(f)
 # with open('AeroResTemps/LHF_road_30.npy', 'rb') as f:
