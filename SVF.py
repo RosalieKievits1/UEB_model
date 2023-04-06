@@ -659,9 +659,9 @@ print("Data block is HN1")
 print("The Date is " + str(Constants.julianday) + " and time is " + str(Constants.hour))
 # #
 "Switch for 0.5 or 5 m"
-download_directory = config.input_dir_knmi
-SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.tif'])
-SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
+# download_directory = config.input_dir_knmi
+# SVF_knmi_HN1 = "".join([download_directory, '/SVF_r37hn1.tif'])
+# SVF_knmi_HN1 = tf.imread(SVF_knmi_HN1)
 
 grid_ratio = int(gridboxsize/gridboxsize_knmi)
 if (gridboxsize==5):
