@@ -92,16 +92,6 @@ T_2m = (np.sin(-np.pi + 2*np.pi/(24*(3600/Constants.timestep))*time)*Constants.T
 WVP = Functions.q_sat(T_2m,Constants.p_atm)*Constants.RH
 eps = 1-(1+Constants.c*WVP/T_2m)*np.exp(-np.sqrt(1.2+3*Constants.c*WVP/T_2m))
 LW_down = sigma*eps*T_2m**4
-# plt.figure()
-# plt.plot(time/6,LW_down,label='LW')
-# plt.plot(time/6,SW_dif,label='diffuse SW')
-# plt.plot(time/6,SW_dir,label='direct SW')
-# plt.plot(time/6,SW_down,label='Total SW')
-# plt.ylabel('Flux [W/m2]')
-# plt.xlabel('time [h]')
-# plt.legend()
-# plt.title('Forcing LW and SW fluxes')
-# plt.show()
 
 "SVF"
 #with open('SVF_MatrixP1_GR5_newMethod.npy', 'rb') as f:
@@ -130,58 +120,5 @@ SVF_wall = SVF.Inv_WallvsRoadMasson(SVF_road)
 #Functions.PlotSurfaceFluxes(nr_of_steps,LW_net_roof,"Roof",LW_net_wall,"Wall",LW_net_road,"Road",LW_net_water,"Water")
 #Functions.PlotSurfaceFluxes(nr_of_steps,SW_net_roof,"Roof",SW_net_wall,"Wall",SW_net_road,"Road",SW_net_water,"Water")
 #Functions.PlotSurfaceFluxes(nr_of_steps,SW_ave_wall_dif,"Absorbed Diffuse",SW_ave_wall_dir,"Absorbed Direct",SW_ave_wall_roof,"From Roof",SW_ave_wall_wall,"From Wall",SW_ave_wall_road,"From Road",SW_net_wall,"Net SW", SW_down,"SW received for Wall")
-
 plt.show()
-#np.save('AeroRes/AeroRes30/', T_wall)
 
-# layers = 20
-# time = (np.arange(nr_of_steps)* Constants.timestep/3600)
-# T_asp = Functions.NumericalSoil(time,Constants.timestep,0.03,Constants.lamb_asphalt,Constants.C_asphalt,layers,T_2m)
-# T_grass = Functions.NumericalSoil(time,Constants.timestep,0.03,Constants.lamb_grass,Constants.C_grass,layers,T_2m)
-# lines = ['solid',(1,(1,1)),(1,(1,2)),(1,(1,3)),(1,(1,4)),(1,(1,5)),(1,(1,6)),(1,(1,7))]
-# plt.figure()
-# plt.plot(time,T_asp[:,0],'k',linestyle=lines[0])
-# plt.plot(time,T_grass[:,0],'g',linestyle=lines[0])
-# for l in range(layers):
-#     if l%4==0:
-#         plt.plot(time,T_asp[:,l],'k',linestyle=lines[int(l/4)])
-#         plt.plot(time,T_grass[:,l],'g',linestyle=lines[int(l/4)])
-# plt.xlabel('time [h]')
-# plt.ylabel('Temperature [K]')
-# #plt.legend()
-# plt.show()
-# with open('AeroResTemps/LHF_roof_30.npy', 'rb') as f:
-#     LHF_roof_30 = np.load(f)
-# with open('AeroResTemps/LHF_road_30.npy', 'rb') as f:
-#     LHF_road_30 = np.load(f)
-# with open('AeroResTemps/LHF_roof_60.npy', 'rb') as f:
-#     LHF_roof_60 = np.load(f)
-# with open('AeroResTemps/LHF_road_60.npy', 'rb') as f:
-#     LHF_road_60 = np.load(f)
-# with open('AeroResTemps/LHF_roof_90.npy', 'rb') as f:
-#     LHF_roof_90 = np.load(f)
-# with open('AeroResTemps/LHF_road_90.npy', 'rb') as f:
-#     LHF_road_90 = np.load(f)
-# time = (np.arange(nr_of_steps)* Constants.timestep/3600)
-# # #
-# plt.figure()
-# plt.plot(time,LHF_road_90,'b', label="Road, 90 s/m")
-# plt.plot(time,LHF_road_60,'r', label="Road, 60 s/m")
-# plt.plot(time,LHF_road_30,'y', label="Road, 30 s/m")
-#plt.plot(time,SHF_road_90,'b--', label="Road, 90 s/m")
-#plt.plot(time,SHF_roof_60,'r', label="Roof, 60 s/m")
-#plt.plot(time,SHF_road_60,'r--', label="Road, 60 s/m")
-#plt.plot(time,SHF_roof_30,'y', label="Roof, 30 s/m")
-#plt.plot(time,SHF_road_30,'y--', label="Road, 30 s/m")
-# plt.plot(time,T_roof_90[:,0],'y', label="90 s/m")
-# plt.plot(time,T_roof_05[:,0],'r--', label="Roof")
-# plt.plot(time,T_wall_05[:,0],'b--', label="Wall")
-# plt.plot(time,T_road_05[:,0],'y--', label="Road")
-# plt.plot(time,T_2m, 'blue', label="Temp at 2m (Forcing)")
-# plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
-# plt.xlabel("Time [h]")
-# #plt.ylabel("Ground Surface Temperature [K]")
-# plt.ylabel("LHF [W/m2K]")
-# plt.ylim((-50,50))
-# plt.legend(loc='upper right')
-# plt.show()
