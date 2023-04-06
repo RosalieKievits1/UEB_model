@@ -731,32 +731,7 @@ print(SF)
 # ax.set_ylabel('Y')
 # ax.set_zlabel('Height')
 # ax.set_title('3D Surface Plot')
-#
-# plt.figure()
-# plt.imshow(data)
-# plt.show()
-# grid_ratio = int(20*25)
-# [Roof_frac, Wall_frac, Road_frac,Water_frac,Ground_frac] = geometricProperties(data,data_water,grid_ratio,gridboxsize)
-# print('The Roof fraction is ' +str(np.mean(Roof_frac)))
-# print('The Wall fraction is ' +str(np.mean(Wall_frac)))
-# print('The Road fraction is ' +str(np.mean(Road_frac)))
-# print('The Water fraction is ' +str(np.mean(Water_frac)))
-# print('The Ground fraction is ' +str(np.mean(Ground_frac)))
-# [data_new,data_water_new] = MediateData(data,data_water,12.5,12.5,12.5,gridboxsize)
-# print(data_new.shape)
-# grid_ratio= int(20)
-# [Roof_frac, Wall_frac, Road_frac,Water_frac,Ground_frac] = geometricProperties(data_new,data_water_new,grid_ratio,gridboxsize*25)
-# print('The Roof fraction is ' +str(np.mean(Roof_frac)))
-# print('The Wall fraction is ' +str(np.mean(Wall_frac)))
-# print('The Road fraction is ' +str(np.mean(Road_frac)))
-# print('The Water fraction is ' +str(np.mean(Water_frac)))
-# print('The Ground fraction is ' +str(np.mean(Ground_frac)))
-# [x_len,y_len] = data.shape
-# data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-# print(np.max(data))
-# plt.figure()
-# plt.imshow(data,vmin=0)
-# plt.show()
+
 #
 "Histograms"
 # gridratio = 25
