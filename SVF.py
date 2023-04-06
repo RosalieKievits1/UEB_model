@@ -1,10 +1,10 @@
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from multiprocessing.pool import Pool
-import tifffile as tf
+#import tifffile as tf
 from tqdm import tqdm
 import config
-from functools import partial
+#from functools import partial
 import time
 #import KNMI_SVF_verification
 import Constants
