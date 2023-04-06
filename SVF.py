@@ -9,14 +9,14 @@ import time
 #import KNMI_SVF_verification
 import Constants
 import Sunpos
-import SVFs05m
-import SF05mHN1
-import pickle
-import SVFs5m
-import SVFGR25
-from pynverse import inversefunc
-from scipy.optimize import curve_fit
-from mpl_toolkits.mplot3d import Axes3D
+# import SVFs05m
+# import SF05mHN1
+# import pickle
+# import SVFs5m
+# import SVFGR25
+# from pynverse import inversefunc
+# from scipy.optimize import curve_fit
+# from mpl_toolkits.mplot3d import Axes3D
 
 
 sttime = time.time()
