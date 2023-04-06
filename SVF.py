@@ -679,9 +679,9 @@ elif (gridboxsize==0.5):
     "P1"
     #data = data[:int(x_long/5),:int(y_long/5)]
     "P2"
-    data_right_upper = data[:int(x_long/5),int(y_long/10):int(3*y_long/10)]
-    data_left_lower = data[int(x_long/10):int(3*x_long/10),:int(y_long/5)]
-    data_right_lower = data[int(x_long/10):int(3*x_long/10),int(y_long/10):int(3*y_long/10)]
+    data = data[:int(x_long/5),int(y_long/10):int(3*y_long/10)]
+    # data_left_lower = data[int(x_long/10):int(3*x_long/10),:int(y_long/5)]
+    # data_right_lower = data[int(x_long/10):int(3*x_long/10),int(y_long/10):int(3*y_long/10)]
     #data_left_lower = data[int(x_long/5):int(2*x_long/5),:int(y_long/5)]
     #data_right_lower = data[int(x_long/5):int(2*x_long/5),int(y_long/5):int(2*y_long/5)]
     "P3"
@@ -689,6 +689,7 @@ elif (gridboxsize==0.5):
     [x_len,y_len] = data.shape
 
 "P2: Right Upper, 9 AM"
+data_right_upper = data
 coords_RU = coordheight(data_right_upper)
 [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,9,radians=True)
 SF = reshape_SVF(data_right_upper,coords_RU,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
