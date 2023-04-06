@@ -61,7 +61,9 @@ def exner(pressure):
 def q_sat(T,p):
     "e_sat is the saturation vapor pressure, determined by the Clausius-Clapeyron equation"
     "T must be in Kelvin and this returns the e_sat in Pa, and q in kg/kg"
-    e_sat = Constants.e_s_T0 * np.log(Constants.L_v/Constants.R_w*(1/Constants.T_0-1/T))
+    e_sat = Constants.e_s_T0 * np.log((Constants.L_v/Constants.R_w*(1/Constants.T_0-1/T+0.0001)))
+    # if T==Constants.T_0:
+    #     e_sat = Constants.e_s_T0
     q_sat = (Constants.eps*e_sat)/(p - (1-Constants.eps)*e_sat)
     return q_sat
 
@@ -107,8 +109,8 @@ def initialize_map(layers,shape):
     map_T_wall[:,:,0:layers] = Constants.T_air #lin_temp_wall
 
     """Roads"""
-    map_T_road[:,:,0:layers] = Constants.T_ground
-    map_T_water[:,:,0:layers] = Constants.T_water
+    map_T_road[:,:,0:layers] = Constants.T_air
+    map_T_water[:,:,0:layers] = Constants.T_air
     capacities_road[:,:,0] = Constants.C_asphalt
     lambdas_road[:,:,0] = Constants.lamb_asphalt
 
@@ -139,8 +141,8 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
                    T_old_subs_roof, T_old_subs_wall, T_old_subs_road,T_old_subs_water,
                    road_frac,water_frac,
                    delta_t,
-                   sigma,
-                   SW_diff, SW_dir,     # from dales
+                   sigma,theta_z,
+                   SW_diff, SW_dir,    # from dales
                    T_firstlayer,q_first_layer,
                    LW_down, res_roof, res_road):
     """
@@ -149,33 +151,105 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
     WVF_roof = 1-SVF_roof
     WVF_road = 1-SVF_road
     GVF_wall = SVF_wall
-    RVF_wall = 0
-    WVF_wall = 1-SVF_wall-GVF_wall
+    RVF_wall = WVF_roof
+    WVF_wall = 1-SVF_wall-GVF_wall-RVF_wall
+
+    "Emissivity and Albedo of ground surface, for reflections"
+    emissivities_ground = emissivities_road*road_frac+Constants.e_water*water_frac
+    albedos_ground = albedos_road*road_frac+Constants.a_water*water_frac
+    T_old_ground = T_old_road*road_frac+T_old_water*water_frac
 
     """Longwave radiation"""
-    LW_net_roof = LW_down * emissivities_roof * SVF_roof - emissivities_roof * T_old_roof**4 * sigma + \
-                  (LW_down * SVF_wall * (1-emissivities_wall) + emissivities_wall * T_old_wall**4 * sigma) * WVF_roof * emissivities_roof
-    LW_net_wall = LW_down * emissivities_wall * SVF_wall - emissivities_wall * T_old_wall**4 * sigma + \
-                  (LW_down * SVF_wall * (1-emissivities_wall) + emissivities_wall * T_old_wall**4 * sigma) * WVF_wall * emissivities_wall + \
-                  (LW_down * SVF_road * (1-emissivities_road) + emissivities_road * T_old_road**4 * sigma) * GVF_wall * emissivities_wall + \
-                  (LW_down * SVF_roof * (1-emissivities_roof) + emissivities_roof * T_old_roof**4 * sigma) * RVF_wall * emissivities_wall
-    LW_net_road = LW_down * emissivities_road * SVF_road - emissivities_road * T_old_road**4 * sigma + \
-                  (LW_down * SVF_wall * (1-emissivities_wall) + emissivities_wall * T_old_wall**4 * sigma) * WVF_road * emissivities_road
-    LW_net_water = LW_down * Constants.e_water * SVF_road - Constants.e_water * T_old_water**4 * sigma + \
-                  (LW_down * SVF_wall * (1-emissivities_wall) + emissivities_wall * T_old_wall**4 * sigma) * WVF_road * Constants.e_water
+    # LW_net_roof = LW_down * emissivities_roof * SVF_roof - emissivities_roof * T_old_roof**4 * sigma + \
+    #               (LW_down * SVF_wall * (1-emissivities_wall) + emissivities_wall * T_old_wall**4 * sigma) * WVF_roof * emissivities_roof
+    # LW_net_wall = LW_down * emissivities_wall * SVF_wall - emissivities_wall * T_old_wall**4 * sigma + \
+    #               (LW_down * SVF_wall * (1-emissivities_wall) + emissivities_wall * T_old_wall**4 * sigma) * WVF_wall * emissivities_wall + \
+    #               (LW_down * SVF_road * (1-emissivities_ground) + emissivities_ground * T_old_ground**4 * sigma) * GVF_wall * emissivities_wall + \
+    #               (LW_down * SVF_roof * (1-emissivities_roof) + emissivities_roof * T_old_roof**4 * sigma) * RVF_wall * emissivities_wall
+    # LW_net_road = LW_down * emissivities_road * SVF_road - emissivities_road * T_old_road**4 * sigma + \
+    #               (LW_down * SVF_wall * (1-emissivities_wall) + emissivities_wall * T_old_wall**4 * sigma) * WVF_road * emissivities_road
+    # LW_net_water = LW_down * Constants.e_water * SVF_road - Constants.e_water * T_old_water**4 * sigma + \
+    #               (LW_down * SVF_wall * (1-emissivities_wall) + emissivities_wall * T_old_wall**4 * sigma) * WVF_road * Constants.e_water
+    # LW_net_roof = LW_down * emissivities_roof * SVF_roof - emissivities_roof * T_old_roof**4 * sigma + \
+    #              (LW_down * SVF_wall * (1-emissivities_wall) + emissivities_wall * T_old_wall**4 * sigma) * WVF_roof * emissivities_roof
 
+    "SPLITTED"
+    "LW Roof Splitted"
+    LW_roof_first = LW_down * emissivities_roof * SVF_roof
+    LW_roof_em = emissivities_roof * T_old_roof**4 * sigma
+    LW_roof_w = (LW_down * SVF_wall * (1-emissivities_wall) + emissivities_wall * T_old_wall**4 * sigma) * WVF_roof * emissivities_roof
+    LW_net_roof = LW_roof_first - LW_roof_em + LW_roof_w
 
-    " Short wave radiation"
-    SW_net_roof = SW_dir * SF_roof * (1-albedos_roof) + SW_diff * SVF_roof * (1-albedos_roof) + \
-                  (SW_dir * SF_wall + SW_diff * SVF_wall) * albedos_wall * (1-albedos_roof) * WVF_roof
-    SW_net_wall = SW_dir * SF_wall * (1-albedos_wall) + SW_diff * SVF_wall * (1-albedos_wall) + \
-                  (SW_dir * SF_wall + SW_diff * SVF_wall) * albedos_wall * (1-albedos_wall) * WVF_wall + \
-                  (SW_dir * SF_road + SW_diff * SVF_road) * albedos_road * (1-albedos_wall) * GVF_wall + \
-                  (SW_dir * SF_roof + SW_diff * SVF_roof) * albedos_roof * (1-albedos_wall) * RVF_wall
-    SW_net_road = SW_dir * SF_road * (1-albedos_road) + SW_diff * SVF_road * (1-albedos_road) + \
-                  (SW_dir * SF_wall + SW_diff * SVF_wall) * albedos_wall * (1-albedos_road) * (1-SVF_road)
-    SW_net_water = SW_dir * SF_road * (1-Constants.a_water) + SW_diff * SVF_road * (1-Constants.a_water) + \
-                  (SW_dir * SF_wall + SW_diff * SVF_wall) * albedos_wall * (1-Constants.a_water) * (1-SVF_road)
+    "LW Wall Splitted"
+    LW_w_first = LW_down * emissivities_wall * SVF_wall
+    LW_w_em = emissivities_wall * T_old_wall**4 * sigma
+    LW_w_wall =  (LW_down * SVF_wall * (1-emissivities_wall) + emissivities_wall * T_old_wall**4 * sigma) * WVF_wall * emissivities_wall
+    LW_w_road = (LW_down * SVF_road * (1-emissivities_ground) + emissivities_ground * T_old_ground**4 * sigma) * GVF_wall * emissivities_wall
+    LW_w_roof = (LW_down * SVF_roof * (1-emissivities_roof) + emissivities_roof * T_old_roof**4 * sigma) * RVF_wall * emissivities_wall
+    LW_net_wall = LW_w_first - LW_w_em + LW_w_wall + LW_w_roof + LW_w_road
+
+    "LW road splitted"
+    LW_road_first = LW_down * emissivities_road * SVF_road
+    LW_road_em = emissivities_road * T_old_road**4 * sigma
+    LW_road_w = (LW_down * SVF_wall * (1-emissivities_wall) + emissivities_wall * T_old_wall**4 * sigma) * WVF_road * emissivities_road
+    LW_net_road = LW_road_first - LW_road_em + LW_road_w
+
+    "LW water Splitted"
+    LW_water_first = LW_down * Constants.e_water * SVF_road
+    LW_water_em = Constants.e_water * T_old_water**4 * sigma
+    LW_water_w = (LW_down * SVF_wall * (1-emissivities_wall) + emissivities_wall * T_old_wall**4 * sigma) * WVF_road * Constants.e_water
+    LW_net_water = LW_water_first - LW_water_em + LW_water_w
+
+    "Ground Surfaces"
+    LW_ground_w = road_frac*LW_road_w + water_frac*LW_water_w
+    LW_ground_first = road_frac*LW_road_first + water_frac*LW_water_first
+    LW_ground_em = road_frac*LW_road_em + water_frac*LW_water_em
+    LW_ground_net = road_frac*LW_net_road + water_frac*LW_net_water
+
+    "SHORTWAVE Radiation"
+    # SW_net_roof = SW_dir * SF_roof * (1-albedos_roof) + SW_diff * SVF_roof * (1-albedos_roof) + \
+    #               (SW_dir * SF_wall * np.tan(theta_z) + SW_diff * SVF_wall) * albedos_wall * (1-albedos_roof) * WVF_roof
+    # SW_net_wall = SW_dir * SF_wall * (1-albedos_wall) * np.tan(theta_z) + SW_diff * SVF_wall * (1-albedos_wall) + \
+    #               (SW_dir * SF_wall * np.tan(theta_z) + SW_diff * SVF_wall) * albedos_wall * (1-albedos_wall) * WVF_wall + \
+    #               (SW_dir * SF_road + SW_diff * SVF_road) * albedos_ground * (1-albedos_wall) * GVF_wall + \
+    #               (SW_dir * SF_roof + SW_diff * SVF_roof) * albedos_roof * (1-albedos_wall) * RVF_wall
+    # SW_net_road = SW_dir * SF_road * (1-albedos_road) + SW_diff * SVF_road * (1-albedos_road) + \
+    #               (SW_dir * SF_wall * np.tan(theta_z) + SW_diff * SVF_wall) * albedos_wall * (1-albedos_road) * (1-SVF_road)
+    # SW_net_water = SW_dir * SF_road * (1-Constants.a_water) + SW_diff * SVF_road * (1-Constants.a_water) + \
+    #               (SW_dir * SF_wall * np.tan(theta_z) + SW_diff * SVF_wall) * albedos_wall * (1-Constants.a_water) * (1-SVF_road)
+
+    "SPLITTED"
+    "SW roof splitted"
+    SW_roof_dir = SW_dir * SF_roof * (1-albedos_roof)
+    SW_roof_dif = SW_diff * SVF_roof * (1-albedos_roof)
+    SW_roof_w = (SW_dir * SF_wall + SW_diff * SVF_wall) * albedos_wall * (1-albedos_roof) * WVF_roof
+    SW_net_roof = SW_roof_dir + SW_roof_dif + SW_roof_w
+
+    "SW wall splitted"
+    SW_w_dir = SW_dir * SF_wall * (1-albedos_wall)
+    SW_w_dif = SW_diff * SVF_wall * (1-albedos_wall)
+    SW_w_wall = (SW_dir * SF_wall + SW_diff * SVF_wall) * albedos_wall * (1-albedos_wall) * WVF_wall
+    SW_w_road = (SW_dir * SF_road + SW_diff * SVF_road) * albedos_ground * (1-albedos_wall) * GVF_wall
+    SW_w_roof = (SW_dir * SF_roof + SW_diff * SVF_roof) * albedos_roof * (1-albedos_wall) * RVF_wall
+    SW_net_wall = SW_w_dir + SW_w_dif + SW_w_wall + SW_w_road + SW_w_roof
+
+    "SW road splitted"
+    SW_road_dir = SW_dir * SF_road * (1-albedos_road)
+    SW_road_dif = SW_diff * SVF_road * (1-albedos_road)
+    SW_road_w = (SW_dir * SF_wall + SW_diff * SVF_wall) * albedos_wall * (1-albedos_road) * (1-SVF_road)
+    SW_net_road = SW_road_dif + SW_road_dir + SW_road_w
+
+    "SW Water splitted"
+    SW_water_dir = SW_dir * SF_road * (1-Constants.a_water)
+    SW_water_dif = SW_diff * SVF_road * (1-Constants.a_water)
+    SW_water_w = (SW_dir * SF_wall + SW_diff * SVF_wall) * albedos_wall * (1-Constants.a_water) * (1-SVF_road)
+    SW_net_water = SW_water_dir + SW_water_dif + SW_water_w
+
+    "Ground Surfaces"
+    SW_ground_w = road_frac*SW_road_w + water_frac*SW_water_w
+    SW_ground_dif = road_frac*SW_road_dif + water_frac*SW_water_dif
+    SW_ground_dir = road_frac*SW_road_dir + water_frac*SW_water_dir
+    SW_ground_net = road_frac*SW_net_road + water_frac*SW_net_water
 
     " Latent and Sensible Heat fluxes "
     SHF_roof = Constants.C_pd * Constants.rho_air * (1/res_roof) * (T_pot(T_old_roof,Constants.p_atm) - T_pot(T_firstlayer,Constants.p_atm))
@@ -183,13 +257,10 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
     SHF_road = Constants.C_pd * Constants.rho_air * (1/res_road) * (T_pot(T_old_road,Constants.p_atm) - T_pot(T_firstlayer,Constants.p_atm))
     SHF_water = Constants.C_pd * Constants.rho_air * (1/Constants.res_water) * (T_pot(T_old_water,Constants.p_atm) - T_pot(T_firstlayer,Constants.p_atm))
 
-
     LHF_roof = Constants.L_v * Constants.rho_air * (1/res_roof) * (q_sat(T_old_roof,Constants.p_atm) - q_sat(T_firstlayer,Constants.p_atm))
     LHF_wall = 0
     LHF_road = Constants.L_v * Constants.rho_air * (1/res_road) * (q_sat(T_old_road,Constants.p_atm) - q_sat(T_firstlayer,Constants.p_atm))
     LHF_water = Constants.L_v * Constants.rho_air * (1/Constants.res_water) * (q_sat(T_old_water,Constants.p_atm) - q_sat(T_firstlayer,Constants.p_atm))
-
-
 
     " conduction"
     lamb_ave_out_surf_roof = (d_roof[0]+d_roof[1])/((d_roof[0]/lambdas_roof[:,:,0])+(d_roof[1]/lambdas_roof[:,:,1]))
@@ -200,7 +271,6 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
     G_out_surf_road = lamb_ave_out_surf_road*((T_old_road-T_old_subs_road)/(1/2*(d_road[0]+d_road[1])))
     "For water the lambdas are all the same"
     G_out_surf_water = Constants.lamb_water*((T_old_water-T_old_subs_water)/(1/2*(d_water[0]+d_water[1])))
-
 
     " Net radiation "
     netRad_roof = LW_net_roof + SW_net_roof - G_out_surf_roof - SHF_roof - LHF_roof
@@ -219,11 +289,13 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
     map_T_water = T_old_water + dT_water
 
     map_T_ground = water_frac*map_T_water+road_frac*map_T_road
+
     return map_T_roof,map_T_wall,map_T_road,map_T_water, map_T_ground, \
            LW_net_roof, SW_net_roof, G_out_surf_roof, SHF_roof, LHF_roof, \
            LW_net_wall, SW_net_wall, G_out_surf_wall, \
            LW_net_road, SW_net_road, G_out_surf_road, SHF_road, LHF_road, \
-           LW_net_water, SW_net_water, G_out_surf_water, SHF_water, LHF_water
+           LW_net_water, SW_net_water, G_out_surf_water, SHF_water, LHF_water, \
+           SW_w_dif,SW_w_dir,SW_w_wall, SW_w_roof,SW_w_road
 
 def layer_balance(d_roof, d_wall, d_road,d_water,
                   lambdas_roof, lambdas_wall, lambdas_road,
@@ -300,10 +372,23 @@ def HeatEvolution(time_steps,delta_t,SW_down,Zenith,LW_down,T_2m,q_first_layer,
     LW_ave_road = np.empty((time_steps))
     LW_ave_water = np.empty((time_steps))
 
+    SW_ave_wall_dif = np.empty((time_steps))
+    SW_ave_wall_dir = np.empty((time_steps))
+    SW_ave_wall_wall = np.empty((time_steps))
+    SW_ave_wall_roof = np.empty((time_steps))
+    SW_ave_wall_road = np.empty((time_steps))
+
+    # LW_ave_w_first = np.empty((time_steps))
+    # LW_ave_w_em = np.empty((time_steps))
+    # LW_ave_w_wall = np.empty((time_steps))
+    # LW_ave_w_roof = np.empty((time_steps))
+    # LW_ave_w_road = np.empty((time_steps))
+
     SW_ave_roof = np.empty((time_steps))
     SW_ave_wall = np.empty((time_steps))
     SW_ave_road = np.empty((time_steps))
     SW_ave_water = np.empty((time_steps))
+    SW_ave_ground = np.empty((time_steps))
 
     G_ave_roof = np.empty((time_steps))
     G_ave_wall = np.empty((time_steps))
@@ -350,7 +435,8 @@ def HeatEvolution(time_steps,delta_t,SW_down,Zenith,LW_down,T_2m,q_first_layer,
          LW_net_roof, SW_net_roof, G_out_surf_roof, SHF_roof, LHF_roof, \
            LW_net_wall, SW_net_wall, G_out_surf_wall, \
            LW_net_road, SW_net_road, G_out_surf_road, SHF_road, LHF_road, \
-           LW_net_water, SW_net_water, G_out_surf_water, SHF_water, LHF_water] = surfacebalance(albedos_roof, albedos_wall, albedos_road, \
+           LW_net_water, SW_net_water, G_out_surf_water, SHF_water, LHF_water, \
+            SW_w_dif,SW_w_dir,SW_w_wall, SW_w_roof,SW_w_road] = surfacebalance(albedos_roof, albedos_wall, albedos_road, \
             emissivity_roof, emissivity_wall, emissivity_road, \
             capacities_roof, capacities_wall, capacities_road, \
             SVF_roof, SVF_wall, SVF_road, \
@@ -361,7 +447,7 @@ def HeatEvolution(time_steps,delta_t,SW_down,Zenith,LW_down,T_2m,q_first_layer,
             map_T_roof[:,:,1], map_T_wall[:,:,1], map_T_road[:,:,1],map_T_water[:,:,1], \
             Road_frac_new, Water_frac_new, \
             delta_t, \
-            Constants.sigma, \
+            Constants.sigma,Zenith[t], \
             SW_dif, SW_dir, \
             T_firstlayer, q_firstlayer,\
             LW_d, res_roof, res_road)
@@ -412,12 +498,18 @@ def HeatEvolution(time_steps,delta_t,SW_down,Zenith,LW_down,T_2m,q_first_layer,
         SHF_ave_road[t] = np.mean(SHF_road)
         SHF_ave_water[t] = np.mean(SHF_water)
 
+        SW_ave_wall_dif[t] = np.mean(SW_w_dif)
+        SW_ave_wall_dir[t] = np.mean(SW_w_dir)
+        SW_ave_wall_wall[t] = np.mean(SW_w_wall)
+        SW_ave_wall_roof[t] = np.mean(SW_w_roof)
+        SW_ave_wall_road[t] = np.mean(SW_w_road)
 
     return T_ave_roof, T_ave_wall, T_ave_road,T_ave_water,T_ave_ground,T_ave_surf, \
            LW_ave_roof, SW_ave_roof, G_ave_roof, SHF_ave_roof, LHF_ave_roof, \
            LW_ave_wall, SW_ave_wall, G_ave_wall, \
            LW_ave_road, SW_ave_road, G_ave_road, SHF_ave_road, LHF_ave_road, \
-           LW_ave_water, SW_ave_water, G_ave_water, SHF_ave_water, LHF_ave_water
+           LW_ave_water, SW_ave_water, G_ave_water, SHF_ave_water, LHF_ave_water, \
+           SW_ave_wall_dif,SW_ave_wall_dir,SW_ave_wall_wall,SW_ave_wall_roof,SW_ave_wall_road
 
 def AnalyticalSoil(t,z,lamb,C):
     k = lamb/C
@@ -467,13 +559,13 @@ def PlotSurfaceTemp(T_ave_roof,T_ave_wall,T_ave_road,T_ave_water, T_ave_ground,T
     time = (np.arange(time_steps)* Constants.timestep/3600)
 
     plt.figure()
-    #plt.plot(time,T_ave_roof[:,0], label="Roof")
-    #plt.plot(time,T_ave_wall[:,0], label="Wall")
-    plt.plot(time,T_ave_road[:,0], label="road")
-    plt.plot(time,T_ave_water[:,0], label="water")
+    plt.plot(time,T_ave_roof[:,0], label="Roof")
+    plt.plot(time,T_ave_wall[:,0], label="Wall")
+    #plt.plot(time,T_ave_road[:,0], label="road")
+    #plt.plot(time,T_ave_water[:,0], label="water")
     plt.plot(time,T_ave_ground[:,0], label="ground")
-    plt.plot(time,T_ave_surf, label="Average Surface Temperature (single slab)")
-    #plt.plot(time,T_2m, 'blue', label="Temp at 2m (Forcing)")
+    #plt.plot(time,T_ave_surf, label="Average Surface Temperature")
+    plt.plot(time,T_2m, 'blue', label="Outside Temp (Forcing)")
     plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
     plt.xlabel("Time [h]")
     plt.ylabel("Surface Temperature [K]")
@@ -496,13 +588,17 @@ def PlotTempLayers(T_ave,T_2m,time_steps,show=False):
         plt.show()
     return
 
-def PlotSurfaceFluxes(nr_of_steps,Flux1,Flux_1,Flux2,Flux_2,Flux3,Flux_3,Flux4,Flux_4,show=False):
+def PlotSurfaceFluxes(nr_of_steps,Flux1,Flux_1,Flux2,Flux_2,Flux3,Flux_3,Flux4,Flux_4,Flux5,Flux_5,Flux6,Flux_6,Flux7,Flux_7,show=False):
     time = (np.arange(nr_of_steps)*Constants.timestep / 3600)
     plt.figure()
     plt.plot(time,Flux1, label=Flux_1)
     plt.plot(time,Flux2, label=Flux_2)
     plt.plot(time,Flux3,label=Flux_3)
     plt.plot(time,Flux4,label=Flux_4)
+    plt.plot(time,Flux5,label=Flux_5)
+    plt.plot(time,Flux6,label=Flux_6)
+    plt.plot(time,Flux7,label=Flux_7)
+
     plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
     plt.xlabel("Time [h]")
     plt.ylabel("Flux [W/m2K]")
