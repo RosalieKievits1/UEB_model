@@ -20,8 +20,8 @@ nr_of_steps = 800
 """albedos"""
 a_bitumen = 0.12
 a_asphalt = 0.12
-a_grass =0.3
-a_glass =0.21
+a_grass = 0.3
+a_glass = 0.21
 a_brick = 0.3
 a_water = 0.009
 a_concrete = 0.35
@@ -89,8 +89,9 @@ p_surf = 1.089e5 # [Pa] pressure at first atmospheric level (troposphere), accor
 
 "Aerodynamc resistances for roof and road"
 # https://www.mdpi.com/2072-4292/11/11/1347
-res_roof = 120
-res_road = 120
+res_roof = 60
+res_road = 60
+res_wall = 60
 res_water = 200
 
 R_w = 461.52 # J/kgK gas constant of water
@@ -112,8 +113,8 @@ julianday = 121 #1 may
 hour = 18 # 10:30 am
 
 "Average air temp and air temp amp, in Kelvin"
-T_air = 273.15 + 15
-T_air_amp = 10
+T_air = 273.15 +15
+T_air_amp = 5
 "For computing LW_down, from P Schrijvers page 20"
 c = 46.5 #[K/hPa]
 RH = 0.75 #75%, relative humidity

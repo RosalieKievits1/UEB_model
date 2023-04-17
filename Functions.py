@@ -144,15 +144,15 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
                    sigma,theta_z,
                    SW_diff, SW_dir,    # from dales
                    T_firstlayer,q_first_layer,
-                   LW_down, res_roof, res_road):
+                   LW_down, res_roof, res_wall, res_road):
     """
     Returns a map of the surface temperatures for all three surface types
     """
     WVF_roof = 1-SVF_roof
     WVF_road = 1-SVF_road
     GVF_wall = SVF_wall
-    RVF_wall = WVF_roof
-    WVF_wall = 1-SVF_wall-GVF_wall-RVF_wall
+    RVF_wall = 0#WVF_roof/2
+    WVF_wall = 1-SVF_wall-GVF_wall#-RVF_wall
 
     "Emissivity and Albedo of ground surface, for reflections"
     emissivities_ground = emissivities_road*road_frac+Constants.e_water*water_frac
@@ -253,13 +253,13 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
 
     " Latent and Sensible Heat fluxes "
     SHF_roof = Constants.C_pd * Constants.rho_air * (1/res_roof) * (T_pot(T_old_roof,Constants.p_atm) - T_pot(T_firstlayer,Constants.p_atm))
-    SHF_wall = 0
+    SHF_wall = Constants.C_pd * Constants.rho_air * (1/res_wall) * (T_pot(T_old_wall,Constants.p_atm) - T_pot(T_firstlayer,Constants.p_atm))
     SHF_road = Constants.C_pd * Constants.rho_air * (1/res_road) * (T_pot(T_old_road,Constants.p_atm) - T_pot(T_firstlayer,Constants.p_atm))
     SHF_water = Constants.C_pd * Constants.rho_air * (1/Constants.res_water) * (T_pot(T_old_water,Constants.p_atm) - T_pot(T_firstlayer,Constants.p_atm))
 
-    LHF_roof = Constants.L_v * Constants.rho_air * (1/res_roof) * (q_sat(T_old_roof,Constants.p_atm) - q_sat(T_firstlayer,Constants.p_atm))
+    LHF_roof = 0
     LHF_wall = 0
-    LHF_road = Constants.L_v * Constants.rho_air * (1/res_road) * (q_sat(T_old_road,Constants.p_atm) - q_sat(T_firstlayer,Constants.p_atm))
+    LHF_road = 0
     LHF_water = Constants.L_v * Constants.rho_air * (1/Constants.res_water) * (q_sat(T_old_water,Constants.p_atm) - q_sat(T_firstlayer,Constants.p_atm))
 
     " conduction"
@@ -291,9 +291,9 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
     map_T_ground = water_frac*map_T_water+road_frac*map_T_road
 
     return map_T_roof,map_T_wall,map_T_road,map_T_water, map_T_ground, \
-           LW_net_roof, SW_net_roof, G_out_surf_roof, SHF_roof, LHF_roof, \
-           LW_net_wall, SW_net_wall, G_out_surf_wall, \
-           LW_net_road, SW_net_road, G_out_surf_road, SHF_road, LHF_road, \
+           LW_net_roof, SW_net_roof, G_out_surf_roof, SHF_roof, \
+           LW_net_wall, SW_net_wall, G_out_surf_wall, SHF_wall, \
+           LW_net_road, SW_net_road, G_out_surf_road, SHF_road, \
            LW_net_water, SW_net_water, G_out_surf_water, SHF_water, LHF_water, \
            SW_w_dif,SW_w_dir,SW_w_wall, SW_w_roof,SW_w_road
 
@@ -356,7 +356,7 @@ def HeatEvolution(time_steps,delta_t,SW_down,Zenith,LW_down,T_2m,q_first_layer,
                   SVF_roof,SVF_wall,SVF_road,
                   SF_roof,SF_wall,SF_road,
                   Roof_frac, Road_frac, Wall_frac, Water_frac,
-                  res_roof, res_road):
+                  res_roof, res_wall, res_road):
 
     "Arrays that store average surface temperatures"
     T_ave_roof = np.empty((time_steps,Constants.layers))
@@ -397,10 +397,8 @@ def HeatEvolution(time_steps,delta_t,SW_down,Zenith,LW_down,T_2m,q_first_layer,
 
     SHF_ave_roof = np.empty((time_steps))
     SHF_ave_road = np.empty((time_steps))
+    SHF_ave_wall = np.empty((time_steps))
     SHF_ave_water = np.empty((time_steps))
-
-    LHF_ave_roof = np.empty((time_steps))
-    LHF_ave_road = np.empty((time_steps))
     LHF_ave_water = np.empty((time_steps))
 
     "Now we need to separate the roof, wall and road SVF and SF"
@@ -432,9 +430,9 @@ def HeatEvolution(time_steps,delta_t,SW_down,Zenith,LW_down,T_2m,q_first_layer,
         T_firstlayer = T_2m[t]
         q_firstlayer = q_first_layer[t]
         [map_T_roof[:,:,0],map_T_wall[:,:,0],map_T_road[:,:,0],map_T_water[:,:,0],map_T_ground[:,:,0],\
-         LW_net_roof, SW_net_roof, G_out_surf_roof, SHF_roof, LHF_roof, \
-           LW_net_wall, SW_net_wall, G_out_surf_wall, \
-           LW_net_road, SW_net_road, G_out_surf_road, SHF_road, LHF_road, \
+         LW_net_roof, SW_net_roof, G_out_surf_roof, SHF_roof, \
+           LW_net_wall, SW_net_wall, G_out_surf_wall, SHF_wall, \
+           LW_net_road, SW_net_road, G_out_surf_road, SHF_road, \
            LW_net_water, SW_net_water, G_out_surf_water, SHF_water, LHF_water, \
             SW_w_dif,SW_w_dir,SW_w_wall, SW_w_roof,SW_w_road] = surfacebalance(albedos_roof, albedos_wall, albedos_road, \
             emissivity_roof, emissivity_wall, emissivity_road, \
@@ -450,7 +448,7 @@ def HeatEvolution(time_steps,delta_t,SW_down,Zenith,LW_down,T_2m,q_first_layer,
             Constants.sigma,Zenith[t], \
             SW_dif, SW_dir, \
             T_firstlayer, q_firstlayer,\
-            LW_d, res_roof, res_road)
+            LW_d, res_roof, res_wall, res_road)
 
         map_T_roof[:,:,1:], map_T_wall[:,:,1:], map_T_road[:,:,1:], map_T_water[:,:,1:],map_T_ground[:,:,1:] = \
             layer_balance(Constants.d_roof, Constants.d_wall, Constants.d_road,Constants.d_water,
@@ -483,12 +481,12 @@ def HeatEvolution(time_steps,delta_t,SW_down,Zenith,LW_down,T_2m,q_first_layer,
         LW_ave_wall[t] = np.mean(LW_net_wall)
         LW_ave_road[t] = np.mean(LW_net_road)
         LW_ave_water[t] = np.mean(LW_net_water)
+
         SW_ave_roof[t] = np.mean(SW_net_roof)
         SW_ave_wall[t] = np.mean(SW_net_wall)
         SW_ave_road[t] = np.mean(SW_net_road)
         SW_ave_water[t] = np.mean(SW_net_water)
-        LHF_ave_roof[t] = np.mean(LHF_roof)
-        LHF_ave_road[t] = np.mean(LHF_road)
+
         LHF_ave_water[t] = np.mean(LHF_water)
         G_ave_roof[t] = np.mean(G_out_surf_roof)
         G_ave_wall[t] = np.mean(G_out_surf_wall)
@@ -496,6 +494,7 @@ def HeatEvolution(time_steps,delta_t,SW_down,Zenith,LW_down,T_2m,q_first_layer,
         G_ave_water[t] = np.mean(G_out_surf_water)
         SHF_ave_roof[t] = np.mean(SHF_roof)
         SHF_ave_road[t] = np.mean(SHF_road)
+        SHF_ave_wall[t] = np.mean(SHF_wall)
         SHF_ave_water[t] = np.mean(SHF_water)
 
         SW_ave_wall_dif[t] = np.mean(SW_w_dif)
@@ -505,11 +504,12 @@ def HeatEvolution(time_steps,delta_t,SW_down,Zenith,LW_down,T_2m,q_first_layer,
         SW_ave_wall_road[t] = np.mean(SW_w_road)
 
     return T_ave_roof, T_ave_wall, T_ave_road,T_ave_water,T_ave_ground,T_ave_surf, \
-           LW_ave_roof, SW_ave_roof, G_ave_roof, SHF_ave_roof, LHF_ave_roof, \
-           LW_ave_wall, SW_ave_wall, G_ave_wall, \
-           LW_ave_road, SW_ave_road, G_ave_road, SHF_ave_road, LHF_ave_road, \
+           LW_ave_roof, SW_ave_roof, G_ave_roof, SHF_ave_roof, \
+           LW_ave_wall, SW_ave_wall, G_ave_wall, SHF_ave_wall, \
+           LW_ave_road, SW_ave_road, G_ave_road, SHF_ave_road, \
            LW_ave_water, SW_ave_water, G_ave_water, SHF_ave_water, LHF_ave_water, \
            SW_ave_wall_dif,SW_ave_wall_dir,SW_ave_wall_wall,SW_ave_wall_roof,SW_ave_wall_road
+
 
 def AnalyticalSoil(t,z,lamb,C):
     k = lamb/C
@@ -557,15 +557,14 @@ def PlotGreyMap(data,middle,v_max):
 
 def PlotSurfaceTemp(T_ave_roof,T_ave_wall,T_ave_road,T_ave_water, T_ave_ground,T_2m,T_ave_surf,time_steps,show=False):
     time = (np.arange(time_steps)* Constants.timestep/3600)
-
     plt.figure()
+    plt.plot(time,T_2m, 'blue', label="Air Temp")
     plt.plot(time,T_ave_roof[:,0], label="Roof")
     plt.plot(time,T_ave_wall[:,0], label="Wall")
     #plt.plot(time,T_ave_road[:,0], label="road")
     #plt.plot(time,T_ave_water[:,0], label="water")
     plt.plot(time,T_ave_ground[:,0], label="ground")
-    #plt.plot(time,T_ave_surf, label="Average Surface Temperature")
-    plt.plot(time,T_2m, 'blue', label="Outside Temp (Forcing)")
+    #plt.plot(time,T_ave_surf, label="Slab Surface")
     plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
     plt.xlabel("Time [h]")
     plt.ylabel("Surface Temperature [K]")
@@ -577,9 +576,9 @@ def PlotSurfaceTemp(T_ave_roof,T_ave_wall,T_ave_road,T_ave_water, T_ave_ground,T
 def PlotTempLayers(T_ave,T_2m,time_steps,show=False):
     time = (np.arange(time_steps)* Constants.timestep/3600)
     plt.figure()
+    plt.plot(time,T_2m, label="Air Temp")
     for l in range(Constants.layers):
-        plt.plot(time,T_ave[:,l], label="layer " + str(l))
-    plt.plot(time,T_2m, label="Air Temp (Forcing)")
+        plt.plot(time,T_ave[:,l], label=str(l))
     plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
     plt.xlabel("Time [h]")
     plt.ylabel("Temperature [K]")
@@ -588,17 +587,11 @@ def PlotTempLayers(T_ave,T_2m,time_steps,show=False):
         plt.show()
     return
 
-def PlotSurfaceFluxes(nr_of_steps,Flux1,Flux_1,Flux2,Flux_2,Flux3,Flux_3,Flux4,Flux_4,Flux5,Flux_5,Flux6,Flux_6,Flux7,Flux_7,show=False):
+def PlotSurfaceFluxes(nr_of_steps,Fluxes,Flux_names,show=False):
     time = (np.arange(nr_of_steps)*Constants.timestep / 3600)
     plt.figure()
-    plt.plot(time,Flux1, label=Flux_1)
-    plt.plot(time,Flux2, label=Flux_2)
-    plt.plot(time,Flux3,label=Flux_3)
-    plt.plot(time,Flux4,label=Flux_4)
-    plt.plot(time,Flux5,label=Flux_5)
-    plt.plot(time,Flux6,label=Flux_6)
-    plt.plot(time,Flux7,label=Flux_7)
-
+    for i in range(len(Fluxes)):
+        plt.plot(time,Fluxes[i], label=Flux_names[i])
     plt.rcParams['font.family'] = ['Comic Sans', 'sans-serif']
     plt.xlabel("Time [h]")
     plt.ylabel("Flux [W/m2K]")

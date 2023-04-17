@@ -1,5 +1,6 @@
 import numpy as np
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
+plt.rc('font', size=15)
 from multiprocessing.pool import Pool
 import tifffile as tf
 from tqdm import tqdm
@@ -8,7 +9,7 @@ from functools import partial
 import time
 #import KNMI_SVF_verification
 import Constants
-import Sunpos
+# import Sunpos
 # import SVFs05m
 # import SF05mHN1
 # import pickle
@@ -210,7 +211,7 @@ def d_area(psi,steps_beta,maxR):
     d_area = 2*np.pi/steps_beta*maxR**2*np.sin(psi)
     return d_area
 
-def SkyViewFactor(point, coords, max_radius,gridboxsize,steps_beta):
+def SkyViewFactor(point, coords, max_radius,gridboxsize):
     betas_lin = np.linspace(-np.pi/2,3*np.pi/2,steps_beta, endpoint=False)
     "we throw away all point outside the dome"
     # dome is now a 5 column array of points:
@@ -420,10 +421,10 @@ def average_surfacetype(matrix,data, grid_ratio):
         for j in range(int(y_long/grid_ratio)):
             data_part = data[int(i*grid_ratio):int((i+1)*grid_ratio), int(j*grid_ratio):int((j+1)*grid_ratio)]
             part = matrix[int(i*grid_ratio):int((i+1)*grid_ratio), int(j*grid_ratio):int((j+1)*grid_ratio)]
-            ave_roof[i,j] = np.mean(part[data_part>0])
-            ave_road[i,j] = np.mean(part[data_part<=0])
-    ave_roof[np.isnan(ave_roof)] = np.nanmean(ave_roof)
-    ave_road[np.isnan(ave_road)] = np.nanmean(ave_road)
+            ave_roof[i,j] = np.nanmean(part[data_part>0])
+            ave_road[i,j] = np.nanmean(part[data_part==0])
+    ave_roof[np.isnan(ave_roof)] = 2#np.nanmean(ave_roof)
+    ave_road[np.isnan(ave_road)] = 2#np.nanmean(ave_road)
     return ave_roof,ave_road
 
 def average_svf(SVF_matrix, grid_ratio):
@@ -677,9 +678,10 @@ elif (gridboxsize==0.5):
     [x_long, y_long] = data.shape
     #print(data.shape)
     "P1"
-    #data = data[:int(x_long/5),:int(y_long/5)]
+    data = data[:int(x_long/5),:int(y_long/5)]
     "P2"
-    data = data[:int(x_long/5),int(y_long/10):int(3*y_long/10)]
+    #data_total = data[:int(x_long/5),:int(3*y_long/10)]
+    #data_right_upper = data[:int(x_long/5),int(y_long/10):int(3*y_long/10)]
     # data_left_lower = data[int(x_long/10):int(3*x_long/10),:int(y_long/5)]
     # data_right_lower = data[int(x_long/10):int(3*x_long/10),int(y_long/10):int(3*y_long/10)]
     #data_left_lower = data[int(x_long/5):int(2*x_long/5),:int(y_long/5)]
@@ -688,23 +690,364 @@ elif (gridboxsize==0.5):
     #data = data[:int(x_long/5),int(2*y_long/5):int(3*y_long/5)]
     [x_len,y_len] = data.shape
 
-"P2: Right Upper, 9 AM"
-data_right_upper = data
-coords_RU = coordheight(data_right_upper)
-[azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,9,radians=True)
-SF = reshape_SVF(data_right_upper,coords_RU,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
-print("These are the SFs for right upper, 9am")
-print(SF)
-"P2: Right Upper, 11 AM"
-[azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,11,radians=True)
-SF = reshape_SVF(data_right_upper,coords_RU,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
-print("These are the SFs for right upper, 11am")
-print(SF)
-"P2: Right Upper, 11 AM"
-[azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,13,radians=True)
-SF = reshape_SVF(data_right_upper,coords_RU,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
-print("These are the SFs for right upper, 1pm")
-print(SF)
+#np.save('Pickles/1MaySF/SFmay1_HN1P2/SF_total_9am', SF_matrix)
+gr_SVF = 5
+#data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+[data,data_water] = MediateData(data,data_water,gr_SVF*gridboxsize,gr_SVF*gridboxsize,gr_SVF*gridboxsize,gridboxsize)
+coords = coordheight(data)
+[x_len,y_len] = data.shape
+print(data.shape)
+blocklength = int(x_len/2*y_len/2)
+SVFs = calc_SVF(coords, max_radius, blocklength, gr_SVF*gridboxsize)
+print(SVFs)
+"Histograms"
+# [x_len,y_len] = data_total.shape
+# with open('Pickles/1MaySF/SFmay1_HN1P2/SF_total_9am.npy', 'rb') as f:
+#     SF_9 = np.load(f)
+# with open('Pickles/1MaySF/SFmay1_HN1P2/SF_total_11am.npy', 'rb') as f:
+#     SF_11 = np.load(f)
+# with open('Pickles/1MaySF/SFmay1_HN1P2/SF_total_13pm.npy', 'rb') as f:
+#     SF_13 = np.load(f)
+# #data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# # print(SF_total.shape)
+# #data_total = data_total[int(x_len/4):int(3*x_len/4),int(y_len/4):int(5*y_len/4)]
+# data_total = data_total[int(x_len/4):int(3*x_len/4),int(y_len/6):int(5*y_len/6)]
+# #
+# grid_ratio = 50
+# # grid_ratio_25 = 25
+# # grid_ratio_50 = 50
+# bin_nr = 30
+# minheight = 1
+# #
+# [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,9,radians=True)
+# Zenith_9 = np.pi/2-el_angle
+# print(Zenith_9*180/np.pi)
+# [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,11,radians=True)
+# Zenith_11 = np.pi/2-el_angle
+# print(Zenith_11*180/np.pi)
+# [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,13,radians=True)
+# Zenith_13 = np.pi/2-el_angle
+# print(Zenith_13*180/np.pi)
+# [SF_roof_9,SF_road_9] = average_surfacetype(SF_9,data_total,grid_ratio)
+# [SF_roof_11,SF_road_11] = average_surfacetype(SF_11,data_total,grid_ratio)
+# [SF_roof_13,SF_road_13] = average_surfacetype(SF_13,data_total,grid_ratio)
+# #
+# # bin_nr = 30
+# SF_roads = np.linspace(0.01,1,20)
+# plt.figure()
+# SF_w_9 = WallSF_fit(Zenith_9,SF_roads)
+# SF_w_11 = WallSF_fit(Zenith_11,SF_roads)
+# SF_w_13 = WallSF_fit(Zenith_13,SF_roads)
+# plt.plot(SF_roads,SF_w_9,label="9AM")
+# plt.plot(SF_roads,SF_w_11,label="11AM")
+# plt.plot(SF_roads,SF_w_13,label="13PM")
+# plt.legend()
+#
+# "SVF PDF"
+# plt.figure()
+# SF_roof_9_list = SF_road_9.flatten()
+# SF_roof_9_list = SF_roof_9_list[SF_roof_9_list<=1]
+# SF_roof_9_list = SF_roof_9_list[SF_roof_9_list>0]
+# SF_roof_11_list = SF_road_11.flatten()
+# SF_roof_11_list = SF_roof_11_list[SF_roof_11_list<=1]
+# SF_roof_11_list = SF_roof_11_list[SF_roof_11_list>0]
+# SF_roof_13_list = SF_road_13.flatten()
+# SF_roof_13_list = SF_roof_13_list[SF_roof_13_list<=1]
+# SF_roof_13_list = SF_roof_13_list[SF_roof_13_list>0]
+# SF_wall_9_list = WallSF_fit(Zenith_9,SF_roof_9_list)
+# SF_wall_11_list = WallSF_fit(Zenith_11,SF_roof_11_list)
+# SF_wall_13_list = WallSF_fit(Zenith_13,SF_roof_13_list)
+#
+# plt.xlim((0,0.5))
+# plt.hist(SF_wall_9_list, bins = bin_nr,weights=np.ones(len(SF_wall_9_list))/len(SF_wall_9_list))
+# plt.ylabel('Normalized Counts [0-1]')
+# plt.xlabel('SF [0-1]')
+# plt.figure()
+# plt.xlim((0,0.5))
+# plt.hist(SF_wall_11_list, bins = bin_nr,weights=np.ones(len(SF_wall_11_list))/len(SF_wall_11_list))
+# plt.ylabel('Normalized Counts [0-1]')
+# plt.xlabel('SF [0-1]')
+# plt.figure()
+# plt.xlim((0,0.5))
+# plt.hist(SF_wall_13_list, bins = bin_nr,weights=np.ones(len(SF_wall_13_list))/len(SF_wall_13_list))
+# plt.ylabel('Normalized Counts [0-1]')
+# plt.xlabel('SF [0-1]')
+# plt.show()
+#
+# SF_wall_11 = WallSF_fit(Zenith_11,SF_road_11)
+# SF_wall_13 = WallSF_fit(Zenith_13,SF_road_13)
+#
+# counts_number, bin_edges_9 = np.histogram(SF_roof_9_list, bins=bin_nr,density=True)
+# pdf_SF_9_roof = counts_number/np.sum(counts_number)
+# counts_number, bin_edges_11 = np.histogram(SF_roof_11_list, bins=bin_nr,density=True)
+# pdf_SF_11_roof = counts_number/np.sum(counts_number)
+# counts_number, bin_edges_13 = np.histogram(SF_roof_13_list, bins=bin_nr,density=True)
+# pdf_SF_13_roof = counts_number/np.sum(counts_number)
+#
+# plt.plot(bin_edges_9[1:],pdf_SF_9_roof,label='9AM')
+# plt.plot(bin_edges_11[1:],pdf_SF_11_roof,label='11AM')
+# plt.plot(bin_edges_13[1:],pdf_SF_13_roof,label='1PM')
+#
+# plt.xlabel('SF [0-1]')
+# plt.ylabel('Probability [0-1]')
+# plt.legend()
+# plt.show()
+#
+# SF_road_10_list = SF_road_10.flatten()
+# SF_road_10_list = SF_road_10_list[SF_road_10_list>=0]
+# SF_wall_10_list = SF_wall_10.flatten()
+# SF_wall_10_list = SF_wall_10_list[SF_wall_10_list>=0]
+# #
+# SF_roof_25_list = SF_roof_25.flatten()
+# SF_roof_25_list = SF_roof_25_list[SF_roof_25_list>=0]
+# SF_road_25_list = SF_road_25.flatten()
+# SF_road_25_list = SF_road_25_list[SF_road_25_list>=0]
+# SF_wall_25_list = SF_wall_25.flatten()
+# SF_wall_25_list = SF_wall_25_list[SF_wall_25_list>=0]
+#
+# SF_roof_50_list = SF_roof_50.flatten()
+# SF_roof_50_list = SF_roof_50_list[SF_roof_50_list>=0]
+# SF_road_50_list = SF_road_50.flatten()
+# SF_road_50_list = SF_road_50_list[SF_road_50_list>=0]
+# SF_wall_50_list = SF_wall_50.flatten()
+# SF_wall_50_list = SF_wall_50_list[SF_wall_50_list>=0]
+#
+# counts_number, bin_edges_10 = np.histogram(SF_roof_10_list, bins=bin_nr,density=True)
+# pdf_SF_10_roof = counts_number/np.sum(counts_number)
+# counts_number, bin_edges_25 = np.histogram(SF_roof_25_list, bins=bin_nr,density=True)
+# pdf_SF_25_roof = counts_number/np.sum(counts_number)
+# counts_number, bin_edges_50 = np.histogram(SF_roof_50_list, bins=bin_nr,density=True)
+# pdf_SF_50_roof = counts_number/np.sum(counts_number)
+#
+# plt.plot(bin_edges_10[1:],pdf_SF_10_roof,label='5m')
+# plt.plot(bin_edges_25[1:],pdf_SF_25_roof,label='12.5m')
+# plt.plot(bin_edges_50[1:],pdf_SF_50_roof,label='25m')
+#
+# counts_number, bin_edges_10 = np.histogram(SF_road_10_list, bins=bin_nr,density=True)
+# pdf_SF_10_road = counts_number/np.sum(counts_number)
+# counts_number, bin_edges_25 = np.histogram(SF_road_25_list, bins=bin_nr,density=True)
+# pdf_SF_25_road = counts_number/np.sum(counts_number)
+# counts_number, bin_edges_50 = np.histogram(SF_road_50_list, bins=bin_nr,density=True)
+# pdf_SF_50_road = counts_number/np.sum(counts_number)
+#
+# plt.figure()
+# plt.xlim((0,1))
+# plt.plot(bin_edges_10[1:],pdf_SF_10_road,label='5m')
+# plt.plot(bin_edges_25[1:],pdf_SF_25_road,label='12.5m')
+# plt.plot(bin_edges_50[1:],pdf_SF_50_road,label='25m')
+#
+# counts_number, bin_edges_10 = np.histogram(SF_wall_10_list, bins=bin_nr,density=True)
+# pdf_SF_10_wall = counts_number/np.sum(counts_number)
+# counts_number, bin_edges_25 = np.histogram(SF_wall_25_list, bins=bin_nr,density=True)
+# pdf_SF_25_wall = counts_number/np.sum(counts_number)
+# counts_number, bin_edges_50 = np.histogram(SF_wall_50_list, bins=bin_nr,density=True)
+# pdf_SF_50_wall = counts_number/np.sum(counts_number)
+#
+# plt.figure()
+# plt.xlim((0,0.5))
+# plt.plot(bin_edges_10[1:],pdf_SF_10_wall,label='5m')
+# plt.plot(bin_edges_25[1:],pdf_SF_25_wall,label='12.5m')
+# plt.plot(bin_edges_50[1:],pdf_SF_50_wall,label='25m')
+
+# plt.legend()
+# plt.xlabel("SF [0-1]")
+# plt.ylabel("Probability [0-1]")
+# plt.show()
+
+"SVF Histograms"
+# SVF_road_ave = np.asarray(SVF_road_ave)
+# SVF_roof_ave = np.asarray(SVF_roof_ave)
+# SVF_road_ave = SVF_road_ave[SVF_road_ave>=0]
+# SVF_roof_ave = SVF_roof_ave[SVF_roof_ave>=0]
+# "KNMI PDF"
+# SVF_KNMI_list = SVF_knmi.flatten()
+# SVF_KNMI_list = SVF_KNMI_list[SVF_KNMI_list>=0]
+# SVF_KNMI_roof = np.asarray(SVF_KNMI_roof)
+# SVF_KNMI_road = np.asarray(SVF_KNMI_road)
+# SVF_KNMI_road = SVF_KNMI_road[SVF_KNMI_road>=0]
+# SVF_KNMI_roof = SVF_KNMI_roof[SVF_KNMI_roof>=0]
+# "SVF GR5 PDF"
+# SVF_GR5_list = SVF_matrix_GR5.flatten()
+# SVF_GR5_list = SVF_GR5_list[SVF_GR5_list>=0]
+# SVF_roof_GR5 = np.asarray(SVF_roof_GR5)
+# SVF_road_GR5 = np.asarray(SVF_road_GR5)
+# SVF_roof_GR5 = SVF_roof_GR5[SVF_roof_GR5>=0]
+# SVF_road_GR5 = SVF_road_GR5[SVF_road_GR5>=0]
+# "SVF GR5 NM"
+# SVF_GR5NM_list = SVF_matrix_GR5NM.flatten()
+# SVF_GR5NM_list = SVF_GR5NM_list[SVF_GR5NM_list>=0]
+# SVF_roof_GR5NM = np.asarray(SVF_roof_GR5NM)
+# SVF_road_GR5NM = np.asarray(SVF_road_GR5NM)
+# SVF_roof_GR5NM = SVF_roof_GR5NM[SVF_roof_GR5NM>=0]
+# SVF_road_GR5NM = SVF_road_GR5NM[SVF_road_GR5NM>=0]
+# # plt.hist(SVF_list, bins = bin_nr,weights=np.ones(len(SVF_list))/len(SVF_list))
+# # plt.ylabel('Normalized Counts [0-1]')
+# # plt.xlabel('SVF [0-1]')
+# # plt.figure()
+# counts_number, bin_edges = np.histogram(SVF_list, bins=bin_nr,density=True)
+# pdf_SVF = counts_number/np.sum(counts_number)
+# counts_number_GR5, bin_edges_GR5 = np.histogram(SVF_GR5_list, bins=bin_nr,density=True)
+# pdf_SVF_GR5 = counts_number_GR5/np.sum(counts_number_GR5)
+# counts_number_GR5NM, bin_edges_GR5NM = np.histogram(SVF_GR5NM_list, bins=bin_nr,density=True)
+# pdf_SVF_GR5NM = counts_number_GR5NM/np.sum(counts_number_GR5NM)
+# counts_number_knmi, bin_edges_knmi = np.histogram(SVF_KNMI_list, bins=bin_nr,density=True)
+# pdf_SVF_knmi = counts_number_knmi/np.sum(counts_number_knmi)
+# plt.plot(bin_edges[1:],pdf_SVF,label='0.5m resolution grid')
+# plt.plot(bin_edges_knmi[1:],pdf_SVF_knmi,label='KNMI')
+# plt.plot(bin_edges[1:],pdf_SVF_GR5,'--',label='2.5m resolution grid')
+# #plt.plot(bin_edges[1:],pdf_SVF_GR5NM,'--',label='2.5m LES grid')
+# plt.legend()
+# plt.xlim((0,1))
+# plt.xlabel("SVF [0-1]")
+# plt.ylabel("Probability [0-1]")
+# "WALL"
+# SVF_wall_ave = Inv_WallvsRoadMasson(np.array(SVF_road_ave))
+# SVF_wall_KNMI = Inv_WallvsRoadMasson(np.array(SVF_KNMI_road))
+# SVF_wall_GR5 = Inv_WallvsRoadMasson(np.array(SVF_road_GR5))
+# SVF_wall_GR5NM = Inv_WallvsRoadMasson(np.array(SVF_road_GR5NM))
+# plt.figure()
+# plt.hist(SVF_wall_ave, bins = bin_nr,weights=np.ones(len(SVF_wall_ave))/len(SVF_wall_ave))
+# plt.ylabel('Normalized Counts [0-1]')
+# plt.xlabel('SVF [0-1]')
+# plt.figure()
+# counts_number_wall, bin_edges_wall = np.histogram(SVF_wall_ave, bins=bin_nr,density=True)
+# pdf_SVF_wall = counts_number_wall/np.sum(counts_number_wall)
+# plt.plot(bin_edges_wall[1:],pdf_SVF_wall,label='0.5m resolution grid')
+# counts_number_wall_KNMI, bin_edges_wall_KNMI = np.histogram(SVF_wall_KNMI, bins=bin_nr,density=True)
+# pdf_SVF_wall_KNMI = counts_number_wall_KNMI/np.sum(counts_number_wall_KNMI)
+# plt.plot(bin_edges_wall_KNMI[1:],pdf_SVF_wall_KNMI,label='KNMI')
+# counts_number_GR5_wall, bin_edges_GR5_wall = np.histogram(SVF_wall_GR5, bins=bin_nr,density=True)
+# pdf_SVF_GR5_wall = counts_number_GR5_wall/np.sum(counts_number_GR5_wall)
+# plt.plot(bin_edges_GR5_wall[1:],pdf_SVF_GR5_wall,'--',label='2.5m resolution grid')
+# counts_number_GR5NM_wall, bin_edges_GR5NM_wall = np.histogram(SVF_wall_GR5NM, bins=bin_nr,density=True)
+# pdf_SVF_GR5NM_wall = counts_number_GR5NM_wall/np.sum(counts_number_GR5NM_wall)
+# #plt.plot(bin_edges_GR5NM_wall[1:],pdf_SVF_GR5NM_wall,'--',label='2.5m LES grid')
+# plt.legend()
+# plt.xlim((0,0.5))
+# plt.xlabel("SVF [0-1]")
+# plt.ylabel("Probability [0-1]")
+"ROAD"
+# plt.figure()
+# plt.hist(SVF_road_ave, bins = bin_nr,weights=np.ones(len(SVF_road_ave))/len(SVF_road_ave))
+# plt.ylabel('Normalized Counts [0-1]')
+# plt.xlabel('SVF [0-1]')
+# plt.figure()
+# counts_number_road, bin_edges_road = np.histogram(SVF_road_ave, bins=bin_nr,density=True)
+# pdf_SVF_road = counts_number_road/np.sum(counts_number_road)
+# plt.plot(bin_edges_road[1:],pdf_SVF_road,label='0.5m resolution grid')
+# counts_number_road_KNMI, bin_edges_road_KNMI = np.histogram(SVF_KNMI_road, bins=bin_nr,density=True)
+# pdf_SVF_road_KNMI = counts_number_road_KNMI/np.sum(counts_number_road_KNMI)
+# plt.plot(bin_edges_road_KNMI[1:],pdf_SVF_road_KNMI,label='KNMI')
+# counts_number_GR5_road, bin_edges_GR5_road = np.histogram(SVF_road_GR5, bins=bin_nr,density=True)
+# pdf_SVF_GR5_road = counts_number_GR5_road/np.sum(counts_number_GR5_road)
+# plt.plot(bin_edges_GR5_road[1:],pdf_SVF_GR5_road,'--',label='2.5m resolution grid')
+# counts_number_GR5NM_road, bin_edges_GR5NM_road = np.histogram(SVF_road_GR5NM, bins=bin_nr,density=True)
+# pdf_SVF_GR5NM_road = counts_number_GR5NM_road/np.sum(counts_number_GR5NM_road)
+# #plt.plot(bin_edges_GR5NM_road[1:],pdf_SVF_GR5NM_road,'--',label='2.5m LES grid')
+# plt.legend()
+# plt.xlim((0,1))
+# plt.xlabel("SVF [0-1]")
+# plt.ylabel("Probability [0-1]")
+# "ROOF"
+# # plt.figure()
+# # plt.hist(SVF_roof_ave, bins = bin_nr,weights=np.ones(len(SVF_roof_ave))/len(SVF_roof_ave))
+# # plt.ylabel('Normalized Counts [0-1]')
+# # plt.xlabel('SVF [0-1]')
+# plt.figure()
+# counts_number_roof, bin_edges_roof = np.histogram(SVF_roof_ave, bins=bin_nr,density=True)
+# pdf_SVF_roof = counts_number_roof/np.sum(counts_number_roof)
+# plt.plot(bin_edges_roof[1:],pdf_SVF_roof,label='0.5m resolution grid')
+# counts_number_roof_KNMI, bin_edges_roof_KNMI = np.histogram(SVF_KNMI_roof, bins=bin_nr,density=True)
+# pdf_SVF_roof_KNMI = counts_number_roof_KNMI/np.sum(counts_number_roof_KNMI)
+# plt.plot(bin_edges_roof_KNMI[1:],pdf_SVF_roof_KNMI,label='KNMI')
+# counts_number_GR5_roof, bin_edges_GR5_roof = np.histogram(SVF_roof_GR5, bins=bin_nr,density=True)
+# pdf_SVF_GR5_roof = counts_number_GR5_roof/np.sum(counts_number_GR5_roof)
+# plt.plot(bin_edges_GR5_roof[1:],pdf_SVF_GR5_roof,'--',label='2.5m resolution grid')
+# counts_number_GR5NM_roof, bin_edges_GR5NM_roof = np.histogram(SVF_roof_GR5NM, bins=bin_nr,density=True)
+# pdf_SVF_GR5NM_roof = counts_number_GR5NM_roof/np.sum(counts_number_GR5NM_roof)
+# #plt.plot(bin_edges_GR5NM_roof[1:],pdf_SVF_GR5NM_roof,'--',label='2.5m LES grid')
+# plt.legend()
+# plt.xlim((0,1))
+# plt.xlabel("SVF [0-1]")
+# plt.ylabel("Probability [0-1]")
+# plt.show()
+
+# "P2: Right Upper, 9 AM"
+# data_right_upper = data
+# coords_RU = coordheight(data_right_upper)
+# [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,9,radians=True)
+# SF = reshape_SVF(data_right_upper,coords_RU,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
+# print("These are the SFs for right upper, 9am")
+# print(SF)
+# "P2: Right Upper, 11 AM"
+# [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,11,radians=True)
+# SF = reshape_SVF(data_right_upper,coords_RU,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
+# print("These are the SFs for right upper, 11am")
+# print(SF)
+# "P2: Right Upper, 11 AM"
+# [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,13,radians=True)
+# SF = reshape_SVF(data_right_upper,coords_RU,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
+# print("These are the SFs for right upper, 1pm")
+# print(SF)
+
+
+
+# for h in range(len(minheight)):
+#     SVF_roof_ave = []
+#     SVF_road_ave = []
+#     for i in range(int(x_len/2)):
+#         for j in range(int(y_len/2)):
+#             if data[i,j]>minheight:
+#                 SVF_roof_ave.append(SVF_matrix[i,j])
+#             else:
+#                 SVF_road_ave.append(SVF_matrix[i,j])
+#     SVF_road_ave = np.array(SVF_road_ave)
+#     SVF_wall_ave = Inv_WallvsRoadMasson(np.array(SVF_road_ave))
+#     mean_road[h] = np.mean(SVF_road_ave)
+#     mean_wall[h] = np.mean(SVF_wall_ave)
+#     mean_roof[h] = np.mean(SVF_roof_ave)
+# plt.figure()
+# plt.plot(minheight,mean_road,label='Road')
+# plt.plot(minheight,mean_wall,label='Wall')
+# plt.plot(minheight,mean_roof,label='Roof')
+# plt.legend()
+# plt.xlabel('Separation Height [m]')
+# plt.ylabel('Mean SVF per Surface Type [0-1]')
+# plt.show()
+
+# for i in range(int(x_len)):
+#     for j in range(int(y_len)):
+#         if data[i,j]>0:
+#             SVF_roof_ave.append(SVF_matrix[i,j])
+#             SVF_KNMI_roof.append(SVF_knmi[i,j])
+#         else:
+#             SVF_road_ave.append(SVF_matrix[i,j])
+#             SVF_KNMI_road.append(SVF_knmi[i,j])
+# "The Averaged Data's"
+# SVF_roof_GR5 = []
+# SVF_road_GR5 = []
+# SVF_roof_GR5NM = []
+# SVF_road_GR5NM = []
+# for i in range(int(x_len_5)):
+#     for j in range(int(y_len_5)):
+#         if data[i,j]>0:
+#             SVF_roof_GR5.append(SVF_matrix_GR5[i,j])
+#             SVF_roof_GR5NM.append(SVF_matrix_GR5NM[i,j])
+#         else:
+#             SVF_road_GR5.append(SVF_matrix_GR5[i,j])
+#             SVF_road_GR5NM.append(SVF_matrix_GR5NM[i,j])
+
+# SVF_knmi_HN1[SVF_knmi_HN1<0] = 0
+# SVF_knmi_HN1[SVF_knmi_HN1>1] = 0
+
+# [x_l,y_l] = SVF_knmi_HN1.shape
+# SVF_knmi = SVF_knmi_HN1[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# data_NM,data_waterNM = MediateData(data,data_water,2.5,2.5,2.5,gridboxsize)
+# data_GR5 = average_svf(data,5)
+# [x_len,y_len] = data.shape
+# [x_len_5,y_len_5] = data_NM.shape
+
 # with open('SVF_05Matrix.npy', 'rb') as f:
 #     SVF_matrix = np.load(f)
 # plt.figure()
@@ -714,6 +1057,35 @@ print(SF)
 # plt.imshow(SVF_knmi_HN1,vmin=0,vmax=1)
 # plt.colorbar()
 # plt.show()
+
+
+
+
+
+"Masson"
+# height = 15
+# widths = np.linspace(10,20,11)/gridboxsize
+# len_mat = 500
+# SVFs = np.empty((len(widths)))
+# SVF_an = np.empty((len(widths)))
+# plt.figure()
+# h_w = np.empty((len(widths)))
+# for i in range(len(widths)):
+#     h_w[i] = height/(widths[i]*gridboxsize)
+#     matr = np.ones((len_mat,len_mat))*height
+#     matr[:,int(len_mat/2-widths[i]/2):int(len_mat/2+widths[i]/2)] = 0
+#     SVF = np.empty((int(widths[i])))
+#     coords = coordheight(matr)
+#     for j in range(int(widths[i])):
+#         point = [len_mat/2,len_mat/2-widths[i]/2+j,0]
+#         SVF[j] = SkyViewFactor(point,coords,max_radius,gridboxsize,steps_beta)
+#     SVFs[i] = np.mean(SVF)
+#     SVF_roof, SVF_wall, SVF_road = SVF_masson(h_w[i])
+#     SVF_an[i] = SVF_road
+# plt.plot(h_w,SVFs,'r',label="Numerical")
+# plt.plot(h_w,SVF_an,'r--',label="Masson")
+# plt.legend(loc="upper right")
+
 
 # data = data[:int(x_len/4),:int(y_len/4)]
 # #data,data_water = MediateData(data,data_water,12.5,12.5,12.5,gridboxsize)
@@ -869,7 +1241,6 @@ print(SF)
 "end movie"
 
 "Shadowfactor"
-
 # [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,5,radians=True)
 # SF = reshape_SVF(data,coords,gridboxsize,azimuth,el_angle,reshape=False,save_CSV=False,save_Im=False)
 # print(SF)
@@ -976,49 +1347,51 @@ print(SF)
 
 
 "MaxR / stepsbeta / minheight parameter variations"
-# max_radius = 100
-# minheight = np.linspace(0,5,11)
-# #steps_beta = [60,90,120,180,240,270,360,540,720]
-# SVFp1 = np.empty((len(minheight)))
-# SVFp2 = np.empty((len(minheight)))
-# SVFp3 = np.empty((len(minheight)))
-# for m in range(len(minheight)):
-#     dtm_HN1 = "".join([input_dir, '/M_37HN1.TIF'])
-#     dsm_HN1 = "".join([input_dir, '/R_37HN1.TIF'])
-#     [data, data_water] = readdata(minheight[m],dsm_HN1,dtm_HN1)
-#     [x_long, y_long] = data.shape
-#     data = data[:int(x_long/5),:int(y_long/5)]
-#     [x_long, y_long] = data.shape
+# max_radius = 100 #np.linspace(50,200,10)
+# minheight = 1
+# steps_beta = [60,90,120,180,240,270,360,540,720]
+# SVFp1 = np.empty((len(steps_beta)))
+# SVFp2 = np.empty((len(steps_beta)))
+# SVFp3 = np.empty((len(steps_beta)))
+# # dtm_HN1 = "".join([input_dir, '/M_37HN1.TIF'])
+# # dsm_HN1 = "".join([input_dir, '/R_37HN1.TIF'])
+# # [data, data_water] = readdata(minheight,dsm_HN1,dtm_HN1)
+# for m in range(len(steps_beta)):
+#     # [x_long, y_long] = data.shape
+#     # print(data.shape)
+#     # data = data[:int(x_long/5),:int(y_long/5)]
+#     # [x_long, y_long] = data.shape
+#     # print(data.shape)
 #     coords = coordheight(data)
-#     p1 = [625, 500, 0]
-#     p2 = [1250, 1000, 8.65600014]
+#     p1 = [625, 500, data[625, 500]]
+#     p2 = [1250, 1000, data[1250, 1000]]
 #     #p2 = [625, 1500, data[625, 1500]]
 #     #print(p2)
-#     p3 = [1875, 1500, 13.48999977]
+#     p3 = [1875, 1500, data[1875, 1500]]
 #     #p3 = [1875, 500, data[1875, 500]]
 #     #print(p3)
-#     SVFp1[m] = SkyViewFactor(p1,coords,max_radius,gridboxsize,steps_beta)
-#     SVFp2[m] = SkyViewFactor(p2,coords,max_radius,gridboxsize,steps_beta)
-#     SVFp3[m] = SkyViewFactor(p3,coords,max_radius,gridboxsize,steps_beta)
-#     # SVFp1inf = SkyViewFactor(p1,coords,max_radius,gridboxsize,720)
-#     # SVFp2inf = SkyViewFactor(p2,coords,max_radius,gridboxsize)
-#     # SVFp3inf = SkyViewFactor(p3,coords,max_radius,gridboxsize)
+#     SVFp1[m] = SkyViewFactor(p1,coords,max_radius,gridboxsize,steps_beta[m])
+#     SVFp2[m] = SkyViewFactor(p2,coords,max_radius,gridboxsize,steps_beta[m])
+#     SVFp3[m] = SkyViewFactor(p3,coords,max_radius,gridboxsize,steps_beta[m])
+#     # SVFp1inf = SkyViewFactor(p1,coords,500,gridboxsize,720)
+#     # SVFp2inf = SkyViewFactor(p2,coords,500,gridboxsize,72)
+#     # SVFp3inf = SkyViewFactor(p3,coords,500,gridboxsize,steps_beta)
+# # plt.figure()
+# # plt.imshow(data,vmin=0,vmax=50)
 # plt.figure()
-# plt.imshow(data,vmin=0,vmax=50)
-# plt.figure()
-# SVFp1_rel = SVFp1/SVFp1[0]
-# SVFp2_rel = SVFp2/SVFp2[0]
-# SVFp3_rel = SVFp3/SVFp3[0]
+# SVFp1_rel = SVFp1/SVFp1[-1]
+# SVFp2_rel = SVFp2/SVFp2[-1]
+# SVFp3_rel = SVFp3/SVFp3[-1]
 # "Plot the svf relative to the final SVF!!"
-# plt.plot(minheight,SVFp1,label='P1')
-# plt.plot(minheight,SVFp2,label='P2')
-# plt.plot(minheight,SVFp3,label='P3')
-# print(SVFp1)
-# print(SVFp2)
-# print(SVFp3)
-# plt.xlabel('Minimum Height [m]')
-# plt.ylabel('SVF [0-1]') # relative to the SVF with 0 minimum height
-# plt.legend()
+# plt.plot(steps_beta,SVFp1_rel,label='P1')
+# plt.plot(steps_beta,SVFp2_rel,label='P2')
+# plt.plot(steps_beta,SVFp3_rel,label='P3')
+# # print(SVFp1)
+# # print(SVFp2)
+# # print(SVFp3)
+# plt.xlabel('Steps in horizontal direction [-]')
+# plt.ylabel('SVF relative to SVF with 720 steps [-]') # relative to the SVF with 0 minimum height
+# plt.legend(loc='upper right')
 # plt.show()
 "end"
 
