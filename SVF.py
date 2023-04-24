@@ -699,7 +699,7 @@ gr_SVF = 25
 [data,data_water] = MediateData(data,data_water,gr_SVF*gridboxsize,gr_SVF*gridboxsize,10,gridboxsize)
 times = np.linspace(7,20,14)
 coords = coordheight(data)
-blocklength = data.shape[0]/2*data.shape[1]/2
+blocklength = int(data.shape[0]/2*data.shape[1]/2)
 for t in range(len(times)):
     [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,times[t],radians=True)
     SFs = calc_SF(coords,azimuth,el_angle,blocklength)
