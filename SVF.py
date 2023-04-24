@@ -700,7 +700,7 @@ gr_SVF = 25
 times = np.linspace(7,20,14)
 coords = coordheight(data)
 blocklength = data.shape[0]/2*data.shape[1]/2
-for t in range(len(time)):
+for t in range(len(times)):
     [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,times[t],radians=True)
     SFs = calc_SF(coords,azimuth,el_angle,blocklength)
     print("The time is " + str(times[t]))
