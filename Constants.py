@@ -11,7 +11,7 @@ layers = 7
 d_roof = np.ones([layers]) * 0.05 #[0.05,0.1,0.15, 0.2] #
 d_wall = np.ones([layers]) * 0.05 #[0.05,0.1,0.15, 0.2] #
 d_road = np.ones([layers]) * 0.05 #[0.05,0.1,0.15, 0.2] #
-d_water = np.ones([layers]) * 0.1 #[0.05,0.1,0.15, 0.2] #
+d_water = np.ones([layers]) * 0.05 #[0.05,0.1,0.15, 0.2] #
 
 """timestep"""
 timestep = 10*60 #[s]
@@ -89,9 +89,9 @@ p_surf = 1.089e5 # [Pa] pressure at first atmospheric level (troposphere), accor
 
 "Aerodynamc resistances for roof and road"
 # https://www.mdpi.com/2072-4292/11/11/1347
-res_roof = 60
-res_road = 60
-res_wall = 60
+res_roof = 100
+res_road = 100
+res_wall = 100
 res_water = 200
 
 R_w = 461.52 # J/kgK gas constant of water
@@ -113,7 +113,7 @@ julianday = 121 #1 may
 hour = 18 # 10:30 am
 
 "Average air temp and air temp amp, in Kelvin"
-T_air = 273.15 +15
+T_air = 273.15 + 0
 T_air_amp = 5
 "For computing LW_down, from P Schrijvers page 20"
 c = 46.5 #[K/hPa]
