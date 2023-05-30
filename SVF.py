@@ -413,7 +413,6 @@ def geometricProperties(data,data_water,grid_ratio,gridboxsize):
 
 def average_surfacetype(matrix,data, grid_ratio):
     [x_long, y_long] = matrix.shape
-    #minheight = 3
     ave_roof = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
     ave_road = np.ndarray([int(x_long/grid_ratio),int(y_long/grid_ratio)])
     "We want to take the mean of the SVF values over a gridsize of gridratio"
@@ -423,8 +422,8 @@ def average_surfacetype(matrix,data, grid_ratio):
             part = matrix[int(i*grid_ratio):int((i+1)*grid_ratio), int(j*grid_ratio):int((j+1)*grid_ratio)]
             ave_roof[i,j] = np.nanmean(part[data_part>0])
             ave_road[i,j] = np.nanmean(part[data_part==0])
-    ave_roof[np.isnan(ave_roof)] = 2#np.nanmean(ave_roof)
-    ave_road[np.isnan(ave_road)] = 2#np.nanmean(ave_road)
+    ave_roof[np.isnan(ave_roof)] = np.nanmean(ave_roof)
+    ave_road[np.isnan(ave_road)] = np.nanmean(ave_road)
     return ave_roof,ave_road
 
 def average_svf(SVF_matrix, grid_ratio):
@@ -436,42 +435,6 @@ def average_svf(SVF_matrix, grid_ratio):
             part = SVF_matrix[int(i*grid_ratio):int((i+1)*grid_ratio), int(j*grid_ratio):int((j+1)*grid_ratio)]
             SVF_ave[i,j] = np.mean(part)
     return SVF_ave
-
-def SF_wall(point,coords,type,wall_len,azimuth,elevation_angle):
-    "Now the shadowfactor is 0 if the top of the wall surface does not receive radiation. "
-    " But sometimes (most of the times) part of the wall is blocked from sunlight, how to solve this??"
-    if type==0:
-        coords = coords[(coords[:,0]<point[0]),:]
-    elif type==1:
-        coords = coords[(coords[:,1]>point[1]),:]
-    elif type==2:
-        coords = coords[(coords[:,0]>point[0]),:]
-    elif type==3:
-        coords = coords[(coords[:,1]<point[1]),:]
-
-    radii, angles = dist(point,coords,gridboxsize)
-
-    if type==3:
-        angles = (angles + 2*np.pi) % (2*np.pi)
-
-    beta_min = np.asarray(- np.arcsin(np.sqrt(2*gridboxsize**2)/2/radii) + azimuth)
-    beta_max = np.asarray(np.arcsin(np.sqrt(2*gridboxsize**2)/2/radii) + azimuth)
-
-    num_slices = int(np.rint(wall_len))
-    psi = np.ndarray((num_slices,1))
-    d_h = wall_len/num_slices
-    Shadowfactor = np.ndarray((num_slices,1))
-
-    for p in range(len(psi)):
-        h = point[2] - wall_len + p*d_h
-        if np.logical_and((np.logical_or((np.count_nonzero(coords[np.logical_and((np.logical_and((angles > beta_min), (angles < beta_max))), ((np.tan(elevation_angle)*radii)<(coords[:,2]-h))),:])>0),type==0)),np.min(angles)<=azimuth<=np.max(angles)):
-            Shadowfactor[p] = 0
-        else:
-            Shadowfactor[p] = 1
-    """in all other cases there is no point in the same direction as the sun that is higher
-    so the shadowfactor is 1: the point receives radiation"""
-    SF = np.mean(Shadowfactor)
-    return SF
 
 def wallArea(data,gridboxsize):
     """
@@ -536,64 +499,6 @@ def fisheye():
         bar.set_alpha(0.8)
 
     plt.show()
-
-
-def SVF_wall(point,coords,maxR,type,wall_len):
-    "For a wall point determine whether it is north, south east or west faced."
-    "Retrieve all points inside a max radius"
-    "Point is a point on the dataset that is either north, west, east or south facing"
-    "wall area is point []"
-    point_zero = np.copy(point)
-    point_zero[2] = point[2]-wall_len
-    dome_zero = dome(point_zero,coords,maxR,gridboxsize)
-    "We have a point on data that is elevated: " \
-    "for this point we have wallmatrix that has dimensions [data.shape[0],data.shape[1],4]" \
-    "So for the SVF for wallmatrix[i,j,0] (north facing)"
-    "Use this function in a loop where we loop over all data points in coords > 0 (all buildings), " \
-    "then call this function while looping over all 4 sides with w in wall" \
-    "SVF_WVF_wall(point,coords,maxR,type=w,wall_area[point[0],point[1],w])"
-
-    num_slices = int(np.rint(wall_len))
-    if (type==0): #Northern facing wall
-        dome_zero = dome_zero[dome_zero[:,0]<point[0]] #so only northern points
-        beta_lin = np.linspace(-np.pi/2,np.pi/2,int(steps_beta/2),endpoint=False)
-    elif (type==1): #east facing wall
-        dome_zero = dome_zero[dome_zero[:,1]>point[1]] #so only eastern points
-        beta_lin = np.linspace(0,np.pi,int(steps_beta/2),endpoint=False)
-    elif (type==2): #south facing wall
-        dome_zero = dome_zero[dome_zero[:,0]>point[0]] #so only southern points
-        beta_lin = np.linspace(np.pi/2,3*np.pi/2,int(steps_beta/2),endpoint=False)
-    elif (type==3): #west facing wall
-        dome_zero = dome_zero[dome_zero[:,1]<point[1]] #so only western points
-        dome_zero[:,4] = (dome_zero[:,4]+(2*np.pi))%(2*np.pi)
-        beta_lin = np.linspace(np.pi,2*np.pi,int(steps_beta/2),endpoint=False)
-    "Now we have all the points that possibly block the view"
-    betas = np.zeros(int(steps_beta/2))
-    betas_zero = np.zeros(int(steps_beta/2))
-    # store the radii of closest blockings
-    closest = np.zeros(int(steps_beta/2))
-    psi = np.ndarray((num_slices,1))
-    len_d = wall_len/num_slices
-
-    "Loop over beta to find the largest blocking in every direction"
-    for d in range(dome_zero.shape[0]):
-        "The Angle between the height of the blocking and the height of the point on the wall with the horizontal axis"
-        #psi_zero = np.arctan((dome_zero[d,2]-(point[2]-wall_area[2]))/dome_zero[d,3])
-        """The angles of the min and max horizontal angle of the building"""
-        beta_min = - np.arcsin(gridboxsize/2/dome_zero[d,3]) + dome_zero[d,4]
-        beta_max = np.arcsin(gridboxsize/2/dome_zero[d,3]) + dome_zero[d,4]
-
-        for p in range(len(psi)):
-            psi[p] = np.arctan((dome_zero[d,2] - (point_zero[2] + p*len_d))/dome_zero[d,3])
-        psi_ave = np.max(np.mean(psi),0)
-        """Where the index of betas fall within the min and max beta, and there is not already a larger psi blocking"""
-        betas[np.nonzero(np.logical_and(betas<psi_ave,(np.logical_and((beta_min <= beta_lin),(beta_lin < beta_max)))))] = psi_ave
-        #betas_zero[np.nonzero(np.logical_and(betas_zero<psi_zero,(np.logical_and((beta_min <= beta_lin),(beta_lin < beta_max)))))] = psi_zero
-    #print(betas)
-        # if dome_zero[d,2]==0:
-        #     closest[np.nonzero(np.logical_and((closest > dome_zero[d,3]), np.logical_and((beta_min <= beta_lin), (beta_lin < beta_max))))] = dome_zero[d,3]
-    SVF_wall = np.around((np.sum(np.cos(betas)**2)/steps_beta),3)
-    return SVF_wall
 
 def Inv_WallvsRoadMasson(SVF_road):
     h_w = (1-SVF_road**2)/(2*SVF_road)
@@ -682,6 +587,8 @@ elif (gridboxsize==0.5):
     #SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
     "P2"
     #data_total = data[:int(x_long/5),:int(3*y_long/10)]
+    #data = data[:int(x_long/5),int(y_long/5):int(2*y_long/5)]
+
     #data_right_upper = data[:int(x_long/5),int(y_long/10):int(3*y_long/10)]
     # data_left_lower = data[int(x_long/10):int(3*x_long/10),:int(y_long/5)]
     # data_right_lower = data[int(x_long/10):int(3*x_long/10),int(y_long/10):int(3*y_long/10)]
@@ -689,22 +596,61 @@ elif (gridboxsize==0.5):
     #data_right_lower = data[int(x_long/5):int(2*x_long/5),int(y_long/5):int(2*y_long/5)]
     "P3"
     #data = data[:int(x_long/5),int(2*y_long/5):int(3*y_long/5)]
-    #[x_len,y_len] = data.shape
+    [x_len,y_len] = data.shape
 
 #np.save('Pickles/1MaySF/SFmay1_HN1P2/SF_total_9am', SF_matrix)
-# plt.figure()
-# plt.imshow(data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)],vmin=0,vmax=30)
-gr_SVF = 25
+#plt.figure()
 # data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-[data,data_water] = MediateData(data,data_water,gr_SVF*gridboxsize,gr_SVF*gridboxsize,10,gridboxsize)
-times = np.linspace(7,20,14)
-coords = coordheight(data)
-blocklength = int(data.shape[0]/2*data.shape[1]/2)
-for t in range(len(times)):
-    [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,times[t],radians=True)
-    SFs = calc_SF(coords,azimuth,el_angle,blocklength)
-    print("The time is " + str(times[t]))
-    print(SFs)
+# data_water = data_water[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# plt.imshow(data,vmin=0,vmax=vm)
+# plt.colorbar()
+# gr_SVF = 5
+
+# plt.figure()
+# data_res5 = average_svf(data, gr_SVF)
+# plt.imshow(data_res5,vmin=0,vmax=vm)
+# plt.colorbar()
+#
+# plt.figure()
+# data_res25 = average_svf(data, 25)
+# plt.imshow(data_res25,vmin=0,vmax=vm)
+# plt.colorbar()
+
+# data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# [data_5,data_water_5] = MediateData(data,data_water,gr_SVF*gridboxsize,gr_SVF*gridboxsize,gr_SVF*gridboxsize,gridboxsize)
+# plt.figure()
+# plt.imshow(data_5,vmin=0,vmax=vm)
+# plt.colorbar()
+
+vm=25
+print(data.shape)
+plt.figure()
+[data_50,data_water_50] = MediateData(data,data_water,25,25,10,gridboxsize)
+plt.imshow(data_50,vmin=0,vmax=vm)
+plt.colorbar()
+plt.show()
+coords_50 = coordheight(data_50)
+[azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,12,radians=True)
+blocklength = int(data_50.shape[0]/2*data_50.shape[1]/2)
+print(blocklength)
+SFs = calc_SF(coords_50,azimuth,el_angle,blocklength)
+print("The SFs are:")
+print(SFs)
+
+SVFs = calc_SVF(coords_50,max_radius,blocklength,gridboxsize*25)
+print("The SFs are:")
+print(SVFs)
+
+
+# SF = SVFs5m.SFs18
+# SF_matrix = np.ndarray([x_len,y_len])
+# for i in range(int(x_len/2*y_len/2)):
+#     SF_matrix[int(coords[i,0]),int(coords[i,1])] = SF[i]
+# SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# np.save('SF_GR25/SF18',SF_matrix)
+# plt.figure()
+# plt.imshow(SF_matrix,vmin = 0, vmax = 1)
+# plt.show()
 # plt.figure()
 # plt.imshow(data,vmin=0,vmax=30)
 # with open('SVF_MatrixP1_GR5_newMethod.npy', 'rb') as f:

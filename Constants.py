@@ -113,7 +113,7 @@ julianday = 121 #1 may
 hour = 18 # 10:30 am
 
 "Average air temp and air temp amp, in Kelvin"
-T_air = 273.15 + 0
+T_air = 273.15 + 15
 T_air_amp = 5
 "For computing LW_down, from P Schrijvers page 20"
 c = 46.5 #[K/hPa]

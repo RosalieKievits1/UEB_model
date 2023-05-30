@@ -10,26 +10,26 @@ import Sunpos
 plt.rc('font', size=13) #for three plots togethes
 
 """Read in data"""
-# data = pd.read_csv("cabauw_2018.csv", sep = ';')
-# #data = pd.read_csv("era5_NL_2021.csv",sep=',')
-# data.head()
+data = pd.read_csv("cabauw_2018.csv", sep = ';')
+#data = pd.read_csv("era5_NL_2021.csv",sep=',')
+data.head()
 
-# """upward sensible heat flux"""
-# SHF = data.iloc[: , 32]
-# """Relative humidity at 10 m"""
-# q_first_layer = data.iloc[: , 30]
-# """Upward Latent Heat flux"""
-# LHF = data.iloc[: , 33]
-# """upward longwave heat flux"""
-# LW_up = data.iloc[: , 34]
-# """downward longwave heat flux"""
-# LW_down = data.iloc[: , 35]
-# """upward shortwave heat flux"""
-# SW_up = data.iloc[: , 36]
-# """downward shortwave heat flux"""
-# SW_down = data.iloc[: , 37]
-# """solar zenith angle"""
-# Zenith = data.iloc[: ,38]*np.pi/180
+"""upward sensible heat flux"""
+SHF = data.iloc[: , 32]
+"""Relative humidity at 10 m"""
+q_first_layer = data.iloc[: , 30]
+"""Upward Latent Heat flux"""
+LHF = data.iloc[: , 33]
+"""upward longwave heat flux"""
+LW_up = data.iloc[: , 34]
+"""downward longwave heat flux"""
+LW_down = data.iloc[: , 35]
+"""upward shortwave heat flux"""
+SW_up = data.iloc[: , 36]
+"""downward shortwave heat flux"""
+SW_down = data.iloc[: , 37]
+"""solar zenith angle"""
+Zenith = data.iloc[: ,38]*np.pi/180
 # Zenith = data.iloc[: ,6]*np.pi/180
 # GHI = data.iloc[: ,2]
 # DNI = data.iloc[:,5]
@@ -48,9 +48,9 @@ plt.rc('font', size=13) #for three plots togethes
 # # plt.plot(Zenith,0.8-0.36*Zenith**2,'r')
 # plt.scatter(Zenith,SW_down,marker='x')
 # #plt.plot(Zenith,np.cos(Zenith),'r')
-# # plt.xlim((0,np.pi/2))
+# plt.xlim((0,np.pi/2))
 # plt.ylim((0,np.max(SW_down)))
-#
+# #
 # plt.xlabel('Zenith Angle [Rad]')
 # plt.ylabel('Shortwave Radiation Flux [W/m2]')
 # plt.show()
@@ -154,8 +154,8 @@ def surfacebalance(albedos_roof, albedos_wall, albedos_road,
     WVF_roof = 1-SVF_roof
     WVF_road = 1-SVF_road
     GVF_wall = SVF_wall
-    RVF_wall = 0#WVF_roof/2
-    WVF_wall = 1-SVF_wall-GVF_wall#-RVF_wall
+    RVF_wall = 0
+    WVF_wall = 1-SVF_wall-GVF_wall-RVF_wall
 
     "Emissivity and Albedo of ground surface, for reflections"
     emissivities_ground = emissivities_road*road_frac+Constants.e_water*water_frac
