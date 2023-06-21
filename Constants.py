@@ -15,7 +15,7 @@ d_water = np.ones([layers]) * 0.05 #[0.05,0.1,0.15, 0.2] #
 
 """timestep"""
 timestep = 10*60 #[s]
-nr_of_steps = 800
+nr_of_steps = 6*24*3
 
 """albedos"""
 a_bitumen = 0.12
@@ -114,7 +114,7 @@ hour = 18 # 10:30 am
 
 "Average air temp and air temp amp, in Kelvin"
 T_air = 273.15 + 15
-T_air_amp = 5
+T_air_amp = 10
 "For computing LW_down, from P Schrijvers page 20"
 c = 46.5 #[K/hPa]
 RH = 0.75 #75%, relative humidity

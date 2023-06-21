@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-plt.rc('font', size=12)
+plt.rc('font', size=15)
 from multiprocessing.pool import Pool
 import tifffile as tf
 from tqdm import tqdm
@@ -12,11 +12,11 @@ import Constants
 import Sunpos
 # import SVFs05m
 # import SF05mHN1
-# import pickle
-# import SVFs5m
+import pickle
+import SVF5mPy
 # import SVFGR25
-# from pynverse import inversefunc
-# from scipy.optimize import curve_fit
+from pynverse import inversefunc
+from scipy.optimize import curve_fit
 # from mpl_toolkits.mplot3d import Axes3D
 
 
@@ -422,8 +422,8 @@ def average_surfacetype(matrix,data, grid_ratio):
             part = matrix[int(i*grid_ratio):int((i+1)*grid_ratio), int(j*grid_ratio):int((j+1)*grid_ratio)]
             ave_roof[i,j] = np.nanmean(part[data_part>0])
             ave_road[i,j] = np.nanmean(part[data_part==0])
-    ave_roof[np.isnan(ave_roof)] = np.nanmean(ave_roof)
-    ave_road[np.isnan(ave_road)] = np.nanmean(ave_road)
+    ave_roof[np.isnan(ave_roof)] = 0#np.nanmean(ave_roof)
+    ave_road[np.isnan(ave_road)] = 0#np.nanmean(ave_road)
     return ave_roof,ave_road
 
 def average_svf(SVF_matrix, grid_ratio):
@@ -509,7 +509,7 @@ def Inv_WallvsRoadMasson(SVF_road):
 def SF_masson(h_w,Zenith):
     theta_zero = np.arctan(1/h_w)
     SF_roof = 1
-    if (Zenith > theta_zero):
+    if (Zenith >= theta_zero):
         SF_wall = (1/2/h_w)
         SF_road = 0
     elif (Zenith < theta_zero):
@@ -583,10 +583,10 @@ elif (gridboxsize==0.5):
     [x_long, y_long] = data.shape
     #print(data.shape)
     "P1"
-    data = data[:int(x_long/5),:int(y_long/5)]
+    #data = data[:int(x_long/5),:int(y_long/5)]
     #SVF_knmi_HN1 = SVF_knmi_HN1[:int(x_long/5),:int(y_long/5)]
     "P2"
-    #data_total = data[:int(x_long/5),:int(3*y_long/10)]
+    data_total = data[:int(x_long/5),:int(3*y_long/10)]
     #data = data[:int(x_long/5),int(y_long/5):int(2*y_long/5)]
 
     #data_right_upper = data[:int(x_long/5),int(y_long/10):int(3*y_long/10)]
@@ -599,12 +599,51 @@ elif (gridboxsize==0.5):
     [x_len,y_len] = data.shape
 
 #np.save('Pickles/1MaySF/SFmay1_HN1P2/SF_total_9am', SF_matrix)
-#plt.figure()
+# plt.figure()
+# vm = 25
 # data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
 # data_water = data_water[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-# plt.imshow(data,vmin=0,vmax=vm)
+# plt.imshow(data_total,vmin=0,vmax=vm)
 # plt.colorbar()
 # gr_SVF = 5
+
+H_W = np.linspace(0.01,5,30)
+SVF_road = np.empty((len(H_W)))
+SVF_wall = np.empty((len(H_W)))
+for hw in range(len(H_W)):
+    [SVF_roof, SVF_wall[hw],SVF_road[hw]] = SVF_masson(H_W[hw])
+plt.figure()
+plt.plot(H_W,SVF_road,'r',label='Road')
+plt.plot(H_W,SVF_wall,'g',label='Wall')
+plt.legend()
+plt.xlim((0,5))
+plt.ylim((0,1))
+plt.xlabel('H/W [-]')
+plt.ylabel('SVF [0-1]')
+plt.show()
+# zeniths = [np.pi/6,np.pi/5,np.pi/4,np.pi/3]
+# colours_road = ['lawngreen','olive','turquoise','dodgerblue']
+# colours_wall = ['gold','orangered','deeppink','violet']
+# colours = ['r','b','g','y']
+# plt.figure()
+# plt.plot([], [],color='dimgray',linestyle='solid', label="Road")
+# plt.plot([], [],color='dimgray',linestyle='dotted', label="Wall")
+for z in range(len(zeniths)):
+    SF_road = np.empty((len(H_W)))
+    SF_wall = np.empty((len(H_W)))
+    for hw in range(len(H_W)):
+        [SF_roof, SF_wall[hw],SF_road[hw]] = SF_ave_masson(H_W[hw],zeniths[z])
+    SF_road_lin = np.linspace(0.01,1,20)
+    SF_wall_fit = WallSF_fit(zeniths[z],SF_road_lin)
+    plt.plot(H_W,SF_road,color=colours[z], label="$\\theta_z$ = " + str(np.round(zeniths[z]*180/np.pi))+"$^o$")
+    plt.plot(H_W,SF_wall,color=colours[z],linestyle='dotted') #,label="$\\theta_z$ = " + str(np.round(zeniths[z]*180/np.pi))+"$^o$")
+plt.legend(loc='upper right')
+plt.xlabel('H/W [-]')
+plt.xlim((0,5))
+plt.ylim((0,1))
+plt.ylabel('SF [0-1]')
+plt.show()
+
 
 # plt.figure()
 # data_res5 = average_svf(data, gr_SVF)
@@ -617,30 +656,57 @@ elif (gridboxsize==0.5):
 # plt.colorbar()
 
 # data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-# [data_5,data_water_5] = MediateData(data,data_water,gr_SVF*gridboxsize,gr_SVF*gridboxsize,gr_SVF*gridboxsize,gridboxsize)
+# [data_5,data_water_5] = MediateData(data,data_water,2.5,2.5,2.5,gridboxsize)
 # plt.figure()
 # plt.imshow(data_5,vmin=0,vmax=vm)
 # plt.colorbar()
+# plt.show()
+# vm=25
+# print(data.shape)
+# plt.figure()
+# [data_50,data_water_50] = MediateData(data,data_water,25,25,10,gridboxsize)
+# [x_len,y_len] = data_50.shape
+# plt.imshow(data_50[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)],vmin=0,vmax=vm)
+# plt.colorbar()
+# #
+# [data_100,data_water_100] = MediateData(data,data_water,50,50,10,gridboxsize)
+# [x_len,y_len] = data_100.shape
+# plt.figure()
+# plt.imshow(data_100[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)],vmin=0,vmax=vm)
+# plt.colorbar()
+# plt.show()
 
-vm=25
-print(data.shape)
-plt.figure()
-[data_50,data_water_50] = MediateData(data,data_water,25,25,10,gridboxsize)
-plt.imshow(data_50,vmin=0,vmax=vm)
-plt.colorbar()
-plt.show()
-coords_50 = coordheight(data_50)
-[azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,12,radians=True)
-blocklength = int(data_50.shape[0]/2*data_50.shape[1]/2)
-print(blocklength)
-SFs = calc_SF(coords_50,azimuth,el_angle,blocklength)
-print("The SFs are:")
-print(SFs)
-
-SVFs = calc_SVF(coords_50,max_radius,blocklength,gridboxsize*25)
-print("The SFs are:")
-print(SVFs)
-
+# [x_len,y_len] = data_50.shape
+# plt.imshow(data_50[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)],vmin=0,vmax=vm)
+# plt.colorbar()
+# coords_50 = coordheight(data_50)
+# [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,12,radians=True)
+# blocklength = int(data_50.shape[0]/2*data_50.shape[1]/2)
+# print(blocklength)
+# SFs = calc_SF(coords_50,azimuth,el_angle,blocklength)
+# print("The SFs are:")
+# print(SFs)
+#
+# SVFs = calc_SVF(coords_50,max_radius,blocklength,gridboxsize*25)
+# print("The SFs are:")
+# print(SVFs)
+# SFs = SVF5mPy.SFs
+# SVFs = SVF5mPy.SVFs
+# SF_matrix = np.ndarray([x_len,y_len])
+# SVF_matrix = np.ndarray([x_len,y_len])
+# for i in range(int(x_len/2*y_len/2)):
+#     SF_matrix[int(coords_50[i,0]),int(coords_50[i,1])] = SFs[i]
+#     SVF_matrix[int(coords_50[i,0]),int(coords_50[i,1])] = SVFs[i]
+# SF_matrix = SF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# SVF_matrix = SVF_matrix[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+#
+# np.save('SF_GR50_P1_12AM',SF_matrix)
+# np.save('SVF_GR50_P1',SVF_matrix)
+# plt.figure()
+# plt.imshow(SF_matrix,vmin = 0, vmax = 1)
+# plt.figure()
+# plt.imshow(SVF_matrix,vmin = 0, vmax = 1)
+# plt.show()
 
 # SF = SVFs5m.SFs18
 # SF_matrix = np.ndarray([x_len,y_len])
@@ -672,17 +738,17 @@ print(SVFs)
 #     SF_11 = np.load(f)
 # with open('Pickles/1MaySF/SFmay1_HN1P2/SF_total_13pm.npy', 'rb') as f:
 #     SF_13 = np.load(f)
-# #data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
-# # print(SF_total.shape)
+# #%data = data[int(x_len/4):int(3*x_len/4),int(y_len/4):int(3*y_len/4)]
+# # # print(SF_total.shape)
 # #data_total = data_total[int(x_len/4):int(3*x_len/4),int(y_len/4):int(5*y_len/4)]
 # data_total = data_total[int(x_len/4):int(3*x_len/4),int(y_len/6):int(5*y_len/6)]
-# #
-# grid_ratio = 50
-# # grid_ratio_25 = 25
-# # grid_ratio_50 = 50
-# bin_nr = 30
-# minheight = 1
-# #
+# # #
+# grid_ratio = 10
+# # # grid_ratio_25 = 25
+# # # grid_ratio_50 = 50
+# # bin_nr = 30
+# # minheight = 1
+# # #
 # [azimuth,el_angle] = Sunpos.solarpos(Constants.julianday,Constants.latitude,Constants.long_rd,9,radians=True)
 # Zenith_9 = np.pi/2-el_angle
 # print(Zenith_9*180/np.pi)
@@ -695,63 +761,69 @@ print(SVFs)
 # [SF_roof_9,SF_road_9] = average_surfacetype(SF_9,data_total,grid_ratio)
 # [SF_roof_11,SF_road_11] = average_surfacetype(SF_11,data_total,grid_ratio)
 # [SF_roof_13,SF_road_13] = average_surfacetype(SF_13,data_total,grid_ratio)
-# #
-# # bin_nr = 30
+# # #
+# bin_nr = 30
 # SF_roads = np.linspace(0.01,1,20)
-# plt.figure()
-# SF_w_9 = WallSF_fit(Zenith_9,SF_roads)
-# SF_w_11 = WallSF_fit(Zenith_11,SF_roads)
-# SF_w_13 = WallSF_fit(Zenith_13,SF_roads)
-# plt.plot(SF_roads,SF_w_9,label="9AM")
-# plt.plot(SF_roads,SF_w_11,label="11AM")
-# plt.plot(SF_roads,SF_w_13,label="13PM")
-# plt.legend()
-#
-# "SVF PDF"
-# plt.figure()
-# SF_roof_9_list = SF_road_9.flatten()
+# # plt.figure()
+# # SF_w_9 = WallSF_fit(Zenith_9,SF_roads)
+# # SF_w_11 = WallSF_fit(Zenith_11,SF_roads)
+# # SF_w_13 = WallSF_fit(Zenith_13,SF_roads)
+# # plt.plot(SF_roads,SF_w_9,label="9AM")
+# # plt.plot(SF_roads,SF_w_11,label="11AM")
+# # plt.plot(SF_roads,SF_w_13,label="13PM")
+# # plt.legend()
+# #
+# "SF PDF"
+# SF_roof_9_list = SF_roof_9.flatten()
 # SF_roof_9_list = SF_roof_9_list[SF_roof_9_list<=1]
 # SF_roof_9_list = SF_roof_9_list[SF_roof_9_list>0]
-# SF_roof_11_list = SF_road_11.flatten()
+# SF_roof_11_list = SF_roof_11.flatten()
 # SF_roof_11_list = SF_roof_11_list[SF_roof_11_list<=1]
 # SF_roof_11_list = SF_roof_11_list[SF_roof_11_list>0]
-# SF_roof_13_list = SF_road_13.flatten()
+# SF_roof_13_list = SF_roof_13.flatten()
 # SF_roof_13_list = SF_roof_13_list[SF_roof_13_list<=1]
 # SF_roof_13_list = SF_roof_13_list[SF_roof_13_list>0]
 # SF_wall_9_list = WallSF_fit(Zenith_9,SF_roof_9_list)
 # SF_wall_11_list = WallSF_fit(Zenith_11,SF_roof_11_list)
 # SF_wall_13_list = WallSF_fit(Zenith_13,SF_roof_13_list)
-#
-# plt.xlim((0,0.5))
-# plt.hist(SF_wall_9_list, bins = bin_nr,weights=np.ones(len(SF_wall_9_list))/len(SF_wall_9_list))
+# #
+# plt.figure(figsize=(9,6))
+# plt.xlim((0,1))
+# plt.ylim((0,0.3))
+# #plt.hist(SF_wall_9_list, bins = bin_nr,weights=np.ones(len(SF_wall_9_list))/len(SF_wall_9_list))
+# plt.hist(SF_roof_9_list, bins = bin_nr,weights=np.ones(len(SF_roof_9_list))/len(SF_roof_9_list))
 # plt.ylabel('Normalized Counts [0-1]')
 # plt.xlabel('SF [0-1]')
-# plt.figure()
-# plt.xlim((0,0.5))
-# plt.hist(SF_wall_11_list, bins = bin_nr,weights=np.ones(len(SF_wall_11_list))/len(SF_wall_11_list))
+# plt.figure(figsize=(9,6))
+# plt.xlim((0,1))
+# plt.ylim((0,0.3))
+# plt.hist(SF_roof_11_list, bins = bin_nr,weights=np.ones(len(SF_roof_11_list))/len(SF_roof_11_list))
+# #plt.hist(SF_wall_11_list, bins = bin_nr,weights=np.ones(len(SF_wall_11_list))/len(SF_wall_11_list))
 # plt.ylabel('Normalized Counts [0-1]')
 # plt.xlabel('SF [0-1]')
-# plt.figure()
-# plt.xlim((0,0.5))
-# plt.hist(SF_wall_13_list, bins = bin_nr,weights=np.ones(len(SF_wall_13_list))/len(SF_wall_13_list))
+# plt.figure(figsize=(9,6))
+# plt.xlim((0,1))
+# plt.ylim((0,0.3))
+# plt.hist(SF_roof_13_list, bins = bin_nr,weights=np.ones(len(SF_roof_13_list))/len(SF_roof_13_list))
+# #plt.hist(SF_wall_13_list, bins = bin_nr,weights=np.ones(len(SF_wall_13_list))/len(SF_wall_13_list))
 # plt.ylabel('Normalized Counts [0-1]')
 # plt.xlabel('SF [0-1]')
 # plt.show()
 #
 # SF_wall_11 = WallSF_fit(Zenith_11,SF_road_11)
 # SF_wall_13 = WallSF_fit(Zenith_13,SF_road_13)
-#
+
 # counts_number, bin_edges_9 = np.histogram(SF_roof_9_list, bins=bin_nr,density=True)
 # pdf_SF_9_roof = counts_number/np.sum(counts_number)
 # counts_number, bin_edges_11 = np.histogram(SF_roof_11_list, bins=bin_nr,density=True)
 # pdf_SF_11_roof = counts_number/np.sum(counts_number)
 # counts_number, bin_edges_13 = np.histogram(SF_roof_13_list, bins=bin_nr,density=True)
 # pdf_SF_13_roof = counts_number/np.sum(counts_number)
-#
+
 # plt.plot(bin_edges_9[1:],pdf_SF_9_roof,label='9AM')
 # plt.plot(bin_edges_11[1:],pdf_SF_11_roof,label='11AM')
 # plt.plot(bin_edges_13[1:],pdf_SF_13_roof,label='1PM')
-#
+
 # plt.xlabel('SF [0-1]')
 # plt.ylabel('Probability [0-1]')
 # plt.legend()
@@ -812,7 +884,7 @@ print(SVFs)
 # plt.plot(bin_edges_10[1:],pdf_SF_10_wall,label='5m')
 # plt.plot(bin_edges_25[1:],pdf_SF_25_wall,label='12.5m')
 # plt.plot(bin_edges_50[1:],pdf_SF_50_wall,label='25m')
-
+#
 # plt.legend()
 # plt.xlabel("SF [0-1]")
 # plt.ylabel("Probability [0-1]")
@@ -1107,11 +1179,18 @@ print(SVFs)
 
 "Masson"
 # height = 15
-# widths = np.linspace(10,20,11)/gridboxsize
+# widths = np.linspace(10,40,11)/gridboxsize
 # len_mat = 500
-# SVFs = np.empty((len(widths)))
-# SVF_an = np.empty((len(widths)))
 # plt.figure()
+# el_angles = [80,70,60,50]
+# colours = ['r','b','g','y']
+# # plt.plot([], [],color='dimgray',linestyle='solid', label="Algorithm")
+# # plt.plot([], [],color='dimgray',linestyle='dashed', label="Masson")
+# #for z in range(len(el_angles)):
+# SVFs = np.empty((len(widths)))
+#     # SF_wall_alg = np.empty((len(widths)))
+# SVF_an = np.empty((len(widths)))
+#     # SF_w = np.empty((len(widths)))
 # h_w = np.empty((len(widths)))
 # for i in range(len(widths)):
 #     h_w[i] = height/(widths[i]*gridboxsize)
@@ -1119,15 +1198,22 @@ print(SVFs)
 #     matr[:,int(len_mat/2-widths[i]/2):int(len_mat/2+widths[i]/2)] = 0
 #     SVF = np.empty((int(widths[i])))
 #     coords = coordheight(matr)
+#     # el_angle_rad = el_angles[z]*np.pi/180
+#     # zenith = np.pi/2-el_angle_rad
 #     for j in range(int(widths[i])):
 #         point = [len_mat/2,len_mat/2-widths[i]/2+j,0]
-#         SVF[j] = SkyViewFactor(point,coords,max_radius,gridboxsize,steps_beta)
+#         SVF[j] = SkyViewFactor(point,coords,max_radius,gridboxsize)
 #     SVFs[i] = np.mean(SVF)
-#     SVF_roof, SVF_wall, SVF_road = SVF_masson(h_w[i])
-#     SVF_an[i] = SVF_road
-# plt.plot(h_w,SVFs,'r',label="Numerical")
-# plt.plot(h_w,SVF_an,'r--',label="Masson")
-# plt.legend(loc="upper right")
+#     #SF_wall_alg[i] = (1-SFs[i])/(2*h_w[i])
+#     [SVF_Roof, SVF_w, SVF_an[i]] = SVF_masson(h_w[i])
+# plt.plot(h_w,SVFs,'r',label="Algorithm")
+# plt.plot(h_w,SVF_an,'r--',label='Masson')
+# plt.xlabel('H/W [-]')
+# plt.ylabel('SVF [0-1]')
+# plt.xlim((np.min(h_w),np.max(h_w)))
+# #plt.ylim((0,1))
+# plt.legend(loc="lower left")
+# plt.show()
 
 
 # data = data[:int(x_len/4),:int(y_len/4)]

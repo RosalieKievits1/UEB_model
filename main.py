@@ -46,9 +46,9 @@ for t in range(nr_of_steps):
     Azi[t],El[t] = Sunpos.solarpos(day,Constants.latitude,Constants.long_rd,hour,radians=True)
     Zenith[t] = np.pi/2-El[t]
     if np.logical_and(hour>=6,hour<=20):
-        with open('Pickles/1MaySF/SF_may1_'+str(int(hour))+'_HN1.pickle', 'rb') as f:
+        with open('SFmatrices/Pickles/1MaySF/SF_may1_'+str(int(hour))+'_HN1.pickle', 'rb') as f:
             SF_matrix = pickle.load(f)
-        with open('SF1May_aveNM_GR5/SFP1_GR5_NM_' + str(int(hour)) + '.npy', 'rb') as f:
+        with open('SFmatrices/SF1May_aveNM_GR5/SFP1_GR5_NM_' + str(int(hour)) + '.npy', 'rb') as f:
             SF_matrixGR5 = np.load(f)
         # with open('SF1May_aveNM_GR25/SFP1_GR25_NM_' + str(int(hour)) + '.npy', 'rb') as f:
         #     SF_matrix = np.load(f)
@@ -112,7 +112,7 @@ LW_down = sigma*eps*T_2m**4
 "SVF"
 #with open('SVF_MatrixP1_GR5_newMethod.npy', 'rb') as f:
 #with open('SVF_05Matrix.npy', 'rb') as f:
-with open('SVF_MatrixP1_GR25_newMethod.npy', 'rb') as f:
+with open('SVFmatrices/SVF_MatrixP1_GR25_newMethod.npy', 'rb') as f:
     SVF_matrix = np.load(f)
 [SVF_roof,SVF_road] = SVF.average_surfacetype(SVF_matrix,data,gridratio)
 SVF_wall = SVF.Inv_WallvsRoadMasson(SVF_road)

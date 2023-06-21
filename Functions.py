@@ -3,15 +3,14 @@ import numpy as np
 import pandas as pd
 import Constants
 import matplotlib.pyplot as plt
-import SVF
+#import SVF
+plt.rc('font', size=15)
 from tqdm import tqdm
 from numpy import random
 import Sunpos
-plt.rc('font', size=13) #for three plots togethes
 
 """Read in data"""
 data = pd.read_csv("cabauw_2018.csv", sep = ';')
-#data = pd.read_csv("era5_NL_2021.csv",sep=',')
 data.head()
 
 """upward sensible heat flux"""
@@ -590,16 +589,35 @@ def HeatEvolution(time_steps,delta_t,SW_down,Zenith,LW_down,T_2m,q_first_layer,
            LW_w_first, LW_w_em, LW_w_wall, LW_w_roof, LW_w_road, \
            LW_g_first, LW_g_em, LW_g_wall
 
-def AnalyticalSoil(t,z,lamb,C):
+def AnalyticalSoil(t,z,lamb,C,T_ave,T_amp):
+    """
+    :param t: time (can be an array)
+    :param z: depth
+    :param lamb: heat conductivity
+    :param C: volumetric heat capacity
+    :param T_ave: Top layer forcing: average temp
+    :param T_amp: Top layer forcing: amplitude temp
+    :return: Temperature of the soil for the given depth
+    """
     k = lamb/C
     period = 24
     omega = 2*np.pi/(period*3600)
     d = (2*k/omega)**(1/2) # Damping depth
     phi_z = -z/d
-    T = 273.15+20+10*np.exp(phi_z)*np.sin(omega*t*Constants.timestep+phi_z)
+    T = T_ave+T_amp*np.exp(phi_z)*np.sin(omega*t*Constants.timestep+phi_z)
     return T
 
 def NumericalSoil(time,delta_t,delta_d,lambd,Cap,layers,T_in):
+    """
+    :param time: time (can be an array)
+    :param delta_t: timestep
+    :param delta_d: layer thickness
+    :param lambd: heat conductivity
+    :param Cap: volumetric heat capacity
+    :param layers: number of layers
+    :param T_in: top layer temperature BC
+    :return:
+    """
     C = np.ones((layers))*Cap
     lamb = np.ones((layers))*lambd
     T = np.ones([len(time),layers])
@@ -679,3 +697,5 @@ def PlotSurfaceFluxes(nr_of_steps,Fluxes,Flux_names,show=False):
     if show == True:
         plt.show()
     return
+
+
